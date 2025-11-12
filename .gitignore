@@ -7,8 +7,10 @@ pnpm-lock.yaml
 # Build output
 dist/
 build/
-*.min.js
-*.min.js.map
+
+# Allow demo build files
+!demo/*.min.js
+!demo/*.min.js.map
 
 # TypeScript
 *.tsbuildinfo
