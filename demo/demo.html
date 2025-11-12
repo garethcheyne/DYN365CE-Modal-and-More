@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dynamics 365 CE UI Library from err403</title>
+    <link rel="icon" type="image/x-icon" href="img/favicon.ico" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #1e1e1e;
+        padding: 40px 20px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .header {
+        max-width: 1200px;
+        margin: 0 auto 32px auto;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        padding: 0 40px;
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .logo {
+        height: 64px;
+        width: auto;
+      }
+
+      .d365-logo {
+        height: 48px;
+        width: auto;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 4px;
+        box-shadow: 0 3.2px 7.2px rgba(0, 0, 0, 0.132),
+          0 0.6px 1.8px rgba(0, 0, 0, 0.108);
+        padding: 40px;
+        flex: 1;
+      }
+
+      h1 {
+        color: #323130;
+        font-size: 32px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        color: #605e5c;
+        font-size: 16px;
+        margin-bottom: 32px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .section {
+        margin-bottom: 48px;
+      }
+
+      .section h2 {
+        color: #0078d4;
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #edebe9;
+      }
+
+      .button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      .btn-primary {
+        background: #0078d4;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #106ebe;
+      }
+
+      .btn-success {
+        background: #107c10;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #0e6b0e;
+      }
+
+      .btn-error {
+        background: #d13438;
+        color: white;
+      }
+
+      .btn-error:hover {
+        background: #a4262c;
+      }
+
+      .btn-warn {
+        background: #ff9800;
+        color: white;
+      }
+
+      .btn-warn:hover {
+        background: #f57c00;
+      }
+
+      .btn-info {
+        background: #096cc8;
+        color: white;
+      }
+
+      .btn-info:hover {
+        background: #005a9e;
+      }
+
+      .btn-danger {
+        background: #d13438;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #a4262c;
+      }
+
+      .btn-secondary {
+        background: #f3f2f1;
+        color: #323130;
+        border: 1px solid #d2d0ce;
+      }
+
+      .btn-secondary:hover {
+        background: #e1dfdd;
+      }
+
+      .code-block {
+        background: #f3f2f1;
+        padding: 16px;
+        border-radius: 4px;
+        border-left: 4px solid #0078d4;
+        margin-top: 16px;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 13px;
+        color: #323130;
+        overflow-x: auto;
+      }
+
+      .feature-note {
+        background: #f0f6ff;
+        border-left: 4px solid #0078d4;
+        padding: 12px 16px;
+        margin-top: 16px;
+        border-radius: 4px;
+        color: #323130;
+        font-size: 14px;
+      }
+
+      .status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+
+      .status.ready {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .status.pending {
+        background: #fff3cd;
+        color: #856404;
+      }
+
+      footer {
+        max-width: 1200px;
+        margin: 32px auto 0 auto;
+        padding: 24px 40px;
+        text-align: center;
+        color: #ffffff;
+        font-size: 14px;
+      }
+
+      footer a {
+        color: #0078d4;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.2s;
+      }
+
+      footer a:hover {
+        color: #106ebe;
+        text-decoration: underline;
+      }
+
+      .footer-links {
+        margin-top: 12px;
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .footer-logo {
+        height: 32px;
+        width: auto;
+        margin-top: 16px;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <img
+        src="img/microsoft-dynamics-365-logo.webp"
+        alt="Dynamics 365"
+        class="d365-logo"
+      />
+      <h1>
+        Dynamics 365 CE UI Library <span class="status ready">v1.0.0</span>
+      </h1>
+      <p class="subtitle">
+        <span
+          >TypeScript UI utility library for Dynamics 365 Customer
+          Engagement</span
+        >
+        <span style="color: #0078d4; font-weight: 600">from err403</span>
+      </p>
+
+      <!-- Toast Section -->
+      <div class="section">
+        <h2>Toast Notifications <span class="status ready">Ready</span></h2>
+        <p>
+          Toast notifications with auto-dismiss, stacking, and optional sound.
+        </p>
+
+        <div class="button-group">
+          <button class="btn-success" onclick="showSuccessToast()">
+            Show Success
+          </button>
+          <button class="btn-error" onclick="showErrorToast()">
+            Show Error
+          </button>
+          <button class="btn-warn" onclick="showWarnToast()">
+            Show Warning
+          </button>
+          <button class="btn-info" onclick="showInfoToast()">Show Info</button>
+          <button class="btn-secondary" onclick="showDefaultToast()">
+            Show Default
+          </button>
+        </div>
+
+        <div class="button-group" style="margin-top: 12px">
+          <button class="btn-success" onclick="showSuccessWithSound()">
+            Success + Sound
+          </button>
+          <button class="btn-error" onclick="showErrorWithSound()">
+            Error + Sound
+          </button>
+        </div>
+
+        <div class="code-block">
+          // Object-based API<br>
+          err403.Toast.success({ title: "Account Saved", message: "The account has been updated successfully.", duration: 5000, sound: true });<br><br>
+          // String-based API<br>
+          err403.Toast.error("Error Title", "Error message", 4000, true);
+        </div>
+      </div>
+
+      <!-- Logger Section -->
+      <div class="section">
+        <h2>Logger Utility <span class="status ready">Ready</span></h2>
+        <p>Consistent console logging with styled prefixes (BUG, WAR, ERR).</p>
+
+        <div class="button-group">
+          <button class="btn-primary" onclick="logBug()">Log BUG</button>
+          <button class="btn-warn" onclick="logWarning()">Log WAR</button>
+          <button class="btn-error" onclick="logError()">Log ERR</button>
+        </div>
+
+        <div class="code-block">
+          console.debug(...err403.BUG, "Debug message", { data: 123 });
+          console.warn(...err403.WAR, "Warning message");
+          console.error(...err403.ERR, "Error message", errorObj);
+        </div>
+
+        <div class="feature-note">
+          <strong>Note:</strong> Open the browser console (F12) to see styled
+          log outputs.
+        </div>
+      </div>
+
+      <!-- Modal Section -->
+      <div class="section">
+        <h2>Modal Dialogs <span class="status complete">✓</span></h2>
+        <p>
+          Modal dialogs with tabs, progress indicators, side cart, and advanced
+          features.
+        </p>
+
+        <h3>Basic Modals</h3>
+        <div class="button-group">
+          <button class="btn-primary" onclick="showAlertModal()">Alert</button>
+          <button class="btn-primary" onclick="showConfirmModal()">
+            Confirm
+          </button>
+          <button class="btn-info" onclick="showInfoModal()">Info</button>
+          <button class="btn-warn" onclick="showWarningModal()">Warning</button>
+          <button class="btn-danger" onclick="showErrorModal()">Error</button>
+        </div>
+
+        <h3>Form Modals</h3>
+        <div class="button-group">
+          <button class="btn-primary" onclick="showSimpleForm()">
+            Simple Form
+          </button>
+          <button class="btn-primary" onclick="showAllFieldTypes()">
+            All Field Types
+          </button>
+          <button class="btn-primary" onclick="showValidationForm()">
+            With Validation
+          </button>
+        </div>
+
+        <h3>Advanced Features</h3>
+        <div class="button-group">
+          <button class="btn-secondary" onclick="showTabsModal()">Tabs</button>
+          <button class="btn-secondary" onclick="showSideCartModal()">
+            Side Cart
+          </button>
+          <button class="btn-secondary" onclick="showDraggableModal()">
+            Draggable
+          </button>
+          <button class="btn-secondary" onclick="showSizesModal()">
+            Size Options
+          </button>
+        </div>
+
+        <div class="code-block">
+          <strong>Example:</strong><br />
+          <code
+            >err403.Modal.alert('Success', 'Your changes have been
+            saved.');</code
+          >
+        </div>
+      </div>
+
+      <!-- Lookup Section -->
+      <div class="section">
+        <h2>Lookup Component <span class="status complete">✓</span></h2>
+        <p>
+          Advanced entity record lookup with table display, search, pagination, and metadata-driven columns.
+        </p>
+
+        <div class="button-group">
+          <button class="btn-primary" onclick="showSimpleLookup()">
+            Simple Lookup
+          </button>
+          <button class="btn-primary" onclick="showMultiSelectLookup()">
+            Multi-Select Lookup
+          </button>
+          <button class="btn-primary" onclick="showAdvancedLookup()">
+            Advanced Features
+          </button>
+        </div>
+
+        <div class="code-block">
+          <strong>Example:</strong><br />
+          <code>err403.Lookup.open({
+  entity: 'account',
+  columns: ['name', 'accountnumber', 'telephone1'],
+  onSelect: (records) => { console.log(records); }
+});</code>
+        </div>
+
+        <div class="feature-note">
+          <strong>Note:</strong> Lookup uses mock data in the demo. In D365, it will fetch real entity records using Xrm.WebApi.
+        </div>
+      </div>
+    </div>
+
+    <!-- Load the built UMD library -->
+    <script src="ui-lib.min.js"></script>
+    
+    <script>
+      // err403 is now globally available from the UMD build
+      // Access via: err403.Toast, err403.Modal, etc.
+
+      // Toast demos using err403 global
+      window.showSuccessToast = () => {
+        err403.Toast.success({
+          title: 'Account Saved',
+          message: 'The account has been updated successfully.',
+          duration: 5000
+        })
+      }
+
+      window.showErrorToast = () => {
+        err403.Toast.error({
+          title: 'Operation Failed',
+          message: 'Unable to save the record. Please try again.',
+          duration: 6000
+        })
+      }
+
+      window.showWarnToast = () => {
+        err403.Toast.warn({
+          title: 'Warning',
+          message: 'Some fields are missing. Please review your input.',
+          duration: 5000
+        })
+      }
+
+      window.showInfoToast = () => {
+        err403.Toast.info({
+          title: 'Information',
+          message: 'System maintenance scheduled for tonight at 10 PM.',
+          duration: 7000
+        })
+      }
+
+      window.showDefaultToast = () => {
+        err403.Toast.default({
+          title: 'Notification',
+          message: 'You have 3 new messages.',
+          duration: 4000
+        })
+      }
+
+      window.showSuccessWithSound = () => {
+        err403.Toast.success({
+          title: 'Payment Received',
+          message: '$500 payment processed successfully.',
+          duration: 5000,
+          sound: true
+        })
+      }
+
+      window.showErrorWithSound = () => {
+        err403.Toast.error({
+          title: 'Connection Lost',
+          message: 'Unable to connect to server.',
+          duration: 5000,
+          sound: true
+        })
+      }
+
+      // Logger demos using err403 global
+      window.logBug = () => {
+        console.debug(...err403.BUG, 'This is a debug message', {
+          userId: 123,
+          action: 'test'
+        })
+      }
+
+      window.logWarning = () => {
+        console.warn(
+          ...err403.WAR,
+          'This is a warning message',
+          'Deprecated API usage'
+        )
+      }
+
+      window.logError = () => {
+        console.error(
+          ...err403.ERR,
+          'This is an error message',
+          new Error('Sample error')
+        )
+      }
+
+      // Show welcome toast
+      setTimeout(() => {
+        err403.Toast.info({
+          title: 'Welcome! 👋',
+          message:
+            'Try the buttons to see Toast notifications and Modal dialogs in action.',
+          duration: 6000
+        })
+      }, 500)
+
+      // ========== MODAL DEMOS ==========
+
+      // Basic Modals
+      window.showAlertModal = async () => {
+        await err403.ModalHelpers.alert(
+          'Success',
+          'Your changes have been saved successfully.'
+        )
+      }
+
+      window.showConfirmModal = async () => {
+        const confirmed = await err403.ModalHelpers.confirm(
+          'Delete Record?',
+          'Are you sure you want to delete this record? This action cannot be undone.'
+        )
+        if (confirmed) {
+          err403.Toast.success('Confirmed', 'Record deleted.')
+        } else {
+          err403.Toast.info('Cancelled', 'Action cancelled.')
+        }
+      }
+
+      window.showInfoModal = () => {
+        const modal = new err403.Modal({
+          title: 'Information',
+          message:
+            'System maintenance is scheduled for tonight at 10 PM EST. Services may be temporarily unavailable.',
+          icon: 'INFO',
+          size: 'small',
+          buttons: [new err403.ModalButton('OK', () => {}, true)]
+        })
+        modal.show()
+      }
+
+      window.showWarningModal = () => {
+        const modal = new err403.Modal({
+          title: 'Warning',
+          message:
+            'You have unsaved changes. Please save your work before continuing.',
+          icon: 'WARNING',
+          size: 'small',
+          buttons: [new err403.ModalButton('OK', () => {}, true)]
+        })
+        modal.show()
+      }
+
+      window.showErrorModal = () => {
+        const modal = new err403.Modal({
+          title: 'Error',
+          message:
+            'Unable to connect to the server. Please check your internet connection and try again.',
+          icon: 'ERROR',
+          size: 'small',
+          buttons: [
+            new err403.ModalButton(
+              'Retry',
+              () => {
+                err403.Toast.info('Retrying', 'Attempting to reconnect...')
+              },
+              true
+            )
+          ]
+        })
+        modal.show()
+      }
+
+      // Form Modals (using new field helper classes)
+      window.showSimpleForm = () => {
+        const modal = new err403.Modal({
+          title: 'Create Contact',
+          message: 'Enter the contact details below.',
+          fields: [
+            new err403.Input({
+              id: 'firstname',
+              label: 'First Name',
+              type: 'text',
+              required: true,
+              placeholder: 'Enter first name'
+            }),
+            new err403.Input({
+              id: 'lastname',
+              label: 'Last Name',
+              type: 'text',
+              required: true,
+              placeholder: 'Enter last name'
+            }),
+            new err403.Input({
+              id: 'email',
+              label: 'Email',
+              type: 'text',
+              placeholder: 'example@company.com'
+            })
+          ],
+          buttons: [
+            new err403.Button('Cancel', () => {}),
+            new err403.Button(
+              'Create',
+              () => {
+                const data = modal.getFieldValues()
+                err403.Toast.success(
+                  'Contact Created',
+                  `${data.firstname} ${data.lastname} has been created.`
+                )
+              },
+              true
+            )
+          ]
+        })
+        modal.show()
+      }
+
+      window.showAllFieldTypes = () => {
+        const modal = new err403.Modal({
+          title: 'All Field Types Demo',
+          size: 'large',
+          fields: [
+            {
+              id: 'textInput',
+              label: 'Text Input',
+              type: 'text',
+              placeholder: 'Enter text'
+            },
+            {
+              id: 'numberInput',
+              label: 'Number Input',
+              type: 'number',
+              value: 42
+            },
+            {
+              id: 'dateInput',
+              label: 'Date',
+              type: 'date'
+            },
+            {
+              id: 'checkboxInput',
+              label: 'Checkbox',
+              type: 'checkbox',
+              value: true
+            },
+            {
+              id: 'toggleInput',
+              label: 'Toggle Switch',
+              type: 'toggle',
+              value: false
+            },
+            {
+              id: 'rangeInput',
+              label: 'Range Slider',
+              type: 'range',
+              value: 50,
+              showValue: true,
+              extraAttributes: { min: 0, max: 100, step: 5 }
+            },
+            {
+              id: 'textarea',
+              label: 'Multi-line Text',
+              rows: 3,
+              placeholder: 'Enter notes'
+            },
+            {
+              id: 'optionset',
+              label: 'Status',
+              options: ['Draft', 'Active', 'Inactive'],
+              value: 'Active'
+            },
+            {
+              id: 'daterange',
+              label: 'Date Range',
+              startDate: new Date(),
+              endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            }
+          ],
+          buttons: [
+            new err403.ModalButton('Close', () => {}),
+            new err403.ModalButton(
+              'Submit',
+              () => {
+                const data = modal.getFieldValues()
+                console.log('Form data:', data)
+                err403.Toast.success('Data Captured', 'Check console for output.')
+              },
+              true
+            )
+          ]
+        })
+        modal.show()
+      }
+
+      window.showValidationForm = () => {
+        const modal = new err403.Modal({
+          title: 'Registration Form',
+          message: 'All fields with * are required.',
+          fields: [
+            {
+              id: 'username',
+              label: 'Username',
+              type: 'text',
+              required: true,
+              placeholder: 'Choose a username',
+              validation: {
+                rules: [
+                  { type: 'required', message: 'Username is required' },
+                  {
+                    type: 'minLength',
+                    value: 3,
+                    message: 'Username must be at least 3 characters'
+                  }
+                ],
+                validateOn: 'blur',
+                showErrors: true
+              }
+            },
+            {
+              id: 'email',
+              label: 'Email',
+              type: 'text',
+              required: true,
+              placeholder: 'your@email.com',
+              validation: {
+                rules: [
+                  { type: 'required', message: 'Email is required' },
+                  {
+                    type: 'email',
+                    message: 'Please enter a valid email address'
+                  }
+                ],
+                validateOn: 'blur',
+                showErrors: true
+              }
+            },
+            {
+              id: 'password',
+              label: 'Password',
+              type: 'text',
+              required: true,
+              placeholder: 'Enter password',
+              validation: {
+                rules: [
+                  { type: 'required', message: 'Password is required' },
+                  {
+                    type: 'minLength',
+                    value: 8,
+                    message: 'Password must be at least 8 characters'
+                  }
+                ],
+                validateOn: 'blur',
+                showErrors: true
+              }
+            }
+          ],
+          buttons: [
+            new err403.ModalButton('Cancel', () => {}),
+            new err403.ModalButton(
+              'Register',
+              () => {
+                if (modal.validateAllFields()) {
+                  const data = modal.getFieldValues()
+                  err403.Toast.success(
+                    'Registration Complete',
+                    `Welcome, ${data.username}!`
+                  )
+                  modal.close()
+                } else {
+                  err403.Toast.error(
+                    'Validation Failed',
+                    'Please fix the errors before submitting.'
+                  )
+                  return false
+                }
+              },
+              true
+            )
+          ],
+          preventClose: true
+        })
+        modal.show()
+      }
+
+      // Advanced Features
+      window.showTabsModal = () => {
+        const modal = new err403.Modal({
+          title: 'Account Settings',
+          size: 'large',
+          fields: [
+            {
+              id: 'tabs',
+              fields: [
+                {
+                  label: 'Profile',
+                  fields: [
+                    {
+                      id: 'name',
+                      label: 'Name',
+                      type: 'text',
+                      value: 'John Doe'
+                    },
+                    {
+                      id: 'email',
+                      label: 'Email',
+                      type: 'text',
+                      value: 'john@example.com'
+                    },
+                    {
+                      id: 'phone',
+                      label: 'Phone',
+                      type: 'text',
+                      value: '555-1234'
+                    }
+                  ]
+                },
+                {
+                  label: 'Preferences',
+                  fields: [
+                    {
+                      id: 'notifications',
+                      label: 'Email Notifications',
+                      type: 'toggle',
+                      value: true
+                    },
+                    {
+                      id: 'theme',
+                      label: 'Theme',
+                      options: ['Light', 'Dark', 'Auto'],
+                      value: 'Light'
+                    }
+                  ]
+                },
+                {
+                  label: 'Security',
+                  fields: [
+                    {
+                      id: '2fa',
+                      label: 'Two-Factor Authentication',
+                      type: 'toggle',
+                      value: false
+                    },
+                    {
+                      id: 'sessions',
+                      label: 'Active Sessions',
+                      type: 'number',
+                      value: 3
+                    }
+                  ]
+                }
+              ],
+              asTabs: true
+            }
+          ],
+          buttons: [
+            new err403.ModalButton('Cancel', () => {}),
+            new err403.ModalButton(
+              'Save',
+              () => {
+                err403.Toast.success(
+                  'Settings Saved',
+                  'Your preferences have been updated.'
+                )
+              },
+              true
+            )
+          ]
+        })
+        modal.show()
+      }
+
+      window.showSideCartModal = () => {
+        const modal = new err403.Modal({
+          title: 'Product Details',
+          size: 'large',
+          message: 'View product information and specifications.',
+          fields: [
+            {
+              id: 'name',
+              label: 'Product Name',
+              type: 'text',
+              value: 'Premium Widget'
+            },
+            { id: 'price', label: 'Price', type: 'number', value: 99.99 },
+            { id: 'quantity', label: 'Quantity', type: 'number', value: 1 },
+            {
+              id: 'description',
+              label: 'Description',
+              rows: 4,
+              value: 'High-quality premium widget with advanced features.'
+            }
+          ],
+          sideCart: {
+            enabled: true,
+            attached: false,
+            position: 'right',
+            width: 300,
+            content: `
+                        <div style="padding: 20px;">
+                            <h3 style="margin-top: 0;">Product Image</h3>
+                            <div style="width: 100%; height: 200px; background: #f3f2f1; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+                                <span style="font-size: 48px;">🎁</span>
+                            </div>
+                            <h4 style="margin-top: 20px;">Features</h4>
+                            <ul style="padding-left: 20px;">
+                                <li>Premium Quality</li>
+                                <li>2 Year Warranty</li>
+                                <li>Free Shipping</li>
+                                <li>24/7 Support</li>
+                            </ul>
+                        </div>
+                    `
+          },
+          buttons: [
+            new err403.ModalButton('Close', () => {}),
+            new err403.ModalButton(
+              'Add to Cart',
+              () => {
+                err403.Toast.success('Added to Cart', 'Product added successfully.')
+              },
+              true
+            )
+          ]
+        })
+        modal.show()
+      }
+
+      window.showDraggableModal = () => {
+        const modal = new err403.Modal({
+          title: 'Draggable Dialog',
+          message:
+            'Try dragging this modal by clicking and holding the header!',
+          draggable: true,
+          size: 'small',
+          buttons: [new err403.ModalButton('Close', () => {}, true)]
+        })
+        modal.show()
+      }
+
+      window.showSizesModal = () => {
+        const modal = new err403.Modal({
+          title: 'Choose Modal Size',
+          message: 'Select a size to see how modals can be customized.',
+          size: 'small',
+          fields: [
+            {
+              id: 'size',
+              label: 'Modal Size',
+              options: ['Small', 'Medium', 'Large', 'Fullscreen'],
+              value: 'Small'
+            }
+          ],
+          buttons: [
+            new err403.ModalButton('Close', () => {}),
+            new err403.ModalButton(
+              'Apply',
+              () => {
+                const size = modal.getFieldValue('size').toLowerCase()
+                modal.close()
+
+                const newModal = new err403.Modal({
+                  title: `${
+                    size.charAt(0).toUpperCase() + size.slice(1)
+                  } Modal`,
+                  message: `This is a ${size} sized modal dialog.`,
+                  size: size,
+                  buttons: [new err403.ModalButton('Close', () => {}, true)]
+                })
+                newModal.show()
+              },
+              true
+            )
+          ]
+        })
+        modal.show()
+      }
+
+      // ========== LOOKUP DEMOS ==========
+
+      window.showSimpleLookup = () => {
+        err403.Lookup.open({
+          entity: 'account',
+          columns: ['name', 'accountnumber', 'telephone1', 'address1_city'],
+          title: 'Select Account',
+          onSelect: (records) => {
+            err403.Toast.success({
+              title: 'Account Selected',
+              message: `Selected: ${records.map(r => r.name).join(', ')}`,
+              duration: 4000
+            })
+            console.log('Selected records:', records)
+          },
+          onCancel: () => {
+            err403.Toast.info({
+              title: 'Cancelled',
+              message: 'Lookup was cancelled.',
+              duration: 3000
+            })
+          }
+        })
+      }
+
+      window.showMultiSelectLookup = () => {
+        err403.Lookup.open({
+          entity: 'contact',
+          columns: ['name', 'emailaddress1', 'telephone1', 'parentcustomerid'],
+          columnLabels: {
+            name: 'Full Name',
+            emailaddress1: 'Email Address',
+            telephone1: 'Phone',
+            parentcustomerid: 'Company'
+          },
+          multiSelect: true,
+          title: 'Select Contacts (Multi-Select)',
+          pageSize: 25,
+          allowClear: true,
+          onSelect: (records) => {
+            if (records.length === 0) {
+              err403.Toast.info({
+                title: 'Cleared',
+                message: 'Selection cleared.',
+                duration: 3000
+              })
+            } else {
+              err403.Toast.success({
+                title: `${records.length} Contact${records.length !== 1 ? 's' : ''} Selected`,
+                message: `Selected: ${records.map(r => r.name).join(', ')}`,
+                duration: 5000
+              })
+            }
+            console.log('Selected records:', records)
+          }
+        })
+      }
+
+      window.showAdvancedLookup = () => {
+        err403.Lookup.open({
+          entity: 'account',
+          columns: ['name', 'accountnumber', 'telephone1', 'emailaddress1', 'address1_city', 'createdon'],
+          columnLabels: {
+            name: 'Account Name',
+            accountnumber: 'Account #',
+            telephone1: 'Main Phone',
+            emailaddress1: 'Email',
+            address1_city: 'City',
+            createdon: 'Created On'
+          },
+          searchFields: ['name', 'accountnumber', 'emailaddress1'],
+          defaultSearchTerm: '',
+          orderBy: [
+            { attribute: 'name', descending: false }
+          ],
+          pageSize: 20,
+          showPagination: true,
+          width: 1000,
+          height: 650,
+          title: 'Advanced Account Lookup',
+          onSelect: (records) => {
+            const record = records[0]
+            err403.Toast.success({
+              title: 'Account Selected',
+              message: `${record.name} (${record.attributes.accountnumber || 'N/A'})`,
+              duration: 4000
+            })
+            console.log('Selected record with all attributes:', record)
+          }
+        })
+      }
+    </script>
+
+    <footer>
+      <div>
+        &copy; 2025
+        <a href="https://err403.com" target="_blank" rel="noopener noreferrer"
+          >err403.com</a
+        >
+        - Dynamics 365 CE UI Library
+      </div>
+      <div class="footer-links">
+        <span>Built with TypeScript + Vite</span>
+        <span>•</span>
+        <span>Open Source</span>
+        <span>•</span>
+        <a href="https://err403.com" target="_blank" rel="noopener noreferrer"
+          >Visit err403.com</a
+        >
+      </div>
+      <img src="img/logo64.png" alt="err403" class="footer-logo" />
+    </footer>
+  </body>
+</html>
