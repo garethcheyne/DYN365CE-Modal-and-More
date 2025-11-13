@@ -77,6 +77,7 @@ export interface FieldConfig {
     allowMultiSelect?: boolean;
     callback?: (selected: any[]) => void;
     render?: () => HTMLElement;
+    html?: string;
     fields?: FieldConfig[];
     asTabs?: boolean;
     divider?: boolean;
@@ -145,4 +146,5 @@ export interface ModalInstance {
     content(content: string): this;
     width(width: number): this;
     height(height: number): this;
+    showWebResource(webResourcePath: string): void;
 }

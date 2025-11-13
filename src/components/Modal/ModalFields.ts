@@ -146,12 +146,14 @@ export class Custom implements FieldConfig {
   label?: string;
   type: string = 'custom';
   render?: () => HTMLElement;
+  html?: string;
   divider?: boolean;
 
   constructor(config: FieldConfig) {
     this.id = config.id;
     this.label = config.label;
     this.render = config.render;
+    this.html = config.html;
     this.divider = config.divider;
   }
 }

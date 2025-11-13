@@ -116,13 +116,13 @@ export class Modal implements ModalInstance {
 
     // If sideCart is enabled, create a wrapper for modal + sideCart
     if (this.options.sideCart?.enabled) {
-      const isAttached = this.options.sideCart.attached !== false;
+      const isAttached = this.options.sideCart.attached === true;
       const modalWrapper = doc.createElement('div');
       modalWrapper.style.cssText = `
         display: flex;
         ${this.options.sideCart.position === 'left' ? 'flex-direction: row-reverse;' : 'flex-direction: row;'}
         align-items: stretch;
-        gap: ${!isAttached ? '20px' : '0'};
+        ${!isAttached ? 'gap: 18px;' : ''}
       `;
       
       const sideCart = this.createSideCart();
@@ -217,24 +217,34 @@ export class Modal implements ModalInstance {
     const doc = getTargetDocument();
     this.body = doc.createElement('div');
     
+    // Count sections to determine styling
+    const sectionCount = 
+      (this.options.message ? 1 : 0) +
+      (this.options.content ? 1 : 0) +
+      (this.options.fields && this.options.fields.length > 0 ? 1 : 0);
+    
+    const needsSectionStyling = sectionCount > 1;
+    
     this.body.style.cssText = `
       flex: 1;
       overflow: auto;
       padding: ${theme.spacing.l};
-      background: #fafafa;
+      background: ${needsSectionStyling ? '#fafafa' : '#ffffff'};
     `;
 
     if (this.options.message) {
       const messageEl = doc.createElement('p');
       messageEl.textContent = this.options.message;
       messageEl.style.cssText = `
-        margin: 0 0 ${theme.spacing.m} 0;
+        margin: 0 0 ${needsSectionStyling ? theme.spacing.m : '0'} 0;
         color: ${theme.colors.modal.textSecondary};
         font-size: ${theme.typography.fontSize.body};
-        background: #ffffff;
-        padding: ${theme.spacing.l};
-        border-radius: ${theme.borderRadius.medium};
-        box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
+        ${needsSectionStyling ? `
+          background: #ffffff;
+          padding: ${theme.spacing.l};
+          border-radius: ${theme.borderRadius.medium};
+          box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
+        ` : ''}
       `;
       this.body.appendChild(messageEl);
     }
@@ -243,10 +253,12 @@ export class Modal implements ModalInstance {
       const contentEl = doc.createElement('div');
       contentEl.innerHTML = this.options.content;
       contentEl.style.cssText = `
-        background: #ffffff;
-        padding: ${theme.spacing.l};
-        border-radius: ${theme.borderRadius.medium};
-        box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
+        ${needsSectionStyling ? `
+          background: #ffffff;
+          padding: ${theme.spacing.l};
+          border-radius: ${theme.borderRadius.medium};
+          box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
+        ` : ''}
         margin-bottom: ${this.options.fields && this.options.fields.length > 0 ? theme.spacing.m : '0'};
       `;
       this.body.appendChild(contentEl);
@@ -258,10 +270,16 @@ export class Modal implements ModalInstance {
         display: flex;
         flex-direction: column;
         gap: ${theme.spacing.m};
-        background: #ffffff;
-        padding: ${theme.spacing.l};
-        border-radius: ${theme.borderRadius.medium};
-        box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
+        ${needsSectionStyling ? `
+          background: #ffffff;
+          padding: ${theme.spacing.l};
+          border-radius: ${theme.borderRadius.medium};
+          box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
+        ` : `
+          background: #fafafa;
+          padding: ${theme.spacing.l};
+          border-radius: ${theme.borderRadius.medium};
+        `}
       `;
 
       this.options.fields.forEach(field => {
@@ -279,18 +297,15 @@ export class Modal implements ModalInstance {
     const doc = getTargetDocument();
     const sideCart = doc.createElement('div');
     const cartWidth = this.options.sideCart.width || 300;
-    const isAttached = this.options.sideCart.attached !== false; // Default to true
+    const isAttached = this.options.sideCart.attached === true; // Default to false (detached)
     
     sideCart.style.cssText = `
       width: ${cartWidth}px;
       flex-shrink: 0;
       background: ${this.options.sideCart.backgroundColor || '#ffffff'};
       overflow: auto;
-      ${isAttached 
-        ? `border-${this.options.sideCart.position === 'left' ? 'left' : 'right'}-radius: ${theme.borderRadius.medium};` 
-        : `border-radius: ${theme.borderRadius.medium}; 
-           box-shadow: ${theme.shadows.modal};`
-      }
+      border-radius: ${theme.borderRadius.medium};
+      ${!isAttached ? `box-shadow: ${theme.shadows.modal};` : ''}
     `;
     
     if (this.options.sideCart.content) {
@@ -487,6 +502,18 @@ export class Modal implements ModalInstance {
     // Handle tabs
     if (field.asTabs && field.fields) {
       return this.createTabs(field.fields);
+    }
+    
+    // Handle custom fields
+    if (field.type === 'custom') {
+      if (field.render) {
+        return field.render();
+      } else if (field.html) {
+        const container = doc.createElement('div');
+        container.innerHTML = field.html;
+        return container;
+      }
+      return null;
     }
     
     const container = doc.createElement('div');
@@ -984,6 +1011,51 @@ export class Modal implements ModalInstance {
         ]
       });
     });
+  }
+
+  /**
+   * Show a D365 web resource in the modal
+   * @param webResourcePath - Path to the web resource (e.g., 'abdg_/html/datagrid.htm?data=ProductQuotedHistory&id=123')
+   */
+  showWebResource(webResourcePath: string): void {
+    const doc = getTargetDocument();
+    
+    if (!this.body) return;
+    
+    // Clear existing body content
+    this.body.innerHTML = '';
+    
+    // Reset body styling for iframe
+    this.body.style.cssText = `
+      flex: 1;
+      overflow: hidden;
+      padding: 0;
+      background: #ffffff;
+    `;
+    
+    // Create iframe
+    const iframe = doc.createElement('iframe');
+    iframe.style.cssText = `
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    `;
+    
+    // Construct the full URL for the web resource
+    const baseUrl = window.location.origin;
+    const fullUrl = webResourcePath.startsWith('http') 
+      ? webResourcePath 
+      : `${baseUrl}/WebResources/${webResourcePath}`;
+    
+    iframe.src = fullUrl;
+    
+    this.body.appendChild(iframe);
+    
+    // Show the modal if not already visible
+    if (!this.overlay?.parentElement) {
+      this.show();
+    }
   }
 }
 

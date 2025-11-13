@@ -5,12 +5,11 @@ yarn.lock
 pnpm-lock.yaml
 
 # Build output
-dist/
 build/
 
-# Allow demo build files
-!demo/*.min.js
-!demo/*.min.js.map
+# Allow release build files
+!release/*.min.js
+!release/*.min.js.map
 
 # TypeScript
 *.tsbuildinfo

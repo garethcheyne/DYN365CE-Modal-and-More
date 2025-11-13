@@ -2,14 +2,15 @@
   "name": "d365-modalandmore",
   "version": "1.0.0",
   "description": "TypeScript UI utility library for Dynamics 365 CE - Toast notifications, Modal dialogs with tabs, and more",
-  "main": "dist/err403-ui-lib.min.js",
-  "types": "dist/index.d.ts",
+  "main": "build/err403-ui-lib.min.js",
+  "types": "build/ui-lib.types.d.ts",
   "scripts": {
     "dev": "vite",
-    "build": "npx tsc && vite build && cp dist/ui-lib.min.js demo/ && cp dist/ui-lib.min.js.map demo/",
+    "build": "vite build && npx tsc --emitDeclarationOnly && npx rollup -c rollup.dts.config.js && cp build/ui-lib.min.js release/ && cp build/ui-lib.min.js.map release/ && cp build/ui-lib.types.d.ts release/ui-lib.types.d.ts.js && cp README.md release/README.md.html",
+    "build:types": "npx tsc --emitDeclarationOnly && npx rollup -c rollup.dts.config.js",
     "watch": "vite build --watch",
     "preview": "vite preview",
-    "demo": "vite demo --open"
+    "demo": "vite release --open"
   },
   "keywords": [
     "dynamics-365",
@@ -24,11 +25,13 @@
   "author": "",
   "license": "ISC",
   "files": [
-    "dist"
+    "build"
   ],
   "devDependencies": {
     "@types/node": "^24.10.0",
     "archiver": "^7.0.1",
+    "rollup": "^4.53.2",
+    "rollup-plugin-dts": "^6.2.3",
     "terser": "^5.44.1",
     "typescript": "^5.9.3",
     "vite": "^7.2.2"
