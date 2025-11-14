@@ -28,4 +28,4 @@ jobs:
           git remote add azdo https://$AZDO_PAT@dev.azure.com/harveynorman/HN%20Commercial%20Division/_git/err403-Ui-Library
           
           # Push to Azure DevOps
-          git push azdo main --force
+          git push azdo inGitHub --force
