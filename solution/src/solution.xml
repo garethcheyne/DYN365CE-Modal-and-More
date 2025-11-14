@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ImportExportXml version="9.2.25104.152"
+                 SolutionPackageVersion="9.2"
+                 languagecode="1033"
+                 generatedBy="CrmLive"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 OrganizationVersion="9.2.25104.152"
+                 OrganizationSchemaType="Standard"
+                 CRMServerServiceabilityVersion="9.2.25104.00152">
+    <SolutionManifest>
+        <UniqueName>err403UILibrary</UniqueName>
+        <LocalizedNames>
+            <LocalizedName description="err403 UI Library"
+                           languagecode="1033" />
+        </LocalizedNames>
+        <Descriptions>
+            <Description description="TypeScript UI utility library for Dynamics 365 CE with Toast notifications, Modal dialogs, and Lookup components"
+                         languagecode="1033" />
+        </Descriptions>
+        <Version>2025.11.14.2118</Version>
+        <Managed>1</Managed>
+        <Publisher>
+            <UniqueName>err403com</UniqueName>
+            <LocalizedNames>
+                <LocalizedName description="err403com"
+                               languagecode="1033" />
+            </LocalizedNames>
+            <Descriptions>
+                <Description description="Dynamics solutions form err403"
+                             languagecode="1033" />
+            </Descriptions>
+            <EMailAddress xsi:nil="true" />
+            <SupportingWebsiteUrl xsi:nil="true" />
+            <CustomizationPrefix>err403</CustomizationPrefix>
+            <CustomizationOptionValuePrefix>24514</CustomizationOptionValuePrefix>
+            <Addresses>
+                <Address>
+                    <AddressNumber>1</AddressNumber>
+                    <AddressTypeCode>1</AddressTypeCode>
+                    <City xsi:nil="true">Auckland</City>
+                    <County xsi:nil="true">New Zealand</County>
+                    <Country xsi:nil="true" />
+                    <Fax xsi:nil="true" />
+                    <FreightTermsCode xsi:nil="true" />
+                    <ImportSequenceNumber xsi:nil="true" />
+                    <Latitude xsi:nil="true" />
+                    <Line1 xsi:nil="true" />
+                    <Line2 xsi:nil="true" />
+                    <Line3 xsi:nil="true" />
+                    <Longitude xsi:nil="true" />
+                    <Name xsi:nil="true">err403.com (Gareth Cheyne)</Name>
+                    <PostalCode xsi:nil="true" />
+                    <PostOfficeBox xsi:nil="true" />
+                    <PrimaryContactName xsi:nil="true" />
+                    <ShippingMethodCode>1</ShippingMethodCode>
+                    <StateOrProvince xsi:nil="true" />
+                    <Telephone1 xsi:nil="true" />
+                    <Telephone2 xsi:nil="true" />
+                    <Telephone3 xsi:nil="true" />
+                    <TimeZoneRuleVersionNumber xsi:nil="true" />
+                    <UPSZone xsi:nil="true" />
+                    <UTCOffset xsi:nil="true" />
+                    <UTCConversionTimeZoneCode xsi:nil="true" />
+                </Address>
+                <Address>
+                    <AddressNumber>2</AddressNumber>
+                    <AddressTypeCode>1</AddressTypeCode>
+                    <City xsi:nil="true" />
+                    <County xsi:nil="true" />
+                    <Country xsi:nil="true" />
+                    <Fax xsi:nil="true" />
+                    <FreightTermsCode xsi:nil="true" />
+                    <ImportSequenceNumber xsi:nil="true" />
+                    <Latitude xsi:nil="true" />
+                    <Line1 xsi:nil="true" />
+                    <Line2 xsi:nil="true" />
+                    <Line3 xsi:nil="true" />
+                    <Longitude xsi:nil="true" />
+                    <Name xsi:nil="true" />
+                    <PostalCode xsi:nil="true" />
+                    <PostOfficeBox xsi:nil="true" />
+                    <PrimaryContactName xsi:nil="true" />
+                    <ShippingMethodCode>1</ShippingMethodCode>
+                    <StateOrProvince xsi:nil="true" />
+                    <Telephone1 xsi:nil="true" />
+                    <Telephone2 xsi:nil="true" />
+                    <Telephone3 xsi:nil="true" />
+                    <TimeZoneRuleVersionNumber xsi:nil="true" />
+                    <UPSZone xsi:nil="true" />
+                    <UTCOffset xsi:nil="true" />
+                    <UTCConversionTimeZoneCode xsi:nil="true" />
+                </Address>
+            </Addresses>
+        </Publisher>
+        <RootComponents>
+            <RootComponent type="61"
+                           schemaName="err403_/demo.html"
+                           behavior="0" />
+            <RootComponent type="61"
+                           schemaName="err403_/howto.html"
+                           behavior="0" />
+            <RootComponent type="61"
+                           schemaName="err403_/README.md"
+                           behavior="0" />
+            <RootComponent type="61"
+                           schemaName="err403_/tests.html"
+                           behavior="0" />
+            <RootComponent type="61"
+                           schemaName="err403_/ui-lib.min.js"
+                           behavior="0" />
+            <RootComponent type="61"
+                           schemaName="err403_/ui-lib.styles.css"
+                           behavior="0" />
+            <RootComponent type="61"
+                           schemaName="err403_/ui-lib.types.d.ts"
+                           behavior="0" />
+            <RootComponent type="62"
+                           schemaName="err403_UILibraryforDynamics365"
+                           behavior="0" />
+            <RootComponent type="80"
+                           schemaName="err403_UILibraryforDynamics365"
+                           behavior="0" />
+        </RootComponents>
+        <MissingDependencies>
+            <MissingDependency>
+                <Required type="61"
+                          schemaName="msdyn_/Images/AppModule_Default_Icon.png"
+                          displayName="msdyn_/Images/AppModule_Default_Icon.png"
+                          solution="AppModuleWebResources (2.5)">
+                    <package appName="AppModule Web Resources Package"
+                             version="2.5">AppModuleWebResources (2.5)</package>
+                </Required>
+                <Dependent type="80"
+                           schemaName="err403_UILibraryforDynamics365"
+                           displayName="UI Library for Dynamics 365" />
+            </MissingDependency>
+            <MissingDependency>
+                <Required type="SettingDefinition"
+                          displayName="AppChannel"
+                          solution="msdyn_AppFrameworkInfraExtensions (1.0.0.15)"
+                          id.uniquename="AppChannel">
+                    <package appName="PowerAppsAppFramework Package"
+                             version="1.0.0.23">PowerAppsAppFramework_Anchor (1.0.0.23)</package>
+                </Required>
+                <Dependent type="AppSetting"
+                           displayName="parentappmoduleid.uniquename=err403_UILibraryforDynamics365,settingdefinitionid.uniquename=AppChannel"
+                           id.parentappmoduleid.uniquename="err403_UILibraryforDynamics365"
+                           id.settingdefinitionid.uniquename="AppChannel" />
+            </MissingDependency>
+        </MissingDependencies>
+    </SolutionManifest>
+</ImportExportXml>

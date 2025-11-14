@@ -53,9 +53,9 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# Power Apps Solutions (if applicable)
-*.zip
-solutions/
+# Power Apps Solutions
+solution/*.zip
+!solution/src/
 
 # Debug
 .vscode/launch.json
