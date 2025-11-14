@@ -22,7 +22,7 @@ jobs:
       
       - name: Add Azure DevOps remote and push
         env:
-          AZDO_PAT: ${{ secrets.WORD_DEVOPS }}
+          AZDO_PAT: ${{ secrets.WORK_DEVOPS }}
         run: |
           # Add Azure DevOps as a remote
           git remote add azdo https://$AZDO_PAT@dev.azure.com/harveynorman/HN%20Commercial%20Division/_git/err403-Ui-Library
