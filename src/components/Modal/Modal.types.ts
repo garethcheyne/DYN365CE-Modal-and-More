@@ -2,7 +2,7 @@
  * Modal component type definitions
  */
 
-export type ModalSize = 'small' | 'medium' | 'large' | 'fullscreen' | 'custom';
+export type ModalSize = 'small' | 'medium' | 'large' | 'fullscreen' | 'custom' | { width?: number | string; height?: number | string };
 export type ModalIcon = 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' | 'QUESTION';
 export type ButtonAlignment = 'left' | 'center' | 'right' | 'space-between';
 
@@ -14,8 +14,8 @@ export interface ModalOptions {
     customContent?: HTMLElement;
     icon?: ModalIcon;
     size?: ModalSize;
-    width?: number;
-    height?: number;
+    width?: number | string;
+    height?: number | string;
     padding?: number;
     preventClose?: boolean;
     allowDismiss?: boolean;
@@ -59,6 +59,14 @@ export interface SideCartConfig {
     backgroundColor?: string;
 }
 
+export interface TableColumn {
+    id: string;
+    header: string;
+    visible?: boolean;
+    sortable?: boolean;
+    width?: string;
+}
+
 export interface FieldConfig {
     id: string;
     label?: string;
@@ -68,6 +76,7 @@ export interface FieldConfig {
     placeholder?: string;
     disabled?: boolean;
     required?: boolean;
+    readOnly?: boolean;
     rows?: number;
     options?: Array<string | { label: string; value: string }>;
     multiSelect?: boolean;
@@ -83,7 +92,13 @@ export interface FieldConfig {
     divider?: boolean;
     extraAttributes?: Record<string, string | number>;
     showValue?: boolean;
+    tooltip?: string;
     validation?: ValidationConfig;
+    // Table-specific properties
+    columns?: TableColumn[];
+    data?: any[];
+    selectionMode?: 'none' | 'single' | 'multiple';
+    onRowSelect?: (selectedRows: any[]) => void;
 }
 
 export interface ValidationConfig {
@@ -136,6 +151,7 @@ export interface ModalInstance {
     goToStep(stepId: string): void;
     getFieldValue(fieldId: string): any;
     getFieldValues(): Record<string, any>;
+    setFieldValue(fieldId: string, value: any): void;
     validateCurrentStep(): boolean;
     validateAllFields(): boolean;
     updateSideCart(content: string | { imageUrl: string }): void;

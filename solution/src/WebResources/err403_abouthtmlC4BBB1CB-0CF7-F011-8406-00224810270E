@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>About - err403 UI Library for Dynamics 365 CE</title>
+    <link rel="icon" type="image/x-icon" href="img/favicon.ico" />
+    <script type="module" src="$webresource:$webresource:err403_/assets/page-about.js"></script>
+    <link rel="stylesheet" href="$webresource:$webresource:err403_/assets/page-styles.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

@@ -1,14 +1,10 @@
 /**
  * Modal helper functions for common dialog patterns
- * TEMPORARY STUBS - Full implementation pending Modal.ts recreation
  */
 
-// import { Modal } from './Modal';
+import { Modal } from './Modal';
 import { ModalButton } from './Modal.types';
 import type { ModalOptions } from './Modal.types';
-
-// Temporary stub
-const Modal: any = class {};
 
 /**
  * Show a simple alert dialog

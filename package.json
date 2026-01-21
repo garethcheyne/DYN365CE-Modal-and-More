@@ -1,19 +1,29 @@
 {
   "name": "d365-modalandmore",
-  "version": "2025.11.14.57",
+  "version": "2026.01.21.01",
+  "author": "Gareth Cheyne err403.com",
   "description": "TypeScript UI utility library for Dynamics 365 CE - Toast notifications, Modal dialogs with tabs, and more",
   "main": "build/err403-ui-lib.min.js",
   "types": "build/ui-lib.types.d.ts",
   "scripts": {
     "dev": "vite",
+    "dev:pages": "vite --config vite.pages.config.ts",
     "build": "vite build && npx tsc --emitDeclarationOnly && npx rollup -c rollup.dts.config.js && cp build/ui-lib.min.js release/ && cp build/ui-lib.min.js.map release/ && cp build/ui-lib.types.d.ts release/ui-lib.types.d.ts.js && cp README.md release/README.md.html",
+    "build:pages": "node scripts/build-pages.js",
+    "build:all": "npm run build && npm run build:pages",
     "build:types": "npx tsc --emitDeclarationOnly && npx rollup -c rollup.dts.config.js",
     "watch": "vite build --watch",
     "preview": "vite preview",
-    "demo": "vite release --open",
+    "test": "vite --config vite.pages.config.ts --open /pages/tests.html",
+    "demo": "vite --config vite.pages.config.ts --open /pages/demo.html",
     "update-solution": "node scripts/update-solution.js",
     "pack-solution": "node scripts/pack-solution-zip.js",
-    "release": "npm run build && npm run update-solution && npm run pack-solution"
+    "release": "npm run build:all && npm run update-solution && npm run pack-solution",
+    "pac:auth": "node scripts/pac-deploy.js auth",
+    "pac:pack": "npm run update-solution && node scripts/pac-deploy.js pack",
+    "pac:import": "node scripts/pac-deploy.js import",
+    "pac:deploy": "npm run build:all && npm run update-solution && node scripts/pac-deploy.js deploy",
+    "deploy": "npm run pac:deploy"
   },
   "keywords": [
     "dynamics-365",
@@ -25,18 +35,29 @@
     "notification",
     "ui"
   ],
-  "author": "",
   "license": "ISC",
   "files": [
     "build"
   ],
   "devDependencies": {
     "@types/node": "^24.10.0",
+    "@vitejs/plugin-react": "^4.7.0",
     "archiver": "^7.0.1",
     "rollup": "^4.53.2",
     "rollup-plugin-dts": "^6.2.3",
     "terser": "^5.44.1",
     "typescript": "^5.9.3",
     "vite": "^7.2.2"
+  },
+  "dependencies": {
+    "@fluentui/react-components": "^9.72.7",
+    "@fluentui/react-datepicker-compat": "^0.6.20",
+    "@fluentui/react-icons": "^2.0.315",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   }
 }

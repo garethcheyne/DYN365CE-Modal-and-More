@@ -3,10 +3,13 @@
  * Provides colored console output for different log levels
  */
 
-export const BUG = [
-  '%c BUG ',
+export const TRACE = [
+  '%c TRACE ',
   'background: #9C27B0; color: white; font-weight: bold; padding: 2px 6px; border-radius: 3px;'
 ];
+
+// Backwards compatibility alias
+export const BUG = TRACE;
 
 export const WAR = [
   '%c WAR ',
@@ -19,7 +22,8 @@ export const ERR = [
 ];
 
 export const Logger = {
-  BUG,
+  TRACE,
+  BUG, // Backwards compatibility
   WAR,
   ERR
 };

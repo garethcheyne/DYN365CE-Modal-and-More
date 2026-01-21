@@ -1,4 +1,4 @@
-<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.25104.152" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.25104.00152">
+<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.25114.191" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.25114.00191">
   <Entities></Entities>
   <Roles></Roles>
   <Workflows></Workflows>
@@ -10,18 +10,18 @@
   <optionsets />
   <WebResources>
     <WebResource>
-      <WebResourceId>{fca401da-4cbf-f011-bbd3-000d3acbc2cc}</WebResourceId>
-      <Name>err403_/demo.html</Name>
-      <DisplayName>err403_/demo.html</DisplayName>
+      <WebResourceId>{a1b2c3d4-0005-f011-bbd3-000d3acbc2cc}</WebResourceId>
+      <Name>err403_/assets/page-styles.css</Name>
+      <DisplayName>err403_/assets/page-styles.css</DisplayName>
       <LanguageCode>0</LanguageCode>
-      <WebResourceType>1</WebResourceType>
-      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <WebResourceType>2</WebResourceType>
+      <IntroducedVersion>2026.01.21.0</IntroducedVersion>
       <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
       <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
       <IsCustomizable>1</IsCustomizable>
       <CanBeDeleted>1</CanBeDeleted>
       <IsHidden>0</IsHidden>
-      <FileName>/WebResources/err403_demohtmlFCA401DA-4CBF-F011-BBD3-000D3ACBC2CC</FileName>
+      <FileName>/WebResources/err403_assetspage-stylescssA1B2C3D4-0005-F011-BBD3-000D3ACBC2CC</FileName>
     </WebResource>
     <WebResource>
       <WebResourceId>{7a3c73ea-4cbf-f011-bbd3-000d3acbc2cc}</WebResourceId>
@@ -36,34 +36,6 @@
       <CanBeDeleted>1</CanBeDeleted>
       <IsHidden>0</IsHidden>
       <FileName>/WebResources/err403_ui-libminjs7A3C73EA-4CBF-F011-BBD3-000D3ACBC2CC</FileName>
-    </WebResource>
-    <WebResource>
-      <WebResourceId>{1207b2f8-4cbf-f011-bbd3-000d3acbc2cc}</WebResourceId>
-      <Name>err403_/tests.html</Name>
-      <DisplayName>err403_/tests.html</DisplayName>
-      <LanguageCode>0</LanguageCode>
-      <WebResourceType>1</WebResourceType>
-      <IntroducedVersion>1.0.0.0</IntroducedVersion>
-      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
-      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
-      <IsCustomizable>1</IsCustomizable>
-      <CanBeDeleted>1</CanBeDeleted>
-      <IsHidden>0</IsHidden>
-      <FileName>/WebResources/err403_testshtml1207B2F8-4CBF-F011-BBD3-000D3ACBC2CC</FileName>
-    </WebResource>
-    <WebResource>
-      <WebResourceId>{a5b70c0b-cbc0-f011-bbd3-000d3acbc2cc}</WebResourceId>
-      <Name>err403_/howto.html</Name>
-      <DisplayName>err403_/howto.html</DisplayName>
-      <LanguageCode>0</LanguageCode>
-      <WebResourceType>1</WebResourceType>
-      <IntroducedVersion>2025.11.12.2</IntroducedVersion>
-      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
-      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
-      <IsCustomizable>1</IsCustomizable>
-      <CanBeDeleted>1</CanBeDeleted>
-      <IsHidden>0</IsHidden>
-      <FileName>/WebResources/err403_howtohtmlA5B70C0B-CBC0-F011-BBD3-000D3ACBC2CC</FileName>
     </WebResource>
     <WebResource>
       <WebResourceId>{65efd173-cbc0-f011-bbd3-000d3acbc2cc}</WebResourceId>
@@ -106,6 +78,32 @@
       <IsHidden>0</IsHidden>
       <FileName>/WebResources/err403_ui-libstylescssB3919FB9-CCC0-F011-BBD3-000D3ACBC2CC</FileName>
     </WebResource>
+    <WebResource>
+      <WebResourceId>{c4bbb1cb-0cf7-f011-8406-00224810270e}</WebResourceId>
+      <Name>err403_/about.html</Name>
+      <DisplayName>err403_/about.html</DisplayName>
+      <WebResourceType>1</WebResourceType>
+      <IntroducedVersion>2026.01.22.0953</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/err403_abouthtmlC4BBB1CB-0CF7-F011-8406-00224810270E</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{3ae8c14d-0df7-f011-8406-00224810270e}</WebResourceId>
+      <Name>err403_/assets/page-about.js</Name>
+      <DisplayName>err403_/assets/page-about.js</DisplayName>
+      <WebResourceType>3</WebResourceType>
+      <IntroducedVersion>2026.01.22.0953</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/err403_assetspage-aboutjs3AE8C14D-0DF7-F011-8406-00224810270E</FileName>
+    </WebResource>
   </WebResources>
   <CustomControls />
   <AppModuleSiteMaps>
@@ -124,19 +122,9 @@
             <Titles>
               <Title LCID="1033" Title="Modal and More" />
             </Titles>
-            <SubArea Id="subarea_1b644ab4" ResourceId="SitemapDesigner.NewSubArea" Icon="/_imgs/imagestrips/transparent_spacer.gif" Url="$webresource:err403_/howto.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+            <SubArea Id="subarea_1b644ab4" ResourceId="SitemapDesigner.NewSubArea" VectorIcon="/WebResources/mspp_entity_permissions.svg" Icon="/WebResources/mspp_entity_permissions.svg" Url="$webresource:err403_/about.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
               <Titles>
-                <Title LCID="1033" Title="How To" />
-              </Titles>
-            </SubArea>
-            <SubArea Id="subarea_cd3cf558" ResourceId="SitemapDesigner.NewSubArea" Icon="/_imgs/imagestrips/transparent_spacer.gif" Url="$webresource:err403_/demo.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="true" Sku="All,OnPremise,Live,SPLA">
-              <Titles>
-                <Title LCID="1033" Title="Demo" />
-              </Titles>
-            </SubArea>
-            <SubArea Id="subarea_134f889c" ResourceId="SitemapDesigner.NewSubArea" Icon="/_imgs/imagestrips/transparent_spacer.gif" Url="$webresource:err403_/tests.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="true" Sku="All,OnPremise,Live,SPLA">
-              <Titles>
-                <Title LCID="1033" Title="Tests" />
+                <Title LCID="1033" Title="About" />
               </Titles>
             </SubArea>
           </Group>
@@ -175,6 +163,22 @@
         <appsetting settingdefinitionid.uniquename="AppChannel">
           <iscustomizable>1</iscustomizable>
           <value>1</value>
+        </appsetting>
+        <appsetting settingdefinitionid.uniquename="EnablePowerBIQuickReport">
+          <iscustomizable>1</iscustomizable>
+          <value>false</value>
+        </appsetting>
+        <appsetting settingdefinitionid.uniquename="msdyn_TimelineCopilotForApps">
+          <iscustomizable>1</iscustomizable>
+          <value>false</value>
+        </appsetting>
+        <appsetting settingdefinitionid.uniquename="msdyn_TimelineCopilotInteractions">
+          <iscustomizable>1</iscustomizable>
+          <value>false</value>
+        </appsetting>
+        <appsetting settingdefinitionid.uniquename="ServerMode">
+          <iscustomizable>1</iscustomizable>
+          <value>false</value>
         </appsetting>
       </appsettings>
     </AppModule>

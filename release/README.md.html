@@ -6,8 +6,8 @@ Stop wrestling with custom HTML and CSS. This library provides production-ready 
 
 ## Why Choose err403 UI Library?
 
-✅ **Matches Dynamics 365 Design** - Uses the exact same Fluent UI styling, colors, and animations as D365  
-✅ **Zero Dependencies** - No jQuery, no React, no framework conflicts  
+✅ **Matches Dynamics 365 Design** - Uses Microsoft Fluent UI v9 components for authentic D365 styling  
+✅ **Simple Vanilla API** - Clean JavaScript API, no React knowledge required  
 ✅ **Easy to Use** - Simple API, complete examples, works with form scripts and ribbon buttons  
 ✅ **Production Ready** - Validated, tested, and optimized for D365 environments  
 ✅ **Fully Typed** - Built with TypeScript for better IntelliSense and fewer bugs  
@@ -22,6 +22,42 @@ Create professional forms, wizards, and confirmation dialogs with full validatio
 
 ### 🔍 Advanced Lookups
 Powerful record selection dialogs with search, filtering, sorting, and multi-select. Integrate seamlessly with D365's entity metadata for a consistent user experience.
+
+## Architecture
+
+**Vanilla JavaScript API with Fluent UI Components**
+
+This library provides a simple vanilla JavaScript API that works seamlessly with D365 form scripts and ribbon buttons. Behind the scenes, it uses:
+
+- **Microsoft Fluent UI v9** - Professional React components for authentic D365 styling
+- **React 18** - Modern UI framework (bundled internally, invisible to your code)
+- **TypeScript** - Type-safe development with full IntelliSense support
+
+### Key Components Using Fluent UI
+
+- ✨ **TabList & Tooltip** - Native Fluent UI tab navigation and tooltips
+- 📊 **DataGrid** - High-performance sortable tables with selection
+- 🔔 **Toast/Toaster** - Fluent UI toast notifications with intents
+- 🎛️ **Switch** - Modern toggle switches
+- 🔘 **Button** - Fluent UI buttons with primary/secondary appearances
+
+### How It Works
+
+```javascript
+// You write simple vanilla JavaScript
+err403.Toast.success({ title: 'Done!', message: 'Record saved' });
+
+// Library handles React rendering internally
+// ↓ Converts to Fluent UI React components
+// ↓ Mounts to DOM with proper theming
+// ↓ User sees polished D365-style toast
+```
+
+**Benefits:**
+- No React knowledge required
+- No build process for your code
+- Automatic D365 theme matching
+- Production-optimized bundle (280 KB gzipped)
 
 ## Installation
 
@@ -438,7 +474,90 @@ function selectActiveAccount() {
 }
 ```
 
-### Example 9: Form with Tabs
+### Example 9: Data Table with Sorting and Selection
+
+Display tabular data with sorting, selection, and customizable columns:
+
+```javascript
+function showContactsTable() {
+  // Fetch contacts from D365
+  Xrm.WebApi.retrieveMultipleRecords('contact', '?$select=fullname,emailaddress1,telephone1,jobtitle,birthdate&$top=50')
+    .then(function(result) {
+      var modal = new err403.Modal({
+        title: 'Contact List',
+        size: 'large',
+        fields: [
+          new err403.Table({
+            id: 'contactsTable',
+            label: 'Contacts',
+            columns: [
+              { id: 'fullname', header: 'Full Name', visible: true, sortable: true, width: '200px' },
+              { id: 'emailaddress1', header: 'Email', visible: true, sortable: true, width: '250px' },
+              { id: 'telephone1', header: 'Phone', visible: true, sortable: false, width: '150px' },
+              { id: 'jobtitle', header: 'Job Title', visible: true, sortable: true },
+              { id: 'birthdate', header: 'Birth Date', visible: false } // Hidden column
+            ],
+            data: result.entities,
+            selectionMode: 'multiple', // Options: 'none', 'single', 'multiple'
+            onRowSelect: function(selectedRows) {
+              console.log('Selected contacts:', selectedRows);
+              err403.Toast.info({ 
+                message: selectedRows.length + ' contact(s) selected' 
+              });
+            }
+          })
+        ],
+        buttons: [
+          new err403.Button('Cancel', function() {
+            // Close without action
+          }),
+          new err403.Button('Process Selected', function() {
+            var selectedContacts = modal.getFieldValue('contactsTable');
+            
+            if (selectedContacts.length === 0) {
+              err403.Toast.warn({ message: 'Please select at least one contact' });
+              return false; // Keep modal open
+            }
+            
+            // Process selected contacts
+            selectedContacts.forEach(function(contact) {
+              console.log('Processing:', contact.fullname);
+            });
+            
+            err403.Toast.success({ 
+              message: 'Processed ' + selectedContacts.length + ' contacts' 
+            });
+            
+            return true; // Close modal
+          }, true)
+        ]
+      });
+      
+      modal.show();
+    });
+}
+```
+
+**Dynamic table updates:**
+```javascript
+// Update table data programmatically
+function refreshTableData() {
+  Xrm.WebApi.retrieveMultipleRecords('contact', '?$select=fullname,emailaddress1&$top=25')
+    .then(function(result) {
+      modal.setFieldValue('contactsTable', result.entities);
+    });
+}
+```
+
+**Table features:**
+- **Sortable columns**: Click column headers to sort (supports text and numeric sorting)
+- **Row selection**: Single or multiple row selection modes
+- **Column visibility**: Show/hide specific columns
+- **Custom widths**: Set specific widths for columns
+- **Selection callback**: Get notified when users select rows
+- **Dynamic updates**: Update table data using `setFieldValue()`
+
+### Example 10: Form with Tabs
 
 Organize complex forms with tabs:
 
@@ -529,25 +648,39 @@ function editAccountDetails(accountId) {
     ]
   });
   
-  // Load existing data
+  // Load existing data and populate form
   Xrm.WebApi.retrieveRecord('account', accountId, '?$select=name,telephone1,websiteurl,address1_line1,address1_city,address1_postalcode,description')
     .then(function(account) {
-      // Pre-populate the form
-      Object.keys(account).forEach(function(key) {
-        if (key !== 'accountid') {
-          var field = modal.getElement('#' + key);
-          if (field) {
-            field.value = account[key];
-          }
-        }
-      });
-      
       modal.show();
+      
+      // Use setFieldValue to populate the form after it's displayed
+      modal.setFieldValue('name', account.name);
+      modal.setFieldValue('telephone1', account.telephone1);
+      modal.setFieldValue('websiteurl', account.websiteurl);
+      modal.setFieldValue('address1_line1', account.address1_line1);
+      modal.setFieldValue('address1_city', account.address1_city);
+      modal.setFieldValue('address1_postalcode', account.address1_postalcode);
+      modal.setFieldValue('description', account.description);
     });
 }
 ```
 
-### Example 10: Progress Indicator
+**Using `setFieldValue` dynamically:**
+```javascript
+// Update a field based on another field's value
+function onCityChange(executionContext) {
+  var city = modal.getFieldValue('address1_city');
+  
+  // Auto-populate state based on city
+  if (city === 'New York') {
+    modal.setFieldValue('address1_stateorprovince', 'NY');
+  } else if (city === 'Los Angeles') {
+    modal.setFieldValue('address1_stateorprovince', 'CA');
+  }
+}
+```
+
+### Example 11: Progress Indicator
 
 Show progress during long operations:
 
@@ -688,6 +821,16 @@ new err403.MultiLine({ id, label, rows, placeholder })
 new err403.OptionSet({ id, label, options })
 new err403.DateRange({ id, label, startDate, endDate })
 new err403.Group({ id, label, fields, asTabs })
+new err403.Table({ 
+  id, 
+  label, 
+  columns: [
+    { id: 'columnId', header: 'Column Name', visible: true, sortable: true, width: '200px' }
+  ],
+  data: [ /* array of objects */ ],
+  selectionMode: 'none' | 'single' | 'multiple',
+  onRowSelect: (selectedRows) => { /* callback */ }
+})
 new err403.Custom({ id, label, render: () => HTMLElement })
 ```
 
@@ -714,6 +857,7 @@ modal.show();
 modal.close();
 modal.getFieldValues(); // Returns object with all field values
 modal.getFieldValue('fieldId'); // Get single field value
+modal.setFieldValue('fieldId', newValue); // Update field value programmatically
 modal.validateAllFields(); // Returns boolean
 modal.updateProgress(percentage); // For progress bars
 modal.nextStep(); // For wizards

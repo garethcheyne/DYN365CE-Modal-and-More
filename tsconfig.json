@@ -3,6 +3,7 @@
     "target": "ES2015",
     "module": "ESNext",
     "lib": ["ES2015", "DOM"],
+    "jsx": "react-jsx",
     "declaration": true,
     "declarationDir": "./build",
     "outDir": "./build",

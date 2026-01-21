@@ -1,35 +1,51 @@
+import { Theme } from '@fluentui/react-components';
+export { FluentProvider } from '@fluentui/react-components';
+
 interface ToastOptions {
     title: string;
     message?: string;
     duration?: number;
     sound?: boolean;
 }
-interface ToastInstance {
-    element: HTMLElement;
-    show(): void;
-    close(): void;
-}
 
 /**
- * Toast Notification System
- * Provides toast notifications with different types and sound support
+ * Custom Toast Notification System with slide-out animations
+ * Full control over appearance and animations
  */
 
 /**
  * Toast API
  */
 declare const Toast: {
-    success(titleOrOptions: string | ToastOptions, message?: string, duration?: number, sound?: boolean): ToastInstance;
-    error(titleOrOptions: string | ToastOptions, message?: string, duration?: number, sound?: boolean): ToastInstance;
-    warn(titleOrOptions: string | ToastOptions, message?: string, duration?: number, sound?: boolean): ToastInstance;
-    info(titleOrOptions: string | ToastOptions, message?: string, duration?: number, sound?: boolean): ToastInstance;
-    default(titleOrOptions: string | ToastOptions, message?: string, duration?: number, sound?: boolean): ToastInstance;
+    success(titleOrOptions: string | ToastOptions, message?: string, duration?: number): {
+        show: () => void;
+        close: () => void;
+    };
+    error(titleOrOptions: string | ToastOptions, message?: string, duration?: number): {
+        show: () => void;
+        close: () => void;
+    };
+    warn(titleOrOptions: string | ToastOptions, message?: string, duration?: number): {
+        show: () => void;
+        close: () => void;
+    };
+    info(titleOrOptions: string | ToastOptions, message?: string, duration?: number): {
+        show: () => void;
+        close: () => void;
+    };
+    default(titleOrOptions: string | ToastOptions, message?: string, duration?: number): {
+        show: () => void;
+        close: () => void;
+    };
 };
 
 /**
  * Modal component type definitions
  */
-type ModalSize = 'small' | 'medium' | 'large' | 'fullscreen' | 'custom';
+type ModalSize = 'small' | 'medium' | 'large' | 'fullscreen' | 'custom' | {
+    width?: number | string;
+    height?: number | string;
+};
 type ModalIcon = 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' | 'QUESTION';
 type ButtonAlignment = 'left' | 'center' | 'right' | 'space-between';
 interface ModalOptions {
@@ -40,8 +56,8 @@ interface ModalOptions {
     customContent?: HTMLElement;
     icon?: ModalIcon;
     size?: ModalSize;
-    width?: number;
-    height?: number;
+    width?: number | string;
+    height?: number | string;
     padding?: number;
     preventClose?: boolean;
     allowDismiss?: boolean;
@@ -81,6 +97,13 @@ interface SideCartConfig {
     imageUrl?: string;
     backgroundColor?: string;
 }
+interface TableColumn {
+    id: string;
+    header: string;
+    visible?: boolean;
+    sortable?: boolean;
+    width?: string;
+}
 interface FieldConfig {
     id: string;
     label?: string;
@@ -90,6 +113,7 @@ interface FieldConfig {
     placeholder?: string;
     disabled?: boolean;
     required?: boolean;
+    readOnly?: boolean;
     rows?: number;
     options?: Array<string | {
         label: string;
@@ -108,7 +132,12 @@ interface FieldConfig {
     divider?: boolean;
     extraAttributes?: Record<string, string | number>;
     showValue?: boolean;
+    tooltip?: string;
     validation?: ValidationConfig;
+    columns?: TableColumn[];
+    data?: any[];
+    selectionMode?: 'none' | 'single' | 'multiple';
+    onRowSelect?: (selectedRows: any[]) => void;
 }
 interface ValidationConfig {
     rules?: ValidationRule[];
@@ -143,6 +172,7 @@ interface ModalInstance {
     goToStep(stepId: string): void;
     getFieldValue(fieldId: string): any;
     getFieldValues(): Record<string, any>;
+    setFieldValue(fieldId: string, value: any): void;
     validateCurrentStep(): boolean;
     validateAllFields(): boolean;
     updateSideCart(content: string | {
@@ -186,6 +216,7 @@ declare class Modal implements ModalInstance {
     constructor(options: ModalOptions);
     private createModal;
     private getModalDimensions;
+    private createIconElement;
     private createHeader;
     private createBody;
     private createSideCart;
@@ -207,6 +238,7 @@ declare class Modal implements ModalInstance {
     goToStep(_stepId: string): void;
     getFieldValue(fieldId: string): any;
     getFieldValues(): Record<string, any>;
+    setFieldValue(fieldId: string, value: any): void;
     validateCurrentStep(): boolean;
     validateAllFields(): boolean;
     updateSideCart(_content: string | {
@@ -225,13 +257,18 @@ declare class Modal implements ModalInstance {
     /**
      * Show a D365 web resource in the modal
      * @param webResourcePath - Path to the web resource (e.g., 'abdg_/html/datagrid.htm?data=ProductQuotedHistory&id=123')
+     * @param options - Options for webresource display (optional)
      */
-    showWebResource(webResourcePath: string): void;
+    showWebResource(webResourcePath: string, options?: {
+        autoResize?: boolean;
+        width?: number | string;
+        height?: number | string;
+        size?: 'small' | 'medium' | 'large' | 'fullscreen';
+    }): void;
 }
 
 /**
  * Modal helper functions for common dialog patterns
- * TEMPORARY STUBS - Full implementation pending Modal.ts recreation
  */
 
 /**
@@ -294,50 +331,23 @@ interface LookupOptions {
 /**
  * Lookup Component
  * Advanced entity record lookup with table display, search, pagination
+ * Uses Modal component with Fluent UI SearchBox and Table
  */
 
 declare class Lookup$1 {
-    private static activeInstance;
+    private static activeModal;
     private options;
-    private container;
-    private overlay;
-    private modal;
-    private tableContainer;
-    private tableBody;
-    private searchInput;
-    private paginationInfo;
-    private currentPage;
-    private totalRecords;
     private records;
-    private allLoadedRecords;
+    private filteredRecords;
     private selectedRecords;
-    private searchDebounceTimer;
-    private columnLabels;
-    private sortColumn;
-    private sortDescending;
-    private isLoadingMore;
-    private hasMoreRecords;
+    private searchTerm;
     private constructor();
-    private render;
-    private createHeader;
-    private createSearchBar;
-    private createTableContainer;
-    private createPagination;
-    private createFooter;
-    private loadColumnLabels;
-    private handleScroll;
-    private loadMoreRecords;
-    private loadData;
-    private renderTableRows;
-    private toggleSelection;
-    private clearSelection;
-    private handleSearch;
-    private handleSort;
-    private updatePagination;
+    private loadRecords;
+    private filterRecords;
+    private createModal;
     private select;
     private cancel;
-    private close;
-    private show;
+    private clear;
     static open(options: LookupOptions): void;
 }
 
@@ -345,10 +355,12 @@ declare class Lookup$1 {
  * Logger utility for debugging
  * Provides colored console output for different log levels
  */
+declare const TRACE: string[];
 declare const BUG: string[];
 declare const WAR: string[];
 declare const ERR: string[];
 declare const Logger: {
+    TRACE: string[];
     BUG: string[];
     WAR: string[];
     ERR: string[];
@@ -622,6 +634,37 @@ declare class Group implements FieldConfig {
     divider?: boolean;
     constructor(config: FieldConfig);
 }
+/**
+ * Table field helper (for displaying tabular data with sorting and selection)
+ */
+declare class Table implements FieldConfig {
+    id: string;
+    label?: string;
+    type: string;
+    columns?: Array<{
+        id: string;
+        header: string;
+        visible?: boolean;
+        sortable?: boolean;
+        width?: string;
+    }>;
+    data?: any[];
+    selectionMode?: 'none' | 'single' | 'multiple';
+    onRowSelect?: (selectedRows: any[]) => void;
+    divider?: boolean;
+    constructor(config: FieldConfig);
+}
+
+/**
+ * FluentProvider wrapper for D365 CE UI Library
+ * Provides Fluent UI v9 theming and context for all components
+ */
+
+/**
+ * Custom theme based on D365 design tokens
+ * Extends Fluent UI webLightTheme with D365-specific colors
+ */
+declare const d365Theme: Theme;
 
 /**
  * err403 UI Library - Main Entry Point
@@ -639,7 +682,7 @@ declare function init(executionContext?: any): void;
  */
 declare function onLoad(executionContext?: any): void;
 
-export { BUG, ModalButton as Button, Custom, DateRange, ERR, Group, Input, Logger, Lookup$1 as Lookup, Lookup as LookupField, Modal, ModalButton, ModalHelpers_d as ModalHelpers, MultiLine, OptionSet, Toast, WAR, init, onLoad, theme };
+export { BUG, ModalButton as Button, Custom, DateRange, ERR, Group, Input, Logger, Lookup$1 as Lookup, Lookup as LookupField, Modal, ModalButton, ModalHelpers_d as ModalHelpers, MultiLine, OptionSet, TRACE, Table, Toast, WAR, d365Theme, init, onLoad, theme };
 
 /**
  * Global err403 namespace declarations

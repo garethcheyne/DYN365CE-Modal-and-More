@@ -8,7 +8,7 @@ import { Modal } from './components/Modal/Modal';
 import { ModalButton } from './components/Modal/Modal.types';
 import * as ModalHelpers from './components/Modal/ModalHelpers';
 import { Lookup } from './components/Lookup/Lookup';
-import { Logger, BUG, WAR, ERR } from './components/Logger/Logger';
+import { Logger, TRACE, BUG, WAR, ERR } from './components/Logger/Logger';
 import { theme } from './styles/theme';
 import {
     Input,
@@ -17,8 +17,58 @@ import {
     DateRange,
     Lookup as LookupField,
     Custom,
-    Group
+    Group,
+    Table
 } from './components/Modal/ModalFields';
+import { initializeFluentProvider, d365Theme, FluentProvider } from './providers/FluentProvider';
+
+/**
+ * Automatically load the CSS file based on the script's location
+ */
+function loadCSS(): void {
+    const cssId = 'err403-ui-lib-styles';
+    
+    // Check if CSS is already loaded
+    if (document.getElementById(cssId)) {
+        console.debug(...TRACE, 'UI-lib CSS already loaded');
+        return;
+    }
+    
+    try {
+        // Find the current script tag to determine the base path
+        const scripts = document.getElementsByTagName('script');
+        let scriptSrc = '';
+        
+        // Look for ui-lib.min.js script
+        for (let i = 0; i < scripts.length; i++) {
+            const src = scripts[i].src;
+            if (src && src.includes('ui-lib.min.js')) {
+                scriptSrc = src;
+                break;
+            }
+        }
+        
+        if (scriptSrc) {
+            // Replace .js with .css to get the CSS file path
+            const cssPath = scriptSrc.replace('ui-lib.min.js', 'ui-lib.styles.css');
+            
+            // Create and append the link element
+            const link = document.createElement('link');
+            link.id = cssId;
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            link.href = cssPath;
+            
+            document.head.appendChild(link);
+            
+            console.debug(...TRACE, 'UI-lib CSS loaded from:', cssPath);
+        } else {
+            console.warn('err403: Could not determine script location for CSS auto-loading');
+        }
+    } catch (error) {
+        console.error('err403: Error loading CSS:', error);
+    }
+}
 
 /**
  * D365 Form OnLoad Handler
@@ -26,7 +76,25 @@ import {
  * @param executionContext - The execution context from D365
  */
 export function init(executionContext?: any): void {
-    console.log('err403 UI Library initialized', { executionContext });
+    console.debug(...TRACE, 'UI-lib init() - Starting initialization', {
+        version: PACKAGE_VERSION,
+        executionContext,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Load CSS automatically
+    loadCSS();
+    
+    // Initialize Fluent UI provider for consistent theming
+    initializeFluentProvider();
+    
+    // Initialize Toast container (custom implementation handles this automatically)
+    // No manual container mounting needed
+    
+    console.debug(...TRACE, 'UI-lib init() - Initialization complete. Library available in DOM as window.err403', {
+        version: PACKAGE_VERSION,
+        availableComponents: ['Toast', 'Modal', 'Lookup', 'Table', 'TRACE', 'WAR', 'ERR']
+    });
 }
 
 /**
@@ -45,6 +113,7 @@ export {
     ModalHelpers,
     Lookup,
     Logger,
+    TRACE,
     BUG,
     WAR,
     ERR,
@@ -56,7 +125,11 @@ export {
     DateRange,
     LookupField,
     Custom,
-    Group
+    Group,
+    Table,
+    // Fluent UI integration
+    FluentProvider,
+    d365Theme
 };
 
 // D365 iframe support - expose library to parent window
@@ -71,6 +144,7 @@ if (typeof window !== 'undefined') {
         ModalHelpers,
         Lookup,
         Logger,
+        TRACE,
         BUG,
         WAR,
         ERR,
@@ -83,8 +157,12 @@ if (typeof window !== 'undefined') {
         LookupField,
         Custom,
         Group,
+        Table,
         // Alias Button for ModalButton
-        Button: ModalButton
+        Button: ModalButton,
+        // Fluent UI integration
+        FluentProvider,
+        d365Theme
     };
 
     // Expose to current window (iframe)

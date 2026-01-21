@@ -13,14 +13,31 @@ const SOLUTION_WR_DIR = path.join(__dirname, '../solution/src/WebResources');
 const SOLUTION_FILE = path.join(__dirname, '../solution/src/solution.xml');
 
 // Web resource mapping (release file -> solution file)
+// Note: GUIDs are stable identifiers for each web resource in D365
 const WEB_RESOURCES = {
+  // Core library files
   'ui-lib.min.js': 'err403_ui-libminjs7A3C73EA-4CBF-F011-BBD3-000D3ACBC2CC',
   'ui-lib.types.d.ts.js': 'err403_ui-libtypesdts65EFD173-CBC0-F011-BBD3-000D3ACBC2CC',
   'ui-lib.styles.css': 'err403_ui-libstylescssB3919FB9-CCC0-F011-BBD3-000D3ACBC2CC',
-  'demo.html': 'err403_demohtmlFCA401DA-4CBF-F011-BBD3-000D3ACBC2CC',
-  'tests.html': 'err403_testshtml1207B2F8-4CBF-F011-BBD3-000D3ACBC2CC',
-  'howto.html': 'err403_howtohtmlA5B70C0B-CBC0-F011-BBD3-000D3ACBC2CC',
-  'README.md.html': 'err403_READMEmd060D1286-CBC0-F011-BBD3-000D3ACBC2CC'
+
+  // HTML pages (new single page approach)
+  'about.html': 'err403_abouthtmlC4BBB1CB-0CF7-F011-8406-00224810270E',
+  'README.md.html': 'err403_READMEmd060D1286-CBC0-F011-BBD3-000D3ACBC2CC',
+
+  // Page assets (React/Fluent UI compiled pages - single bundle)
+  'assets/page-about.js': 'err403_assetspage-aboutjs3AE8C14D-0DF7-F011-8406-00224810270E',
+  'assets/page-styles.css': 'err403_assetspage-stylescssA1B2C3D4-0005-F011-BBD3-000D3ACBC2CC'
+};
+
+// D365 web resource name mappings for HTML path transformations
+const D365_WEB_RESOURCE_NAMES = {
+  'ui-lib.min.js': 'err403_/ui-lib.min.js',
+  'ui-lib.styles.css': 'err403_/ui-lib.styles.css',
+  './assets/page-about.js': 'err403_/assets/page-about.js',
+  './assets/page-styles.css': 'err403_/assets/page-styles.css',
+  // Handle both ./ and $webresource: formats
+  '$webresource:err403_/assets/page-about.js': '$webresource:err403_/assets/page-about.js',
+  '$webresource:err403_/assets/page-styles.css': '$webresource:err403_/assets/page-styles.css'
 };
 
 /**
@@ -36,6 +53,35 @@ function updateSolutionVersion() {
   
   console.log(`✅ Updated solution version to: ${version}`);
   return version;
+}
+
+/**
+ * Get solution unique name from solution.xml
+ */
+function getSolutionName() {
+  const solutionXml = fs.readFileSync(SOLUTION_FILE, 'utf8');
+  const match = solutionXml.match(/<UniqueName>([^<]+)<\/UniqueName>/);
+  return match ? match[1] : 'solution';
+}
+
+/**
+ * Transform HTML content for D365 web resources
+ * Converts local paths to $webresource: paths
+ */
+function transformHtmlForD365(content) {
+  let transformed = content;
+
+  // Transform script and link paths to D365 web resource paths
+  for (const [localPath, d365Path] of Object.entries(D365_WEB_RESOURCE_NAMES)) {
+    // Handle src="..." and href="..."
+    const srcRegex = new RegExp(`src="${localPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'g');
+    const hrefRegex = new RegExp(`href="${localPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'g');
+
+    transformed = transformed.replace(srcRegex, `src="$webresource:${d365Path}"`);
+    transformed = transformed.replace(hrefRegex, `href="$webresource:${d365Path}"`);
+  }
+
+  return transformed;
 }
 
 /**
@@ -55,7 +101,15 @@ function copyWebResources() {
       continue;
     }
 
-    fs.copyFileSync(sourcePath, targetPath);
+    // For HTML files, transform paths for D365
+    if (sourceFile.endsWith('.html')) {
+      let content = fs.readFileSync(sourcePath, 'utf8');
+      content = transformHtmlForD365(content);
+      fs.writeFileSync(targetPath, content, 'utf8');
+    } else {
+      fs.copyFileSync(sourcePath, targetPath);
+    }
+
     const stats = fs.statSync(targetPath);
     console.log(`✅ Copied: ${sourceFile} → ${targetFile} (${(stats.size / 1024).toFixed(2)} KB)`);
     copiedCount++;
@@ -84,6 +138,7 @@ function main() {
 
   // Update version
   const version = updateSolutionVersion();
+  const name = getSolutionName();
 
   // Copy web resources
   copyWebResources();
@@ -91,7 +146,8 @@ function main() {
   console.log('\n✨ Solution updated successfully!');
   console.log(`📋 Next steps:`);
   console.log(`   1. Run: npm run pack-solution`);
-  console.log(`   2. Import: solution/err403UILibrary_${version.replace(/\./g, '_')}_unmanaged.zip`);
+  console.log(`   2. Import unmanaged: solution/${name}_${version.replace(/\./g, '_')}_unmanaged.zip`);
+  console.log(`   3. Import managed: solution/${name}_${version.replace(/\./g, '_')}_managed.zip`);
 }
 
 main();

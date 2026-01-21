@@ -34,14 +34,16 @@ function getSolutionName() {
 /**
  * Zip the solution folder
  */
-function zipSolution() {
+function zipSolution(managed = false) {
   const version = getSolutionVersion();
   const name = getSolutionName();
-  const outputFile = path.resolve(SOLUTION_OUTPUT, `${name}_${version.replace(/\./g, '_')}_managed.zip`);
+  const packageType = managed ? 'managed' : 'unmanaged';
+  const outputFile = path.resolve(SOLUTION_OUTPUT, `${name}_${version.replace(/\./g, '_')}_${packageType}.zip`);
 
-  console.log('📦 Zipping solution...');
+  console.log(`📦 Zipping ${packageType} solution...`);
   console.log(`   Solution: ${name}`);
   console.log(`   Version: ${version}`);
+  console.log(`   Type: ${packageType}`);
   console.log(`   Output: ${outputFile}\n`);
 
   return new Promise((resolve, reject) => {
@@ -50,22 +52,28 @@ function zipSolution() {
 
     output.on('close', () => {
       const stats = fs.statSync(outputFile);
-      console.log(`\n✅ Solution zipped successfully!`);
+      console.log(`✅ ${packageType.charAt(0).toUpperCase() + packageType.slice(1)} solution zipped successfully!`);
       console.log(`   File: ${outputFile}`);
       console.log(`   Size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
-      console.log(`   Total bytes: ${archive.pointer()}`);
+      console.log(`   Total bytes: ${archive.pointer()}\n`);
       resolve();
     });
 
     archive.on('error', (err) => {
-      console.error('\n❌ Failed to zip solution:', err);
+      console.error(`\n❌ Failed to zip ${packageType} solution:`, err);
       reject(err);
     });
 
     archive.pipe(output);
 
-    // Add solution.xml and [Content_Types].xml at root
-    archive.file(path.join(SOLUTION_SRC, 'solution.xml'), { name: 'solution.xml' });
+    // Read and modify solution.xml based on managed/unmanaged
+    let solutionXml = fs.readFileSync(path.join(SOLUTION_SRC, 'solution.xml'), 'utf8');
+    solutionXml = solutionXml.replace(/<Managed>\d<\/Managed>/, `<Managed>${managed ? '1' : '0'}</Managed>`);
+    
+    // Add modified solution.xml
+    archive.append(solutionXml, { name: 'solution.xml' });
+    
+    // Add [Content_Types].xml at root
     archive.file(path.join(SOLUTION_SRC, '[Content_Types].xml'), { name: '[Content_Types].xml' });
     
     // Add customizations.xml from Other folder to root
@@ -91,7 +99,11 @@ async function main() {
   }
 
   try {
-    await zipSolution();
+    // Create both managed and unmanaged versions
+    await zipSolution(false); // Unmanaged
+    await zipSolution(true);  // Managed
+    
+    console.log('✨ Both solution packages created successfully!');
   } catch (error) {
     console.error('❌ Failed to pack solution');
     process.exit(1);
