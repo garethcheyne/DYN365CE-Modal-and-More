@@ -475,7 +475,95 @@ function createAccountWithConditionalFields() {
 // - 'falsy': !field (any falsy value)
 ```
 
-### Example 7: Account Lookup with Selection
+### Example 7: D365 Option Set Auto-Fetch
+
+Automatically load option set values from Dynamics 365 metadata:
+
+```javascript
+function createLeadForm() {
+  const modal = new err403.Modal({
+    title: 'Create Lead',
+    fields: [
+      { 
+        id: 'firstname', 
+        label: 'First Name', 
+        type: 'text', 
+        required: true 
+      },
+      { 
+        id: 'lastname', 
+        label: 'Last Name', 
+        type: 'text', 
+        required: true 
+      },
+      { 
+        id: 'emailaddress1', 
+        label: 'Email', 
+        type: 'email', 
+        required: true 
+      },
+      // Auto-fetch Industry option set
+      {
+        id: 'industrycode',
+        type: 'select',
+        d365OptionSet: {
+          entityName: 'lead',
+          attributeName: 'industrycode',
+          includeNull: true,      // Add blank option
+          sortByLabel: true        // Sort alphabetically
+        }
+      },
+      // Auto-fetch Lead Source
+      {
+        id: 'leadsourcecode',
+        type: 'select',
+        d365OptionSet: {
+          entityName: 'lead',
+          attributeName: 'leadsourcecode',
+          includeNull: true
+        }
+      },
+      // Auto-fetch Rating
+      {
+        id: 'leadqualitycode',
+        type: 'select',
+        d365OptionSet: {
+          entityName: 'lead',
+          attributeName: 'leadqualitycode'
+        }
+      }
+    ],
+    buttons: [
+      new err403.ModalButton('Cancel', () => { /* close */ }),
+      new err403.ModalButton('Create Lead', function() {
+        const data = modal.getAllFieldValues();
+        
+        Xrm.WebApi.createRecord('lead', {
+          firstname: data.firstname,
+          lastname: data.lastname,
+          emailaddress1: data.emailaddress1,
+          industrycode: parseInt(data.industrycode),
+          leadsourcecode: parseInt(data.leadsourcecode),
+          leadqualitycode: parseInt(data.leadqualitycode)
+        }).then(() => {
+          err403.Toast.success({ message: 'Lead created successfully' });
+        });
+        
+        return true;
+      }, true)
+    ]
+  });
+  modal.show();
+}
+
+// The library automatically:
+// 1. Fetches option set metadata from D365
+// 2. Populates dropdown with options
+// 3. Uses attribute display name as label (if not provided)
+// 4. Handles both local and global option sets
+```
+
+### Example 8: Account Lookup with Selection
 
 Let users search and select records:
 
@@ -514,7 +602,7 @@ function selectAccount() {
 
 **Search Behavior:** The lookup uses "contains" logic, so searching for "smith" will find "John Smith", "Smithson Inc", and "Blacksmith Corp". The search checks both visible fields (`name`, `accountnumber`) and hidden fields (`emailaddress1`, `websiteurl`), allowing users to find records by email or website even though those columns aren't displayed in the grid.
 
-### Example 7: Multi-Select Contacts
+### Example 9: Multi-Select Contacts
 
 Select multiple records at once:
 
@@ -546,7 +634,7 @@ function selectMultipleContacts() {
 }
 ```
 
-### Example 8: Filtered Lookup (Active Accounts Only)
+### Example 10: Filtered Lookup (Active Accounts Only)
 
 Show only records that match specific criteria:
 
@@ -573,7 +661,7 @@ function selectActiveAccount() {
 }
 ```
 
-### Example 9: Data Table with Sorting and Selection
+### Example 11: Data Table with Sorting and Selection
 
 Display tabular data with sorting, selection, and customizable columns:
 
@@ -779,7 +867,7 @@ function onCityChange(executionContext) {
 }
 ```
 
-### Example 11: Progress Indicator
+### Example 13: Progress Indicator
 
 Show progress during long operations:
 

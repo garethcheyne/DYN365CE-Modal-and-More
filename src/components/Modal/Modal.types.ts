@@ -81,6 +81,13 @@ export interface FieldConfig {
     rows?: number;
     options?: Array<string | { label: string; value: string }>;
     multiSelect?: boolean;
+    // D365 OptionSet auto-fetch configuration
+    d365OptionSet?: {
+        entityName: string;      // e.g., 'account'
+        attributeName: string;   // e.g., 'industrycode'
+        includeNull?: boolean;   // Include blank/null option
+        sortByLabel?: boolean;   // Sort alphabetically by label (default: by value)
+    };
     startDate?: Date;
     endDate?: Date;
     entityTypes?: string[];

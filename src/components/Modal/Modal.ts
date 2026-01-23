@@ -16,12 +16,11 @@ import type {
   ModalOptions,
   ModalInstance,
   ModalResponse,
-  FieldConfig,
-  VisibilityCondition
+  FieldConfig
 } from './Modal.types';
 import { ModalButton } from './Modal.types';
 import { getTargetDocument } from '../../utils/dom';
-import { TRACE } from '../Logger/Logger';
+import { WAR, ERR } from '../Logger/Logger';
 import {
   React,
   TabList,
@@ -33,7 +32,6 @@ import {
   InputFluentUi,
   DropdownFluentUi,
   Slider,
-  Label,
   Field,
   mountFluentComponent,
   defaultTheme,
@@ -86,10 +84,74 @@ export class Modal implements ModalInstance {
       }
     }
 
-    this.createModal();
+    this.initModal();
   }
 
-  private createModal(): void {
+  /**
+   * Initialize modal asynchronously (for D365 option set fetching)
+   */
+  private async initModal(): Promise<void> {
+    await this.createModal();
+  }
+
+  /**
+   * Fetch option set values from D365 metadata
+   */
+  private async fetchD365OptionSet(
+    entityName: string,
+    attributeName: string,
+    includeNull: boolean = false,
+    sortByLabel: boolean = false
+  ): Promise<Array<{ label: string; value: string }>> {
+    try {
+      // Check if Xrm is available
+      if (typeof (window as any).Xrm === 'undefined') {
+        console.log(...WAR, 'Dynamics 365 Xrm object not available. Cannot fetch option set.');
+        return [];
+      }
+
+      const Xrm = (window as any).Xrm;
+
+      // Retrieve attribute metadata
+      const attribute = await Xrm.Utility.getEntityMetadata(entityName, [attributeName]);
+      const attributeMetadata = attribute.Attributes._collection[attributeName];
+
+      if (!attributeMetadata || !attributeMetadata.OptionSet) {
+        console.log(...WAR, `No option set found for ${entityName}.${attributeName}`);
+        return [];
+      }
+
+      // Extract options
+      let options: Array<{ label: string; value: string }> = [];
+      
+      const optionSet = attributeMetadata.OptionSet.Options;
+      for (const option of optionSet) {
+        options.push({
+          label: option.Label,
+          value: option.Value.toString()
+        });
+      }
+
+      // Add null/blank option if requested
+      if (includeNull) {
+        options.unshift({ label: '', value: '' });
+      }
+
+      // Sort if requested
+      if (sortByLabel) {
+        options.sort((a, b) => a.label.localeCompare(b.label));
+      }
+
+      console.log(`Fetched ${options.length} options for ${entityName}.${attributeName}`);
+      return options;
+
+    } catch (error) {
+      console.log(...ERR, `Error fetching option set for ${entityName}.${attributeName}:`, error);
+      return [];
+    }
+  }
+
+  private async createModal(): Promise<void> {
     const doc = getTargetDocument();
     injectAnimations();
 
@@ -154,7 +216,7 @@ export class Modal implements ModalInstance {
     `;
 
     this.createHeader();
-    this.createBody();
+    await this.createBody();
     this.modal.appendChild(this.body!);
     this.createFooter();
 
@@ -376,7 +438,7 @@ export class Modal implements ModalInstance {
     this.modal!.appendChild(this.header);
   }
 
-  private createBody(): void {
+  private async createBody(): Promise<void> {
     const doc = getTargetDocument();
     this.body = doc.createElement('div');
 
@@ -401,7 +463,7 @@ export class Modal implements ModalInstance {
       this.body.appendChild(this.stepIndicator);
 
       // Create step panels
-      this.options.progress!.steps!.forEach((step, index) => {
+      for (const [index, step] of this.options.progress!.steps!.entries()) {
         const panel = doc.createElement('div');
         panel.setAttribute('data-step', String(index + 1));
         panel.style.cssText = `
@@ -413,15 +475,15 @@ export class Modal implements ModalInstance {
         `;
 
         if (step.fields) {
-          step.fields.forEach(field => {
-            const fieldEl = this.createField(field);
+          for (const field of step.fields) {
+            const fieldEl = await this.createField(field);
             if (fieldEl) panel.appendChild(fieldEl);
-          });
+          }
         }
 
         this.stepPanels.push(panel);
         this.body.appendChild(panel);
-      });
+      }
     } else {
       // Regular modal (non-wizard)
       const sectionCount =
@@ -481,10 +543,10 @@ export class Modal implements ModalInstance {
           ` : ''}
         `;
 
-        this.options.fields.forEach(field => {
-          const fieldEl = this.createField(field);
+        for (const field of this.options.fields) {
+          const fieldEl = await this.createField(field);
           if (fieldEl) fieldsContainer.appendChild(fieldEl);
-        });
+        }
 
         this.body.appendChild(fieldsContainer);
       }
@@ -706,8 +768,19 @@ export class Modal implements ModalInstance {
     return container;
   }
 
-  private createField(field: FieldConfig): HTMLElement | null {
+  private async createField(field: FieldConfig): Promise<HTMLElement | null> {
     const doc = getTargetDocument();
+
+    // Fetch D365 option set if specified
+    if (field.d365OptionSet && (!field.options || field.options.length === 0)) {
+      const { entityName, attributeName, includeNull, sortByLabel } = field.d365OptionSet;
+      field.options = await this.fetchD365OptionSet(entityName, attributeName, includeNull, sortByLabel);
+      
+      // If no label provided, use attribute name
+      if (!field.label) {
+        field.label = attributeName.charAt(0).toUpperCase() + attributeName.slice(1).replace(/_/g, ' ');
+      }
+    }
 
     // Handle tabs
     if (field.asTabs && field.fields) {

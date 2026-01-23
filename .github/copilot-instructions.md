@@ -49,6 +49,14 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
     field: 'otherFieldId',    // Field to watch
     operator: 'equals',       // equals | notEquals | contains | greaterThan | lessThan | truthy | falsy
     value: 'someValue'        // Comparison value
+  },
+  
+  // NEW: D365 Option Set auto-fetch
+  d365OptionSet: {
+    entityName: 'account',       // D365 entity name
+    attributeName: 'industrycode', // Attribute name
+    includeNull: true,           // Include blank option
+    sortByLabel: true            // Sort alphabetically
   }
 }
 ```
@@ -92,6 +100,37 @@ fields: [
   { id: 'sms', label: 'SMS', type: 'tel',
     visibleWhen: { field: 'allowMarketing', operator: 'truthy' }}
 ]
+```
+
+**D365 Option Set Auto-Fetch Example:**
+```javascript
+fields: [
+  {
+    id: 'industrycode',
+    type: 'select',
+    d365OptionSet: {
+      entityName: 'account',
+      attributeName: 'industrycode',
+      includeNull: true,
+      sortByLabel: true
+    }
+  },
+  {
+    id: 'leadsourcecode',
+    type: 'select',
+    d365OptionSet: {
+      entityName: 'lead',
+      attributeName: 'leadsourcecode',
+      includeNull: true
+    }
+  }
+]
+
+// Library automatically:
+// - Fetches option set metadata from D365 Web API
+// - Populates dropdown with options
+// - Uses attribute display name as label
+// - Handles both local and global option sets
 ```
 
 ### 3. Lookup (`err403.Lookup`)
