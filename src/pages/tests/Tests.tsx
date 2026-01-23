@@ -3,9 +3,10 @@
  */
 import React, { useState, useCallback } from 'react';
 import { Layout } from '../shared/Layout';
+import * as err403Module from '../../index';
 
-// Declare err403 global
-declare const err403: any;
+// Use the module exports directly (works in both dev and production)
+const err403 = err403Module;
 declare const PACKAGE_VERSION: string;
 
 interface LogEntry {

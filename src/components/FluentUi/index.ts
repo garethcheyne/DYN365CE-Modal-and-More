@@ -44,3 +44,4 @@ export * from './Accordion';
 export * from './Table';
 export * from './DataGrid';
 export * from './Toolbar';
+export { Slider, Label } from '@fluentui/react-components';

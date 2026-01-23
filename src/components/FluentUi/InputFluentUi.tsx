@@ -1,10 +1,10 @@
 /**
  * Fluent UI Input Component Wrapper
- * Provides native Dynamics 365 styling with underline appearance
+ * Uses Field component for consistent layout
  */
 
 import React, { useState } from 'react';
-import { Input, Textarea } from '@fluentui/react-components';
+import { Input, Textarea, Field } from '@fluentui/react-components';
 import type { InputProps, TextareaOnChangeData } from '@fluentui/react-components';
 
 interface InputFluentUiProps {
@@ -19,6 +19,7 @@ interface InputFluentUiProps {
     rows?: number;
     tooltip?: string;
     appearance?: 'outline' | 'underline' | 'filled-darker' | 'filled-lighter';
+    orientation?: 'horizontal' | 'vertical';
     onChange?: (value: string | number) => void;
     onBlur?: () => void;
     onFocus?: () => void;
@@ -35,7 +36,8 @@ export const InputFluentUi: React.FC<InputFluentUiProps> = ({
     readOnly = false,
     rows = 3,
     tooltip,
-    appearance = 'underline', // Default to underline for Dynamics look
+    appearance = 'filled-darker',
+    orientation = 'horizontal',
     onChange,
     onBlur,
     onFocus,
@@ -58,77 +60,46 @@ export const InputFluentUi: React.FC<InputFluentUiProps> = ({
         }
     };
 
-    const commonInputProps = {
-        id,
-        value: String(value),
-        placeholder,
-        required,
-        disabled,
-        readOnly,
-        appearance,
-        onChange: handleInputChange,
-        onBlur,
-        onFocus,
-    };
-
-    const commonTextareaProps = {
-        id,
-        value: String(value),
-        placeholder,
-        required,
-        disabled,
-        readOnly,
-        appearance: (appearance === 'underline' ? 'outline' : appearance) as 'outline' | 'filled-darker' | 'filled-lighter',
-        onChange: handleTextareaChange,
-        onBlur,
-        onFocus,
-    };
-
     const fieldContent = type === 'textarea' ? (
         <Textarea
-            {...commonTextareaProps}
+            id={id}
+            value={String(value)}
+            placeholder={placeholder}
+            required={required}
+            disabled={disabled}
+            readOnly={readOnly}
+            appearance={appearance === 'underline' ? 'outline' : appearance}
+            onChange={handleTextareaChange}
+            onBlur={onBlur}
+            onFocus={onFocus}
             rows={rows}
             resize="vertical"
         />
     ) : (
         <Input
-            {...commonInputProps}
+            id={id}
+            value={String(value)}
+            placeholder={placeholder}
+            required={required}
+            disabled={disabled}
+            readOnly={readOnly}
+            appearance={appearance}
+            onChange={handleInputChange}
+            onBlur={onBlur}
+            onFocus={onFocus}
             type={type === 'text' ? undefined : type}
         />
     );
 
-    // If no label, render input directly without grid wrapper
-    if (!label) {
-        return (
-            <div style={{ marginBottom: '16px' }}>
-                {fieldContent}
-            </div>
-        );
-    }
-
-    // With label, use grid layout for alignment
     return (
-        <div style={{
-            display: 'grid',
-            gridTemplateColumns: '150px 1fr',
-            alignItems: 'center',
-            width: '100%',
-            marginBottom: '16px'
-        }}>
-            <label
-                htmlFor={id}
-                title={tooltip}
-                style={{
-                    paddingInlineEnd: '12px',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    cursor: tooltip ? 'help' : 'default'
-                }}
-            >
-                {label}
-                {required && <span style={{ color: '#d13438' }}>*</span>}
-            </label>
+        <Field
+            label={label}
+            required={required}
+            hint={tooltip}
+            orientation={orientation}
+            style={{ marginBottom: '8px' }}
+        >
             {fieldContent}
-        </div>
+        </Field>
     );
 };

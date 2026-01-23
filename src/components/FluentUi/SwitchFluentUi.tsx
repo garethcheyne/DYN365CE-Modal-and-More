@@ -1,10 +1,10 @@
 /**
  * Switch component using Fluent UI
- * Replaces vanilla Switch.ts with React-based Fluent UI Switch
+ * Uses Field component for consistent layout
  */
 
 import React from 'react';
-import { Switch } from './index';
+import { Switch, Field } from '@fluentui/react-components';
 
 interface SwitchFluentUiProps {
   id?: string;
@@ -12,6 +12,7 @@ interface SwitchFluentUiProps {
   onChange: (checked: boolean) => void;
   label?: string;
   tooltip?: string;
+  orientation?: 'horizontal' | 'vertical';
 }
 
 export const SwitchFluentUi: React.FC<SwitchFluentUiProps> = ({ 
@@ -19,52 +20,21 @@ export const SwitchFluentUi: React.FC<SwitchFluentUiProps> = ({
   checked, 
   onChange, 
   label,
-  tooltip 
+  tooltip,
+  orientation = 'horizontal'
 }) => {
-  const switchContent = (
-    <Switch
-      id={id}
-      checked={checked}
-      onChange={(_, data) => onChange(data.checked)}
-      label={label}
-    />
-  );
-
-  // Switch component already has its label built-in
-  // If tooltip is provided, wrap with grid layout
-  if (!tooltip) {
-    return (
-      <div style={{ marginBottom: '16px' }}>
-        {switchContent}
-      </div>
-    );
-  }
-
-  // With tooltip, add a label with tooltip support before the switch
   return (
-    <div style={{ 
-      display: 'grid',
-      gridTemplateColumns: '150px 1fr',
-      alignItems: 'center',
-      width: '100%',
-      marginBottom: '16px'
-    }}>
-      <label 
-        title={tooltip}
-        style={{ 
-          paddingInlineEnd: '12px',
-          fontWeight: 600,
-          fontSize: '14px',
-          cursor: 'help'
-        }}
-      >
-        {label || ''}
-      </label>
+    <Field
+      label={label}
+      hint={tooltip}
+      orientation={orientation}
+      style={{ marginBottom: '8px' }}
+    >
       <Switch
         id={id}
         checked={checked}
         onChange={(_, data) => onChange(data.checked)}
       />
-    </div>
+    </Field>
   );
 };

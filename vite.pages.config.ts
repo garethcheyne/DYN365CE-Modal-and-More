@@ -84,6 +84,6 @@ export default defineConfig({
   },
   // Dev server for pages
   server: {
-    open: '/pages/demo.html',
+    open: '/pages/about.html',
   },
 });

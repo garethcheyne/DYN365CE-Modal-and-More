@@ -76,8 +76,8 @@ function zipSolution(managed = false) {
     // Add [Content_Types].xml at root
     archive.file(path.join(SOLUTION_SRC, '[Content_Types].xml'), { name: '[Content_Types].xml' });
     
-    // Add customizations.xml from Other folder to root
-    archive.file(path.join(SOLUTION_SRC, 'Other', 'Customizations.xml'), { name: 'customizations.xml' });
+    // Add customizations.xml at root
+    archive.file(path.join(SOLUTION_SRC, 'customizations.xml'), { name: 'customizations.xml' });
     
     // Add WebResources folder
     archive.directory(path.join(SOLUTION_SRC, 'WebResources'), 'WebResources');

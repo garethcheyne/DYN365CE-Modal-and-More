@@ -7,7 +7,6 @@ export {
   Toaster,
   ToastTitle,
   ToastBody,
-  ToastIntent,
   useToastController,
   useId,
 } from '@fluentui/react-components';

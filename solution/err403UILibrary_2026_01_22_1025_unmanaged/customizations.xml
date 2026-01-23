@@ -1,0 +1,190 @@
+<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.25114.191" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.25114.00191">
+  <Entities></Entities>
+  <Roles></Roles>
+  <Workflows></Workflows>
+  <FieldSecurityProfiles></FieldSecurityProfiles>
+  <Templates />
+  <EntityMaps />
+  <EntityRelationships />
+  <OrganizationSettings />
+  <optionsets />
+  <WebResources>
+    <WebResource>
+      <WebResourceId>{a1b2c3d4-0005-f011-bbd3-000d3acbc2cc}</WebResourceId>
+      <Name>err403_/assets/page-styles.css</Name>
+      <DisplayName>err403_/assets/page-styles.css</DisplayName>
+      <LanguageCode>0</LanguageCode>
+      <WebResourceType>2</WebResourceType>
+      <IntroducedVersion>2026.01.21.0</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/err403_assetspage-stylescssA1B2C3D4-0005-F011-BBD3-000D3ACBC2CC</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{7a3c73ea-4cbf-f011-bbd3-000d3acbc2cc}</WebResourceId>
+      <Name>err403_/ui-lib.min.js</Name>
+      <DisplayName>err403_/ui-lib.min.js</DisplayName>
+      <LanguageCode>0</LanguageCode>
+      <WebResourceType>3</WebResourceType>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/err403_ui-libminjs7A3C73EA-4CBF-F011-BBD3-000D3ACBC2CC</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{65efd173-cbc0-f011-bbd3-000d3acbc2cc}</WebResourceId>
+      <Name>err403_/ui-lib.types.d.ts</Name>
+      <DisplayName>err403_/ui-lib.types.d.ts</DisplayName>
+      <WebResourceType>3</WebResourceType>
+      <IntroducedVersion>2025.11.12.2</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/err403_ui-libtypesdts65EFD173-CBC0-F011-BBD3-000D3ACBC2CC</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{060d1286-cbc0-f011-bbd3-000d3acbc2cc}</WebResourceId>
+      <Name>err403_/README.md</Name>
+      <DisplayName>err403_/README.md</DisplayName>
+      <LanguageCode>0</LanguageCode>
+      <WebResourceType>1</WebResourceType>
+      <IntroducedVersion>2025.11.12.2</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/err403_READMEmd060D1286-CBC0-F011-BBD3-000D3ACBC2CC</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{b3919fb9-ccc0-f011-bbd3-000d3acbc2cc}</WebResourceId>
+      <Name>err403_/ui-lib.styles.css</Name>
+      <DisplayName>err403_/ui-lib.styles.css</DisplayName>
+      <LanguageCode>0</LanguageCode>
+      <WebResourceType>2</WebResourceType>
+      <IntroducedVersion>2025.11.12.2</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/err403_ui-libstylescssB3919FB9-CCC0-F011-BBD3-000D3ACBC2CC</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{c4bbb1cb-0cf7-f011-8406-00224810270e}</WebResourceId>
+      <Name>err403_/about.html</Name>
+      <DisplayName>err403_/about.html</DisplayName>
+      <WebResourceType>1</WebResourceType>
+      <IntroducedVersion>2026.01.22.0953</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/err403_abouthtmlC4BBB1CB-0CF7-F011-8406-00224810270E</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{3ae8c14d-0df7-f011-8406-00224810270e}</WebResourceId>
+      <Name>err403_/assets/page-about.js</Name>
+      <DisplayName>err403_/assets/page-about.js</DisplayName>
+      <WebResourceType>3</WebResourceType>
+      <IntroducedVersion>2026.01.22.0953</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/err403_assetspage-aboutjs3AE8C14D-0DF7-F011-8406-00224810270E</FileName>
+    </WebResource>
+  </WebResources>
+  <CustomControls />
+  <AppModuleSiteMaps>
+    <AppModuleSiteMap>
+      <SiteMapUniqueName>err403_UILibraryforDynamics365</SiteMapUniqueName>
+      <EnableCollapsibleGroups>False</EnableCollapsibleGroups>
+      <ShowHome>False</ShowHome>
+      <ShowPinned>False</ShowPinned>
+      <ShowRecents>False</ShowRecents>
+      <SiteMap IntroducedVersion="7.0.0.0">
+        <Area Id="area_85c2aaa0" ResourceId="SitemapDesigner.NewTitle" DescriptionResourceId="SitemapDesigner.NewTitle" ShowGroups="true" IntroducedVersion="7.0.0.0">
+          <Titles>
+            <Title LCID="1033" Title="Area1" />
+          </Titles>
+          <Group Id="group_72f8d161" ResourceId="SitemapDesigner.NewGroup" DescriptionResourceId="SitemapDesigner.NewGroup" IntroducedVersion="7.0.0.0" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
+            <Titles>
+              <Title LCID="1033" Title="Modal and More" />
+            </Titles>
+            <SubArea Id="subarea_1b644ab4" ResourceId="SitemapDesigner.NewSubArea" VectorIcon="/WebResources/mspp_entity_permissions.svg" Icon="/WebResources/mspp_entity_permissions.svg" Url="$webresource:err403_/about.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+              <Titles>
+                <Title LCID="1033" Title="About" />
+              </Titles>
+            </SubArea>
+          </Group>
+        </Area>
+      </SiteMap>
+      <LocalizedNames>
+        <LocalizedName description="UI Library for Dynamics 365" languagecode="1033" />
+      </LocalizedNames>
+    </AppModuleSiteMap>
+  </AppModuleSiteMaps>
+  <AppModules>
+    <AppModule>
+      <UniqueName>err403_UILibraryforDynamics365</UniqueName>
+      <IntroducedVersion>2025.11.12.2</IntroducedVersion>
+      <WebResourceId>953b9fac-1e5e-e611-80d6-00155ded156f</WebResourceId>
+      <OptimizedFor></OptimizedFor>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+      <FormFactor>1</FormFactor>
+      <ClientType>4</ClientType>
+      <NavigationType>0</NavigationType>
+      <AppModuleComponents>
+        <AppModuleComponent type="62" schemaName="err403_UILibraryforDynamics365" />
+      </AppModuleComponents>
+      <AppModuleRoleMaps>
+        <Role id="{627090ff-40a3-4053-8790-584edc5be201}" />
+        <Role id="{119f245c-3cc8-4b62-b31c-d1a046ced15d}" />
+      </AppModuleRoleMaps>
+      <LocalizedNames>
+        <LocalizedName description="UI Library for Dynamics 365" languagecode="1033" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description description="Professional-grade UI components that seamlessly integrate with Dynamics 365, giving your forms, ribbons, and custom pages the same polished look and feel as native D365 interfaces." languagecode="1033" />
+      </Descriptions>
+      <appsettings>
+        <appsetting settingdefinitionid.uniquename="AppChannel">
+          <iscustomizable>1</iscustomizable>
+          <value>1</value>
+        </appsetting>
+        <appsetting settingdefinitionid.uniquename="EnablePowerBIQuickReport">
+          <iscustomizable>1</iscustomizable>
+          <value>false</value>
+        </appsetting>
+        <appsetting settingdefinitionid.uniquename="msdyn_TimelineCopilotForApps">
+          <iscustomizable>1</iscustomizable>
+          <value>false</value>
+        </appsetting>
+        <appsetting settingdefinitionid.uniquename="msdyn_TimelineCopilotInteractions">
+          <iscustomizable>1</iscustomizable>
+          <value>false</value>
+        </appsetting>
+        <appsetting settingdefinitionid.uniquename="ServerMode">
+          <iscustomizable>1</iscustomizable>
+          <value>false</value>
+        </appsetting>
+      </appsettings>
+    </AppModule>
+  </AppModules>
+  <EntityDataProviders />
+  <Languages>
+    <Language>1033</Language>
+  </Languages>
+</ImportExportXml>

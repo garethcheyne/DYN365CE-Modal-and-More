@@ -34,10 +34,7 @@ const D365_WEB_RESOURCE_NAMES = {
   'ui-lib.min.js': 'err403_/ui-lib.min.js',
   'ui-lib.styles.css': 'err403_/ui-lib.styles.css',
   './assets/page-about.js': 'err403_/assets/page-about.js',
-  './assets/page-styles.css': 'err403_/assets/page-styles.css',
-  // Handle both ./ and $webresource: formats
-  '$webresource:err403_/assets/page-about.js': '$webresource:err403_/assets/page-about.js',
-  '$webresource:err403_/assets/page-styles.css': '$webresource:err403_/assets/page-styles.css'
+  './assets/page-styles.css': 'err403_/assets/page-styles.css'
 };
 
 /**
@@ -66,22 +63,12 @@ function getSolutionName() {
 
 /**
  * Transform HTML content for D365 web resources
- * Converts local paths to $webresource: paths
+ * Converts local paths to relative paths for web resources
  */
 function transformHtmlForD365(content) {
-  let transformed = content;
-
-  // Transform script and link paths to D365 web resource paths
-  for (const [localPath, d365Path] of Object.entries(D365_WEB_RESOURCE_NAMES)) {
-    // Handle src="..." and href="..."
-    const srcRegex = new RegExp(`src="${localPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'g');
-    const hrefRegex = new RegExp(`href="${localPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'g');
-
-    transformed = transformed.replace(srcRegex, `src="$webresource:${d365Path}"`);
-    transformed = transformed.replace(hrefRegex, `href="$webresource:${d365Path}"`);
-  }
-
-  return transformed;
+  // For HTML web resources, use relative paths (not $webresource:)
+  // The HTML is served as a web resource, so relative paths work correctly
+  return content;
 }
 
 /**

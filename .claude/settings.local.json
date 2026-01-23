@@ -3,7 +3,11 @@
     "allow": [
       "Bash(cat:*)",
       "Bash(npm run build:pages:*)",
-      "Bash(npm run deploy)"
+      "Bash(npm run deploy)",
+      "WebFetch(domain:fluent2.microsoft.design)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(npm run build:*)"
     ]
   }
 }

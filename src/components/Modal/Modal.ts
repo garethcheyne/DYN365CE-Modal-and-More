@@ -16,7 +16,8 @@ import type {
   ModalOptions,
   ModalInstance,
   ModalResponse,
-  FieldConfig
+  FieldConfig,
+  VisibilityCondition
 } from './Modal.types';
 import { ModalButton } from './Modal.types';
 import { getTargetDocument } from '../../utils/dom';
@@ -31,6 +32,9 @@ import {
   TableFluentUi,
   InputFluentUi,
   DropdownFluentUi,
+  Slider,
+  Label,
+  Field,
   mountFluentComponent,
   defaultTheme,
 } from '../FluentUi';
@@ -48,7 +52,11 @@ export class Modal implements ModalInstance {
   private loadingOverlay: HTMLElement | null = null;
   private resolvePromise: ((value: ModalResponse) => void) | null = null;
   private fieldValues: Map<string, any> = new Map();
+  private fieldVisibilityMap: Map<string, boolean> = new Map();
   private currentStep: number = 1;
+  private totalSteps: number = 1;
+  private stepPanels: HTMLElement[] = [];
+  private stepIndicator: HTMLElement | null = null;
   private options: ModalOptions;
   private isDragging: boolean = false;
   private dragStartX: number = 0;
@@ -372,77 +380,231 @@ export class Modal implements ModalInstance {
     const doc = getTargetDocument();
     this.body = doc.createElement('div');
 
-    // Count sections to determine styling
-    const sectionCount =
-      (this.options.message ? 1 : 0) +
-      (this.options.content ? 1 : 0) +
-      (this.options.fields && this.options.fields.length > 0 ? 1 : 0);
+    // Check if wizard mode is enabled
+    const isWizard = this.options.progress?.enabled && this.options.progress?.steps && this.options.progress.steps.length > 0;
 
-    const needsSectionStyling = sectionCount > 1;
+    if (isWizard) {
+      this.totalSteps = this.options.progress!.steps!.length;
+      this.currentStep = this.options.progress!.currentStep || 1;
 
-    this.body.style.cssText = `
-      flex: 1;
-      overflow: auto;
-      padding: 20px;
-      background: ${needsSectionStyling ? 'rgb(243, 242, 241)' : '#ffffff'};
-    `;
-
-    if (this.options.message) {
-      const messageEl = doc.createElement('p');
-      messageEl.textContent = this.options.message;
-      messageEl.style.cssText = `
-        margin: 0 0 ${needsSectionStyling ? theme.spacing.m : '0'} 0;
-        color: ${theme.colors.modal.textSecondary};
-        font-size: ${theme.typography.fontSize.body};
-        ${needsSectionStyling ? `
-          background: #ffffff;
-          padding: ${theme.spacing.l};
-          border-radius: ${theme.borderRadius.medium};
-          box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
-        ` : ''}
-      `;
-      this.body.appendChild(messageEl);
-    }
-
-    if (this.options.content) {
-      const contentEl = doc.createElement('div');
-      contentEl.innerHTML = this.options.content;
-      contentEl.style.cssText = `
-        ${needsSectionStyling ? `
-          background: #ffffff;
-          padding: ${theme.spacing.l};
-          border-radius: ${theme.borderRadius.medium};
-          box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
-        ` : ''}
-        margin-bottom: ${this.options.fields && this.options.fields.length > 0 ? theme.spacing.m : '0'};
-      `;
-      this.body.appendChild(contentEl);
-    }
-
-    if (this.options.fields && this.options.fields.length > 0) {
-      const fieldsContainer = doc.createElement('div');
-      fieldsContainer.style.cssText = `
+      this.body.style.cssText = `
+        flex: 1;
+        overflow: auto;
+        padding: 20px;
+        background: #ffffff;
         display: flex;
         flex-direction: column;
-        gap: ${theme.spacing.m};
-        ${needsSectionStyling ? `
-          background: #ffffff;
-          padding: ${theme.spacing.l};
-          border-radius: ${theme.borderRadius.medium};
-          box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
-        ` : `
-          padding: ${theme.spacing.l};
-          border-radius: ${theme.borderRadius.medium};
-        `}
       `;
 
-      this.options.fields.forEach(field => {
-        const fieldEl = this.createField(field);
-        if (fieldEl) fieldsContainer.appendChild(fieldEl);
-      });
+      // Create step indicator
+      this.stepIndicator = this.createStepIndicator();
+      this.body.appendChild(this.stepIndicator);
 
-      this.body.appendChild(fieldsContainer);
+      // Create step panels
+      this.options.progress!.steps!.forEach((step, index) => {
+        const panel = doc.createElement('div');
+        panel.setAttribute('data-step', String(index + 1));
+        panel.style.cssText = `
+          display: ${index + 1 === this.currentStep ? 'flex' : 'none'};
+          flex-direction: column;
+          gap: ${theme.spacing.m};
+          flex: 1;
+          padding-top: ${theme.spacing.m};
+        `;
+
+        if (step.fields) {
+          step.fields.forEach(field => {
+            const fieldEl = this.createField(field);
+            if (fieldEl) panel.appendChild(fieldEl);
+          });
+        }
+
+        this.stepPanels.push(panel);
+        this.body.appendChild(panel);
+      });
+    } else {
+      // Regular modal (non-wizard)
+      const sectionCount =
+        (this.options.message ? 1 : 0) +
+        (this.options.content ? 1 : 0) +
+        (this.options.fields && this.options.fields.length > 0 ? 1 : 0);
+
+      const needsSectionStyling = sectionCount > 1;
+
+      this.body.style.cssText = `
+        flex: 1;
+        overflow: auto;
+        padding: 20px;
+        background: #ffffff;
+      `;
+
+      if (this.options.message) {
+        const messageEl = doc.createElement('p');
+        messageEl.textContent = this.options.message;
+        messageEl.style.cssText = `
+          margin: 0 0 ${needsSectionStyling ? theme.spacing.m : '0'} 0;
+          color: ${theme.colors.modal.textSecondary};
+          font-size: ${theme.typography.fontSize.body};
+          ${needsSectionStyling ? `
+            padding: ${theme.spacing.l};
+            border-radius: ${theme.borderRadius.medium};
+            box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
+          ` : ''}
+        `;
+        this.body.appendChild(messageEl);
+      }
+
+      if (this.options.content) {
+        const contentEl = doc.createElement('div');
+        contentEl.innerHTML = this.options.content;
+        contentEl.style.cssText = `
+          ${needsSectionStyling ? `
+            padding: ${theme.spacing.l};
+            border-radius: ${theme.borderRadius.medium};
+            box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
+          ` : ''}
+          margin-bottom: ${this.options.fields && this.options.fields.length > 0 ? theme.spacing.m : '0'};
+        `;
+        this.body.appendChild(contentEl);
+      }
+
+      if (this.options.fields && this.options.fields.length > 0) {
+        const fieldsContainer = doc.createElement('div');
+        fieldsContainer.style.cssText = `
+          display: flex;
+          flex-direction: column;
+          gap: ${theme.spacing.m};
+          ${needsSectionStyling ? `
+            padding: ${theme.spacing.l};
+            border-radius: ${theme.borderRadius.medium};
+            box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
+          ` : ''}
+        `;
+
+        this.options.fields.forEach(field => {
+          const fieldEl = this.createField(field);
+          if (fieldEl) fieldsContainer.appendChild(fieldEl);
+        });
+
+        this.body.appendChild(fieldsContainer);
+      }
     }
+  }
+
+  private createStepIndicator(): HTMLElement {
+    const doc = getTargetDocument();
+    const container = doc.createElement('div');
+    container.style.cssText = `
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #e1dfdd;
+      margin-bottom: 16px;
+    `;
+
+    this.options.progress!.steps!.forEach((step, index) => {
+      const stepNum = index + 1;
+      const isCurrent = stepNum === this.currentStep;
+      const isCompleted = stepNum < this.currentStep;
+
+      const stepEl = doc.createElement('div');
+      stepEl.setAttribute('data-step-indicator', String(stepNum));
+      stepEl.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        flex: 1;
+        cursor: ${this.options.progress!.allowStepNavigation ? 'pointer' : 'default'};
+      `;
+
+      // Step circle
+      const circle = doc.createElement('div');
+      circle.style.cssText = `
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+        background: ${isCurrent ? '#0078d4' : isCompleted ? '#107c10' : '#f3f2f1'};
+        color: ${isCurrent || isCompleted ? '#ffffff' : '#605e5c'};
+        border: 2px solid ${isCurrent ? '#0078d4' : isCompleted ? '#107c10' : '#d2d0ce'};
+      `;
+      circle.textContent = isCompleted ? '✓' : String(stepNum);
+      stepEl.appendChild(circle);
+
+      // Step label
+      if (step.label) {
+        const label = doc.createElement('div');
+        label.style.cssText = `
+          font-size: 12px;
+          color: ${isCurrent ? '#0078d4' : '#605e5c'};
+          text-align: center;
+          font-weight: ${isCurrent ? '600' : '400'};
+        `;
+        label.textContent = step.label;
+        stepEl.appendChild(label);
+      }
+
+      if (this.options.progress!.allowStepNavigation) {
+        stepEl.onclick = () => this.goToStep(String(stepNum));
+      }
+
+      container.appendChild(stepEl);
+
+      // Add connector line (except after last step)
+      if (index < this.options.progress!.steps!.length - 1) {
+        const connector = doc.createElement('div');
+        connector.style.cssText = `
+          flex: 1;
+          height: 2px;
+          background: ${isCompleted ? '#107c10' : '#d2d0ce'};
+          margin-top: -24px;
+        `;
+        container.appendChild(connector);
+      }
+    });
+
+    return container;
+  }
+
+  private updateStepIndicator(): void {
+    if (!this.stepIndicator) return;
+
+    this.options.progress!.steps!.forEach((step, index) => {
+      const stepNum = index + 1;
+      const isCurrent = stepNum === this.currentStep;
+      const isCompleted = stepNum < this.currentStep;
+
+      const stepEl = this.stepIndicator!.querySelector(`[data-step-indicator="${stepNum}"]`) as HTMLElement;
+      if (!stepEl) return;
+
+      const circle = stepEl.querySelector('div') as HTMLElement;
+      if (circle) {
+        circle.style.background = isCurrent ? '#0078d4' : isCompleted ? '#107c10' : '#f3f2f1';
+        circle.style.color = isCurrent || isCompleted ? '#ffffff' : '#605e5c';
+        circle.style.borderColor = isCurrent ? '#0078d4' : isCompleted ? '#107c10' : '#d2d0ce';
+        circle.textContent = isCompleted ? '✓' : String(stepNum);
+      }
+
+      const label = stepEl.querySelector('div:last-child') as HTMLElement;
+      if (label && label !== circle) {
+        label.style.color = isCurrent ? '#0078d4' : '#605e5c';
+        label.style.fontWeight = isCurrent ? '600' : '400';
+      }
+    });
+
+    // Update connector lines
+    const connectors = this.stepIndicator!.querySelectorAll('div[style*="height: 2px"]');
+    connectors.forEach((connector, index) => {
+      const isCompleted = index + 1 < this.currentStep;
+      (connector as HTMLElement).style.background = isCompleted ? '#107c10' : '#d2d0ce';
+    });
   }
 
   private createSideCart(): HTMLElement | null {
@@ -566,6 +728,17 @@ export class Modal implements ModalInstance {
 
     const container = doc.createElement('div');
 
+    // Set initial visibility based on visibleWhen condition
+    if (field.visibleWhen) {
+      const isVisible = this.evaluateVisibilityCondition(field.visibleWhen);
+      this.fieldVisibilityMap.set(field.id, isVisible);
+      if (!isVisible) {
+        container.style.display = 'none';
+      }
+    } else {
+      this.fieldVisibilityMap.set(field.id, true);
+    }
+
     const labelPosition = field.labelPosition || 'left';
 
     // Note: For Fluent UI field components (Input, Dropdown, Switch, etc.),
@@ -586,10 +759,12 @@ export class Modal implements ModalInstance {
             checked: checked,
             label: field.label,
             tooltip: field.tooltip,
+            orientation: field.orientation || 'horizontal',
             onChange: (newChecked: boolean) => {
               setChecked(newChecked);
               field.value = newChecked;
               this.fieldValues.set(field.id, newChecked);
+              this.updateFieldVisibility(field.id);
             }
           });
         };
@@ -620,11 +795,13 @@ export class Modal implements ModalInstance {
             readOnly: field.readOnly || false,
             rows: field.rows || 3,
             tooltip: field.tooltip,
-            appearance: 'underline' as const,
+            appearance: 'filled-darker' as const,
+            orientation: field.orientation || 'horizontal',
             onChange: (value: string | number) => {
               setTextValue(value);
               this.fieldValues.set(field.id, value);
               field.value = value;
+              this.updateFieldVisibility(field.id);
             }
           });
         };
@@ -657,11 +834,12 @@ export class Modal implements ModalInstance {
             required: field.required,
             disabled: field.disabled,
             tooltip: field.tooltip,
-            appearance: 'underline',
+            orientation: field.orientation || 'horizontal',
             onChange: (value: string) => {
               setSelectValue(value);
               this.fieldValues.set(field.id, value);
               field.value = value;
+              this.updateFieldVisibility(field.id);
             }
           });
         };
@@ -699,10 +877,12 @@ export class Modal implements ModalInstance {
             required: field.required,
             disabled: field.disabled,
             placeholder: field.placeholder || 'Select a date...',
+            orientation: field.orientation || 'horizontal',
             onChange: (date: Date | null) => {
               setSelectedDate(date);
               field.value = date;
               this.fieldValues.set(field.id, date);
+              this.updateFieldVisibility(field.id);
             }
           });
         };
@@ -745,6 +925,62 @@ export class Modal implements ModalInstance {
         this.fieldValues.set(field.id, []);
 
         return container;
+      case 'range':
+        // Use Fluent UI Slider component with Field for consistent layout
+        const sliderWrapper = doc.createElement('div');
+        sliderWrapper.setAttribute('data-field-id', field.id);
+
+        const SliderWrapper = () => {
+          const [sliderValue, setSliderValue] = React.useState(field.value || 0);
+          const sliderId = React.useId();
+
+          return React.createElement(Field, {
+            label: field.label,
+            required: field.required,
+            hint: field.tooltip,
+            orientation: field.orientation || 'horizontal',
+            style: { marginBottom: '8px' }
+          },
+            React.createElement('div', {
+              style: {
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%'
+              }
+            },
+              React.createElement(Slider, {
+                id: sliderId,
+                value: sliderValue,
+                min: field.extraAttributes?.min || 0,
+                max: field.extraAttributes?.max || 100,
+                step: field.extraAttributes?.step || 1,
+                onChange: (_: any, data: { value: number }) => {
+                  setSliderValue(data.value);
+                  field.value = data.value;
+                  this.fieldValues.set(field.id, data.value);
+                  this.updateFieldVisibility(field.id);
+                },
+                style: { flex: 1 }
+              }),
+              field.showValue && React.createElement('span', {
+                style: {
+                  minWidth: '40px',
+                  textAlign: 'right',
+                  fontSize: '14px',
+                  color: '#323130'
+                }
+              }, String(sliderValue))
+            )
+          );
+        };
+
+        mountFluentComponent(sliderWrapper, React.createElement(SliderWrapper), defaultTheme);
+        container.appendChild(sliderWrapper);
+
+        this.fieldValues.set(field.id, field.value || 0);
+
+        return container;
       default:
         // Use Fluent UI Input component for native Dynamics look
         const inputWrapper = doc.createElement('div');
@@ -765,11 +1001,13 @@ export class Modal implements ModalInstance {
             readOnly: field.readOnly || false,
             rows: field.rows || 3,
             tooltip: field.tooltip,
-            appearance: 'underline' as const, // Dynamics-style underline
+            appearance: 'filled-darker' as const,
+            orientation: field.orientation || 'horizontal',
             onChange: (value: string | number) => {
               setInputValue(value);
               this.fieldValues.set(field.id, value);
               field.value = value;
+              this.updateFieldVisibility(field.id);
             }
           });
         };
@@ -782,6 +1020,70 @@ export class Modal implements ModalInstance {
 
         return container;
     }
+  }
+
+  private evaluateVisibilityCondition(condition: { field: string; operator?: string; value?: any }): boolean {
+    const fieldValue = this.fieldValues.get(condition.field);
+    const operator = condition.operator || 'equals';
+
+    switch (operator) {
+      case 'equals':
+        return fieldValue === condition.value;
+      case 'notEquals':
+        return fieldValue !== condition.value;
+      case 'contains':
+        return String(fieldValue).includes(String(condition.value));
+      case 'greaterThan':
+        return Number(fieldValue) > Number(condition.value);
+      case 'lessThan':
+        return Number(fieldValue) < Number(condition.value);
+      case 'truthy':
+        return !!fieldValue;
+      case 'falsy':
+        return !fieldValue;
+      default:
+        return true;
+    }
+  }
+
+  private updateFieldVisibility(changedFieldId: string): void {
+    // Find all fields that have visibility conditions
+    const allFields = this.getAllFields();
+
+    allFields.forEach(field => {
+      if (field.visibleWhen && field.visibleWhen.field === changedFieldId) {
+        const shouldBeVisible = this.evaluateVisibilityCondition(field.visibleWhen);
+        const currentlyVisible = this.fieldVisibilityMap.get(field.id);
+
+        if (shouldBeVisible !== currentlyVisible) {
+          this.fieldVisibilityMap.set(field.id, shouldBeVisible);
+          const fieldEl = this.body?.querySelector(`[data-field-id="${field.id}"]`) as HTMLElement;
+          if (fieldEl) {
+            fieldEl.style.display = shouldBeVisible ? '' : 'none';
+          }
+        }
+      }
+    });
+  }
+
+  private getAllFields(): FieldConfig[] {
+    const fields: FieldConfig[] = [];
+
+    // Get fields from regular modal
+    if (this.options.fields) {
+      fields.push(...this.options.fields);
+    }
+
+    // Get fields from wizard steps
+    if (this.options.progress?.steps) {
+      this.options.progress.steps.forEach(step => {
+        if (step.fields) {
+          fields.push(...step.fields);
+        }
+      });
+    }
+
+    return fields;
   }
 
   private createFooter(): void {
@@ -1004,12 +1306,24 @@ export class Modal implements ModalInstance {
   }
 
   updateProgress(step: number, _skipValidation?: boolean): void {
+    if (step < 1 || step > this.totalSteps) return;
+
     this.currentStep = step;
+
+    // Show/hide step panels
+    this.stepPanels.forEach((panel, index) => {
+      panel.style.display = index + 1 === step ? 'flex' : 'none';
+    });
+
+    // Update step indicator
+    this.updateStepIndicator();
   }
 
   nextStep(): void {
-    this.currentStep++;
-    this.updateProgress(this.currentStep);
+    if (this.currentStep < this.totalSteps) {
+      this.currentStep++;
+      this.updateProgress(this.currentStep);
+    }
   }
 
   previousStep(): void {
@@ -1019,8 +1333,11 @@ export class Modal implements ModalInstance {
     }
   }
 
-  goToStep(_stepId: string): void {
-    // TODO: Implement
+  goToStep(stepId: string): void {
+    const step = parseInt(stepId, 10);
+    if (!isNaN(step)) {
+      this.updateProgress(step);
+    }
   }
 
   getFieldValue(fieldId: string): any {

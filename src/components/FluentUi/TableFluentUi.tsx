@@ -12,15 +12,23 @@ import {
   DataGridHeaderCell,
   DataGridCell,
   TableCellLayout,
-  TableColumnDefinition,
-  createTableColumn,
-  TableColumnId,
   makeStyles,
   tokens,
   Switch,
   Checkbox,
 } from '@fluentui/react-components';
 import { FieldConfig } from '../Modal/Modal.types';
+
+// Define local types for table columns (simplified version)
+type TableColumnId = string;
+interface TableColumnDefinition<T> {
+  columnId: TableColumnId;
+  renderHeaderCell: () => React.ReactNode;
+  renderCell: (item: T) => React.ReactNode;
+}
+function createTableColumn<T>(def: TableColumnDefinition<T>): TableColumnDefinition<T> {
+  return def;
+}
 
 interface TableFluentUiProps {
   config: FieldConfig;

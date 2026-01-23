@@ -1,10 +1,11 @@
 /**
  * DatePicker component using Fluent UI
- * Uses @fluentui/react-datepicker-compat for Fluent UI v9 date picking
+ * Uses Field component for consistent layout
  */
 
 import React from 'react';
 import { DatePicker } from '@fluentui/react-datepicker-compat';
+import { Field } from '@fluentui/react-components';
 
 interface DatePickerFluentUiProps {
   id?: string;
@@ -15,6 +16,7 @@ interface DatePickerFluentUiProps {
   tooltip?: string;
   required?: boolean;
   disabled?: boolean;
+  orientation?: 'horizontal' | 'vertical';
 }
 
 export const DatePickerFluentUi: React.FC<DatePickerFluentUiProps> = ({ 
@@ -25,51 +27,26 @@ export const DatePickerFluentUi: React.FC<DatePickerFluentUiProps> = ({
   label,
   tooltip,
   required,
-  disabled
+  disabled,
+  orientation = 'horizontal'
 }) => {
-  const datePickerContent = (
-    <DatePicker
-      id={id}
-      value={value || null}
-      onSelectDate={(date: Date | null | undefined) => onChange(date ?? null)}
-      placeholder={placeholder || 'Select a date...'}
-      aria-label={label || 'Date picker'}
-      disabled={disabled}
-    />
-  );
-
-  // If no label, render DatePicker directly without grid wrapper
-  if (!label) {
-    return (
-      <div style={{ marginBottom: '16px' }}>
-        {datePickerContent}
-      </div>
-    );
-  }
-
-  // With label, use grid layout for alignment
   return (
-    <div style={{ 
-      display: 'grid',
-      gridTemplateColumns: '150px 1fr',
-      alignItems: 'center',
-      width: '100%',
-      marginBottom: '16px'
-    }}>
-      <label 
-        htmlFor={id}
-        title={tooltip}
-        style={{ 
-          paddingInlineEnd: '12px',
-          fontWeight: 600,
-          fontSize: '14px',
-          cursor: tooltip ? 'help' : 'default'
-        }}
-      >
-        {label}
-        {required && <span style={{ color: '#d13438' }}>*</span>}
-      </label>
-      {datePickerContent}
-    </div>
+    <Field
+      label={label}
+      required={required}
+      hint={tooltip}
+      orientation={orientation}
+      style={{ marginBottom: '8px' }}
+    >
+      <DatePicker
+        id={id}
+        value={value || null}
+        onSelectDate={(date: Date | null | undefined) => onChange(date ?? null)}
+        placeholder={placeholder || 'Select a date...'}
+        aria-label={label || 'Date picker'}
+        disabled={disabled}
+        appearance="filled-darker"
+      />
+    </Field>
   );
 };

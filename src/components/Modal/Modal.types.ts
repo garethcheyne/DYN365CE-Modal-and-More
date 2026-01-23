@@ -71,6 +71,7 @@ export interface FieldConfig {
     id: string;
     label?: string;
     labelPosition?: 'left' | 'top';
+    orientation?: 'horizontal' | 'vertical'; // Field orientation for Fluent UI Field component
     type?: string;
     value?: any;
     placeholder?: string;
@@ -94,6 +95,7 @@ export interface FieldConfig {
     showValue?: boolean;
     tooltip?: string;
     validation?: ValidationConfig;
+    visibleWhen?: VisibilityCondition;
     // Table-specific properties
     columns?: TableColumn[];
     data?: any[];
@@ -111,6 +113,12 @@ export interface ValidationRule {
     value?: any;
     message: string;
     validate?: (value: any) => boolean;
+}
+
+export interface VisibilityCondition {
+    field: string;
+    operator?: 'equals' | 'notEquals' | 'contains' | 'greaterThan' | 'lessThan' | 'truthy' | 'falsy';
+    value?: any;
 }
 
 export class ModalButton {

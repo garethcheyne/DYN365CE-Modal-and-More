@@ -47,7 +47,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, version }
 
         <div className="d365-header__actions">
           <a
-            href="https://github.com/AshleyLGG/D365-ModalAndMore"
+            href="https://github.com/garethcheyne/DYN365CE-Modal-and-More"
             target="_blank"
             rel="noopener noreferrer"
             className="d365-btn d365-btn--ghost d365-btn--small"

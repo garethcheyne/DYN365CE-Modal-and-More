@@ -1,10 +1,10 @@
 /**
  * Fluent UI Dropdown/Select Component Wrapper
- * Provides native Dynamics 365 styling for option sets
+ * Uses Field component for consistent layout
  */
 
 import React, { useState } from 'react';
-import { Dropdown, Option } from '@fluentui/react-components';
+import { Dropdown, Option, Field } from '@fluentui/react-components';
 import type { DropdownProps } from '@fluentui/react-components';
 
 interface DropdownFluentUiProps {
@@ -17,6 +17,7 @@ interface DropdownFluentUiProps {
     disabled?: boolean;
     tooltip?: string;
     appearance?: 'outline' | 'underline' | 'filled-darker' | 'filled-lighter';
+    orientation?: 'horizontal' | 'vertical';
     onChange?: (value: string) => void;
 }
 
@@ -29,7 +30,8 @@ export const DropdownFluentUi: React.FC<DropdownFluentUiProps> = ({
     required = false,
     disabled = false,
     tooltip,
-    appearance = 'underline', // Default to underline for Dynamics look
+    appearance = 'filled-darker',
+    orientation = 'horizontal',
     onChange,
 }) => {
     const [selectedValue, setSelectedValue] = useState<string>(initialValue);
@@ -42,57 +44,20 @@ export const DropdownFluentUi: React.FC<DropdownFluentUiProps> = ({
         }
     };
 
-    // If no label, render dropdown directly without grid wrapper
-    if (!label) {
-        return (
-            <div style={{ marginBottom: '16px' }}>
-                <Dropdown
-                    id={id}
-                    value={selectedValue}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                    appearance={appearance}
-                    onOptionSelect={handleChange}
-                    style={{ width: '100%' }}
-                >
-                    {options.map((option, index) => (
-                        <Option key={index} value={option}>
-                            {option}
-                        </Option>
-                    ))}
-                </Dropdown>
-            </div>
-        );
-    }
-
-    // With label, use grid layout for alignment
     return (
-        <div style={{
-            display: 'grid',
-            gridTemplateColumns: '150px 1fr',
-            alignItems: 'center',
-            width: '100%',
-            marginBottom: '16px'
-        }}>
-            <label
-                htmlFor={id}
-                title={tooltip}
-                style={{
-                    paddingInlineEnd: '12px',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    cursor: tooltip ? 'help' : 'default'
-                }}
-            >
-                {label}
-                {required && <span style={{ color: '#d13438' }}>*</span>}
-            </label>
+        <Field
+            label={label}
+            required={required}
+            hint={tooltip}
+            orientation={orientation}
+            style={{ marginBottom: '8px' }}
+        >
             <Dropdown
                 id={id}
                 value={selectedValue}
                 placeholder={placeholder}
                 disabled={disabled}
-                appearance={appearance}
+                appearance="filled-darker"
                 onOptionSelect={handleChange}
                 style={{ width: '100%' }}
             >
@@ -102,6 +67,6 @@ export const DropdownFluentUi: React.FC<DropdownFluentUiProps> = ({
                     </Option>
                 ))}
             </Dropdown>
-        </div>
+        </Field>
     );
 };

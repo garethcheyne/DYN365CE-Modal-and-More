@@ -18,7 +18,13 @@ Stop wrestling with custom HTML and CSS. This library provides production-ready 
 Show success messages, warnings, and errors that appear in the top-right corner, just like D365's native notifications. Perfect for confirming actions, displaying errors, or keeping users informed.
 
 ### 🪟 Modal Dialogs
-Create professional forms, wizards, and confirmation dialogs with full validation, tabs, progress indicators, and custom fields. Build complex data entry experiences that feel native to D365.
+Create professional forms, wizards, and confirmation dialogs with full validation, tabs, progress indicators, conditional field visibility, and custom fields. Build complex data entry experiences that feel native to D365.
+
+**New Features:**
+- ✨ **Conditional Field Visibility** - Show/hide fields based on other field values
+- 🧙 **Visual Wizard Steps** - Step indicators with circles, labels, and connectors
+- 📊 **All Field Types** - Text, number, date, switch, slider, textarea, dropdown, table
+- 🎨 **Fluent UI Styling** - Authentic D365 appearance with filled-darker inputs
 
 ### 🔍 Advanced Lookups
 Powerful record selection dialogs with search, filtering, sorting, and multi-select. Integrate seamlessly with D365's entity metadata for a consistent user experience.
@@ -376,7 +382,100 @@ function runAccountSetupWizard() {
 }
 ```
 
-### Example 6: Account Lookup with Selection
+### Example 6: Conditional Field Visibility
+
+Show or hide fields based on other field values - perfect for dynamic forms:
+
+```javascript
+function createAccountWithConditionalFields() {
+  const modal = new err403.Modal({
+    title: 'New Account',
+    size: 'medium',
+    fields: [
+      // Control field
+      { 
+        id: 'accountType', 
+        label: 'Account Type', 
+        type: 'select',
+        options: ['Business', 'Individual'],
+        value: 'Business'
+      },
+      
+      // Business fields - only visible when accountType is 'Business'
+      { 
+        id: 'companyName', 
+        label: 'Company Name', 
+        type: 'text',
+        required: true,
+        visibleWhen: { field: 'accountType', operator: 'equals', value: 'Business' }
+      },
+      { 
+        id: 'taxId', 
+        label: 'Tax ID', 
+        type: 'text',
+        visibleWhen: { field: 'accountType', operator: 'equals', value: 'Business' }
+      },
+      
+      // Individual fields - only visible when accountType is 'Individual'
+      { 
+        id: 'firstName', 
+        label: 'First Name', 
+        type: 'text',
+        required: true,
+        visibleWhen: { field: 'accountType', operator: 'equals', value: 'Individual' }
+      },
+      { 
+        id: 'lastName', 
+        label: 'Last Name', 
+        type: 'text',
+        required: true,
+        visibleWhen: { field: 'accountType', operator: 'equals', value: 'Individual' }
+      },
+      
+      // Marketing preferences with dependent fields
+      { 
+        id: 'allowMarketing', 
+        label: 'Allow Marketing Communications', 
+        type: 'switch',
+        value: true
+      },
+      { 
+        id: 'emailNotifications', 
+        label: 'Email Notifications', 
+        type: 'switch',
+        visibleWhen: { field: 'allowMarketing', operator: 'truthy' }
+      },
+      { 
+        id: 'smsAlerts', 
+        label: 'SMS Alerts', 
+        type: 'switch',
+        visibleWhen: { field: 'allowMarketing', operator: 'truthy' }
+      }
+    ],
+    buttons: [
+      new err403.ModalButton('Cancel', () => {}),
+      new err403.ModalButton('Save', () => {
+        const data = modal.getFieldValues();
+        console.log('Account data:', data);
+        err403.Toast.success({ title: 'Saved', message: 'Account created successfully' });
+        return true;
+      }, true)
+    ]
+  });
+  modal.show();
+}
+
+// Available operators for visibleWhen:
+// - 'equals': field === value
+// - 'notEquals': field !== value
+// - 'contains': string contains substring
+// - 'greaterThan': number > value
+// - 'lessThan': number < value
+// - 'truthy': !!field (any truthy value)
+// - 'falsy': !field (any falsy value)
+```
+
+### Example 7: Account Lookup with Selection
 
 Let users search and select records:
 
@@ -801,47 +900,110 @@ err403.Toast.error({ message: 'Error occurred' });
 
 **Create a modal:**
 ```javascript
-var modal = new err403.Modal({
+const modal = new err403.Modal({
   title: 'Title',
   message: 'Optional message',
-  size: 'small' | 'medium' | 'large' | 'fullscreen',
-  fields: [ /* array of field objects */ ],
-  buttons: [ /* array of button objects */ ],
-  draggable: true, // optional
-  allowDismiss: true // click outside to close
+  size: 'small' | 'medium' | 'large' | 'fullscreen' | { width: 800, height: 600 },
+  fields: [ /* array of field config objects */ ],
+  buttons: [ /* array of ModalButton objects */ ],
+  draggable: true, // optional - make modal draggable
+  allowDismiss: true, // click outside to close
+  progress: { // optional - for wizards
+    enabled: true,
+    currentStep: 1,
+    allowStepNavigation: true,
+    steps: [
+      { id: 'step1', label: 'Step 1', fields: [...] },
+      { id: 'step2', label: 'Step 2', fields: [...] }
+    ]
+  }
 });
 
 modal.show();
 ```
 
-**Field helper classes:**
+**Field Configuration:**
 ```javascript
-new err403.Input({ id, label, type, required, placeholder, value })
-new err403.MultiLine({ id, label, rows, placeholder })
-new err403.OptionSet({ id, label, options })
-new err403.DateRange({ id, label, startDate, endDate })
-new err403.Group({ id, label, fields, asTabs })
+// All field types support:
+{
+  id: 'fieldId',              // Required - unique identifier
+  label: 'Field Label',       // Optional - display label
+  type: 'text',               // Field type (see types below)
+  value: 'initial value',     // Optional - initial value
+  required: true,             // Optional - mark as required
+  disabled: false,            // Optional - disable field
+  readOnly: false,            // Optional - read-only mode
+  placeholder: 'Enter...',    // Optional - placeholder text
+  tooltip: 'Help text',       // Optional - tooltip on hover
+  orientation: 'horizontal',  // Optional - 'horizontal' (default) or 'vertical'
+  
+  // Conditional visibility (NEW!)
+  visibleWhen: {
+    field: 'otherFieldId',    // Field to watch
+    operator: 'equals',       // Comparison operator
+    value: 'someValue'        // Value to compare
+  }
+}
+
+// Available field types:
+- 'text' | 'email' | 'tel' | 'password' | 'url' | 'search'
+- 'number'
+- 'textarea' - with rows property
+- 'date' - Fluent UI DatePicker
+- 'select' - with options: ['Option 1', 'Option 2'] or [{ label, value }]
+- 'switch' - Boolean toggle
+- 'range' - Slider with min, max, step (use extraAttributes)
+- 'table' - Embedded data grid (use Table class)
+- 'custom' - Custom HTML with render() function
+
+// Example: Number field with range slider
+{ 
+  id: 'satisfaction', 
+  label: 'Satisfaction Score', 
+  type: 'range',
+  value: 75,
+  showValue: true,
+  extraAttributes: { min: 0, max: 100, step: 5 }
+}
+
+// Example: Conditional field visibility
+{ 
+  id: 'emailNotifications', 
+  label: 'Email Notifications', 
+  type: 'switch',
+  visibleWhen: { 
+    field: 'allowMarketing', 
+    operator: 'truthy'  // equals | notEquals | contains | greaterThan | lessThan | truthy | falsy
+  }
+}
+
+// Example: Table field
 new err403.Table({ 
-  id, 
-  label, 
+  id: 'productsTable', 
   columns: [
-    { id: 'columnId', header: 'Column Name', visible: true, sortable: true, width: '200px' }
+    { id: 'name', header: 'Product Name', visible: true, sortable: true, width: '250px' },
+    { id: 'price', header: 'Price', visible: true, sortable: true, width: '100px' }
   ],
-  data: [ /* array of objects */ ],
-  selectionMode: 'none' | 'single' | 'multiple',
-  onRowSelect: (selectedRows) => { /* callback */ }
+  data: [
+    { id: 1, name: 'Product A', price: 100 },
+    { id: 2, name: 'Product B', price: 200 }
+  ],
+  selectionMode: 'multiple',
+  onRowSelect: (selectedRows) => { console.log(selectedRows); }
 })
-new err403.Custom({ id, label, render: () => HTMLElement })
 ```
 
 **Button helper:**
 ```javascript
-new err403.Button(
+new err403.ModalButton(
   'Label',
-  function() { /* callback */ },
-  true, // isPrimary (blue button)
-  false, // preventClose
-  false // isDestructive (red button)
+  () => {
+    // Callback function
+    // Return false to keep modal open
+    // Return true or nothing to close modal
+  },
+  true,  // setFocus - makes this the primary (blue) button
+  false  // preventClose - if true, button won't close modal automatically
 )
 ```
 
@@ -906,11 +1068,12 @@ console.error(...err403.ERR, 'Error message', error);
 
 ## Technical Details
 
-- **Size:** 44 KB minified (11 KB gzipped)
-- **Dependencies:** None
-- **Framework:** Vanilla JavaScript/TypeScript
+- **Size:** ~690 KB minified (~280 KB gzipped)
+- **Framework:** Fluent UI v9 + React 18 (bundled internally)
+- **API:** Vanilla JavaScript/TypeScript - No React knowledge required
 - **Compatibility:** Works with all D365 CE versions (online and on-premise)
 - **Loading:** Synchronous script, available immediately
+- **Type Definitions:** Full TypeScript support with IntelliSense
 
 ---
 

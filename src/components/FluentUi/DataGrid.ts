@@ -10,7 +10,4 @@ export {
   DataGridCell,
   DataGridHeaderCell,
   TableCellLayout,
-  TableColumnDefinition,
-  TableColumnId,
-  createTableColumn,
 } from '@fluentui/react-components';
