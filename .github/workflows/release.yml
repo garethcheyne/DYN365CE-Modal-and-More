@@ -2,8 +2,12 @@ name: Build and Release
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
       - "v*" # Triggers on version tags like v1.0.0, v2.1.3, etc.
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
   build-and-release:
@@ -12,21 +16,27 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for version detection
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build and package solution
         run: npm run release
 
-      - name: Get version from tag
+      - name: Get version from package.json
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
 
       - name: Find solution file
         id: find_solution
@@ -36,15 +46,53 @@ jobs:
           echo "Found solution: $SOLUTION_FILE"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          name: Release v${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## D365 UI Library v${{ steps.get_version.outputs.VERSION }}
+            
+            ### 📦 Installation
+            Download `err403UILibrary.zip` and import into your Dynamics 365 environment.
+            
+            ### 📚 What's Included
+            - **ui-lib.min.js** - Main library bundle (~690KB, ~280KB gzipped)
+            - **ui-lib.types.d.ts** - TypeScript definitions
+            - **Solution package** - Complete D365 solution with web resources
+            
+            ### 🚀 Features
+            - Toast notifications with sound
+            - Modal dialogs with forms, wizards, tabs
+            - Conditional field visibility
+            - Visual wizard step indicators
+            - Advanced lookups with multi-select
+            - Data grids with sorting and selection
+            
+            ### 📖 Documentation
+            See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for complete API reference and examples.
+            
+            ---
+            
+            ${{ github.event.head_commit.message }}
           files: |
             ${{ steps.find_solution.outputs.SOLUTION_FILE }}
             build/ui-lib.min.js
             build/ui-lib.min.js.map
             build/ui-lib.types.d.ts
+            README.md
           generate_release_notes: true
           draft: false
           prerelease: false
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: d365-ui-library-v${{ steps.get_version.outputs.VERSION }}
+          path: |
+            build/
+            solution/*.zip
+          retention-days: 90

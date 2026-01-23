@@ -19,6 +19,7 @@
     "update-solution": "node scripts/update-solution.js",
     "pack-solution": "node scripts/pack-solution-zip.js",
     "release": "npm run build:all && npm run update-solution && npm run pack-solution",
+    "version:bump": "node scripts/bump-version.js",
     "pac:auth": "node scripts/pac-deploy.js auth",
     "pac:pack": "npm run update-solution && node scripts/pac-deploy.js pack",
     "pac:import": "node scripts/pac-deploy.js import",
