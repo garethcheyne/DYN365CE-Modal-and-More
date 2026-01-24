@@ -108,6 +108,7 @@ interface FieldConfig {
     id: string;
     label?: string;
     labelPosition?: 'left' | 'top';
+    orientation?: 'horizontal' | 'vertical';
     type?: string;
     value?: any;
     placeholder?: string;
@@ -120,6 +121,12 @@ interface FieldConfig {
         value: string;
     }>;
     multiSelect?: boolean;
+    optionSet?: {
+        entityName: string;
+        attributeName: string;
+        includeNull?: boolean;
+        sortByLabel?: boolean;
+    };
     startDate?: Date;
     endDate?: Date;
     entityTypes?: string[];
@@ -134,6 +141,7 @@ interface FieldConfig {
     showValue?: boolean;
     tooltip?: string;
     validation?: ValidationConfig;
+    visibleWhen?: VisibilityCondition;
     columns?: TableColumn[];
     data?: any[];
     selectionMode?: 'none' | 'single' | 'multiple';
@@ -148,6 +156,11 @@ interface ValidationRule {
     value?: any;
     message: string;
     validate?: (value: any) => boolean;
+}
+interface VisibilityCondition {
+    field: string;
+    operator?: 'equals' | 'notEquals' | 'contains' | 'greaterThan' | 'lessThan' | 'truthy' | 'falsy';
+    value?: any;
 }
 declare class ModalButton {
     label: string;
@@ -206,7 +219,11 @@ declare class Modal implements ModalInstance {
     private loadingOverlay;
     private resolvePromise;
     private fieldValues;
+    private fieldVisibilityMap;
     private currentStep;
+    private totalSteps;
+    private stepPanels;
+    private stepIndicator;
     private options;
     private isDragging;
     private dragStartX;
@@ -214,14 +231,27 @@ declare class Modal implements ModalInstance {
     private modalStartX;
     private modalStartY;
     constructor(options: ModalOptions);
+    /**
+     * Initialize modal asynchronously (for D365 option set fetching)
+     */
+    private initModal;
+    /**
+     * Fetch option set values from D365 metadata
+     */
+    private fetchD365OptionSet;
     private createModal;
     private getModalDimensions;
     private createIconElement;
     private createHeader;
     private createBody;
+    private createStepIndicator;
+    private updateStepIndicator;
     private createSideCart;
     private createTabs;
     private createField;
+    private evaluateVisibilityCondition;
+    private updateFieldVisibility;
+    private getAllFields;
     private createFooter;
     private createButton;
     private startDrag;
@@ -235,7 +265,7 @@ declare class Modal implements ModalInstance {
     updateProgress(step: number, _skipValidation?: boolean): void;
     nextStep(): void;
     previousStep(): void;
-    goToStep(_stepId: string): void;
+    goToStep(stepId: string): void;
     getFieldValue(fieldId: string): any;
     getFieldValues(): Record<string, any>;
     setFieldValue(fieldId: string, value: any): void;

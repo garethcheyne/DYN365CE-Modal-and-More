@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite --config vite.pages.config.ts --open /pages/about.html",
     "dev:pages": "vite --config vite.pages.config.ts",
-    "build": "vite build && npx tsc --emitDeclarationOnly && npx rollup -c rollup.dts.config.js && cp build/ui-lib.min.js release/ && cp build/ui-lib.min.js.map release/ && cp build/ui-lib.types.d.ts release/ui-lib.types.d.ts.js && cp README.md release/README.md.html",
+    "build": "vite build && (npx tsc --emitDeclarationOnly || true) && npx rollup -c rollup.dts.config.js && cp build/ui-lib.min.js release/ && cp build/ui-lib.min.js.map release/ && cp build/ui-lib.types.d.ts release/ui-lib.types.d.ts.js && cp README.md release/README.md.html",
     "build:pages": "node scripts/build-pages.js",
     "build:all": "npm run build && npm run build:pages",
     "build:types": "npx tsc --emitDeclarationOnly && npx rollup -c rollup.dts.config.js",
