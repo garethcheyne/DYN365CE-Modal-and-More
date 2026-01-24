@@ -506,7 +506,7 @@ function createLeadForm() {
       {
         id: 'industrycode',
         type: 'select',
-        d365OptionSet: {
+        optionSet: {
           entityName: 'lead',
           attributeName: 'industrycode',
           includeNull: true,      // Add blank option
@@ -517,7 +517,7 @@ function createLeadForm() {
       {
         id: 'leadsourcecode',
         type: 'select',
-        d365OptionSet: {
+        optionSet: {
           entityName: 'lead',
           attributeName: 'leadsourcecode',
           includeNull: true
@@ -527,7 +527,7 @@ function createLeadForm() {
       {
         id: 'leadqualitycode',
         type: 'select',
-        d365OptionSet: {
+        optionSet: {
           entityName: 'lead',
           attributeName: 'leadqualitycode'
         }

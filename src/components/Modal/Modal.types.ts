@@ -82,7 +82,7 @@ export interface FieldConfig {
     options?: Array<string | { label: string; value: string }>;
     multiSelect?: boolean;
     // D365 OptionSet auto-fetch configuration
-    d365OptionSet?: {
+    optionSet?: {
         entityName: string;      // e.g., 'account'
         attributeName: string;   // e.g., 'industrycode'
         includeNull?: boolean;   // Include blank/null option

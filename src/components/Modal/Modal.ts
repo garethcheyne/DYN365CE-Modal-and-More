@@ -702,7 +702,7 @@ export class Modal implements ModalInstance {
     return sideCart;
   }
 
-  private createTabs(tabs: FieldConfig[]): HTMLElement {
+  private async createTabs(tabs: FieldConfig[]): Promise<HTMLElement> {
     const doc = getTargetDocument();
     const container = doc.createElement('div');
 
@@ -722,10 +722,10 @@ export class Modal implements ModalInstance {
       `;
 
       if (tab.fields) {
-        tab.fields.forEach(field => {
-          const fieldEl = this.createField(field);
+        for (const field of tab.fields) {
+          const fieldEl = await this.createField(field);
           if (fieldEl) panel.appendChild(fieldEl);
-        });
+        }
       }
 
       tabPanels.push(panel);
@@ -772,8 +772,8 @@ export class Modal implements ModalInstance {
     const doc = getTargetDocument();
 
     // Fetch D365 option set if specified
-    if (field.d365OptionSet && (!field.options || field.options.length === 0)) {
-      const { entityName, attributeName, includeNull, sortByLabel } = field.d365OptionSet;
+    if (field.optionSet && (!field.options || field.options.length === 0)) {
+      const { entityName, attributeName, includeNull, sortByLabel } = field.optionSet;
       field.options = await this.fetchD365OptionSet(entityName, attributeName, includeNull, sortByLabel);
       
       // If no label provided, use attribute name

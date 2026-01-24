@@ -52,7 +52,7 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
   },
   
   // NEW: D365 Option Set auto-fetch
-  d365OptionSet: {
+  optionSet: {
     entityName: 'account',       // D365 entity name
     attributeName: 'industrycode', // Attribute name
     includeNull: true,           // Include blank option
@@ -108,7 +108,7 @@ fields: [
   {
     id: 'industrycode',
     type: 'select',
-    d365OptionSet: {
+    optionSet: {
       entityName: 'account',
       attributeName: 'industrycode',
       includeNull: true,
@@ -118,7 +118,7 @@ fields: [
   {
     id: 'leadsourcecode',
     type: 'select',
-    d365OptionSet: {
+    optionSet: {
       entityName: 'lead',
       attributeName: 'leadsourcecode',
       includeNull: true
