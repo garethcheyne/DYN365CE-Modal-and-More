@@ -638,7 +638,7 @@ export class Modal implements ModalInstance {
   private updateStepIndicator(): void {
     if (!this.stepIndicator) return;
 
-    this.options.progress!.steps!.forEach((step, index) => {
+    this.options.progress!.steps!.forEach((_step, index) => {
       const stepNum = index + 1;
       const isCurrent = stepNum === this.currentStep;
       const isCompleted = stepNum < this.currentStep;
@@ -710,7 +710,7 @@ export class Modal implements ModalInstance {
     const tabPanelsContainer = doc.createElement('div');
     const tabPanels: HTMLElement[] = [];
 
-    tabs.forEach((tab, index) => {
+    for (const [index, tab] of tabs.entries()) {
       const panel = doc.createElement('div');
       panel.setAttribute('role', 'tabpanel');
       panel.setAttribute('id', `panel-${index}`);
@@ -730,7 +730,7 @@ export class Modal implements ModalInstance {
 
       tabPanels.push(panel);
       tabPanelsContainer.appendChild(panel);
-    });
+    }
 
     // Create React TabList component
     const tabListContainer = doc.createElement('div');
@@ -1025,9 +1025,9 @@ export class Modal implements ModalInstance {
               React.createElement(Slider, {
                 id: sliderId,
                 value: sliderValue,
-                min: field.extraAttributes?.min || 0,
-                max: field.extraAttributes?.max || 100,
-                step: field.extraAttributes?.step || 1,
+                min: Number(field.extraAttributes?.min) || 0,
+                max: Number(field.extraAttributes?.max) || 100,
+                step: Number(field.extraAttributes?.step) || 1,
                 onChange: (_: any, data: { value: number }) => {
                   setSliderValue(data.value);
                   field.value = data.value;
@@ -1274,7 +1274,7 @@ export class Modal implements ModalInstance {
   };
 
   show(): void {
-    console.debug(...TRACE, 'UI-lib Modal.show()', {
+    console.debug('UI-lib Modal.show()', {
       version: PACKAGE_VERSION,
       title: this.options.title,
       size: this.options.size,
