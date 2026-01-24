@@ -31,7 +31,7 @@ interface LookupFluentUiProps {
     orientation?: 'horizontal' | 'vertical';
     entityName: string;
     entityDisplayName?: string;  // Display name for the entity (e.g., "Accounts")
-    lookupColumns?: (string | LookupColumn)[];  // Array of column configs
+    columns?: (string | LookupColumn)[];  // Array of column configs
     filters?: string;
     value?: LookupOption | null;
     onChange: (selected: LookupOption | null) => void;
@@ -47,7 +47,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
     orientation = 'horizontal',
     entityName,
     entityDisplayName,
-    lookupColumns = [],
+    columns = [],
     filters = '',
     value,
     onChange,
@@ -68,17 +68,17 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
 
     // Parse lookup columns configuration
     const columnConfigs = React.useMemo(() => {
-        if (lookupColumns.length === 0) {
+        if (columns.length === 0) {
             return [{ attribute: 'name', visible: true }];
         }
 
-        return lookupColumns.map(col => {
+        return columns.map(col => {
             if (typeof col === 'string') {
                 return { attribute: col, visible: true };
             }
             return { ...col, visible: col.visible !== false };
         });
-    }, [lookupColumns]);
+    }, [columns]);
 
     const visibleColumns = columnConfigs.filter(c => c.visible);
 

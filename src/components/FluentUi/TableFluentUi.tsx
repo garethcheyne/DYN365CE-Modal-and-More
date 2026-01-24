@@ -149,7 +149,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   
   // Column configuration state
   const [columnOrder, setColumnOrder] = useState<string[]>(
-    (config.columns || []).filter(col => col.visible !== false).map(col => col.id)
+    (config.tableColumns || []).filter(col => col.visible !== false).map(col => col.id)
   );
   const [columnFilters, setColumnFilters] = useState<{ [key: string]: string }>({});
   const [filterInputs, setFilterInputs] = useState<{ [key: string]: string }>({});
@@ -410,7 +410,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     const cols: TableColumnDefinition<TableRow>[] = [];
 
     // Data columns
-    const visibleColumns = (config.columns || []).filter(col => col.visible !== false);
+    const visibleColumns = (config.tableColumns || []).filter(col => col.visible !== false);
     
     // Sort columns by columnOrder
     const orderedColumns = columnOrder

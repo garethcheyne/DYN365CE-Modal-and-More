@@ -185,7 +185,7 @@ export class Table implements FieldConfig {
   id: string;
   label?: string;
   type: string = 'table';
-  columns?: Array<{ id: string; header: string; visible?: boolean; sortable?: boolean; width?: string }>;
+  tableColumns?: Array<{ id: string; header: string; visible?: boolean; sortable?: boolean; width?: string }>;
   data?: any[];
   selectionMode?: 'none' | 'single' | 'multiple';
   onRowSelect?: (selectedRows: any[]) => void;
@@ -194,7 +194,7 @@ export class Table implements FieldConfig {
   constructor(config: FieldConfig) {
     this.id = config.id;
     this.label = config.label;
-    this.columns = config.columns || [];
+    this.tableColumns = config.tableColumns || [];
     this.data = config.data || [];
     this.selectionMode = config.selectionMode || 'none';
     this.onRowSelect = config.onRowSelect;

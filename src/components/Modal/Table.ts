@@ -19,7 +19,7 @@ export class Table {
     constructor(config: FieldConfig) {
         this.config = {
             selectionMode: 'none',
-            columns: [],
+            tableColumns: [],
             data: [],
             ...config
         };
@@ -116,7 +116,7 @@ export class Table {
         }
 
         // Add column headers
-        const visibleColumns = (this.config.columns || []).filter(col => col.visible !== false);
+        const visibleColumns = (this.config.tableColumns || []).filter(col => col.visible !== false);
         visibleColumns.forEach(column => {
             const th = doc.createElement('th');
             th.style.cssText = `
@@ -182,7 +182,7 @@ export class Table {
         if (this.currentData.length === 0) {
             const tr = doc.createElement('tr');
             const td = doc.createElement('td');
-            const visibleColumns = (this.config.columns || []).filter(col => col.visible !== false);
+            const visibleColumns = (this.config.tableColumns || []).filter(col => col.visible !== false);
             const colSpan = visibleColumns.length + (this.config.selectionMode !== 'none' ? 1 : 0);
             td.colSpan = colSpan;
             td.style.cssText = `
@@ -246,7 +246,7 @@ export class Table {
         }
 
         // Add data columns
-        const visibleColumns = (this.config.columns || []).filter(col => col.visible !== false);
+        const visibleColumns = (this.config.tableColumns || []).filter(col => col.visible !== false);
         visibleColumns.forEach(column => {
             const td = doc.createElement('td');
             td.style.cssText = `

@@ -67,9 +67,9 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
 - `textarea` - Multi-line text (use `rows` property)
 - `date` - Date picker
 - `select` - Dropdown (use `options` array)
-- `lookup` - Inline D365-style dropdown lookup (entityName, lookupColumns, filters)
-  - `lookupColumns`: Array of columns (strings or {attribute, label, visible}) - shown in order specified
-  - Note: lookupColumns is specific to lookup field type only, not a global parameter
+- `lookup` - Inline D365-style dropdown lookup (entityName, columns, filters)
+  - `columns`: Array of columns (strings or {attribute, label, visible}) - shown in order specified
+  - Note: Use `columns` for both inline lookup fields and Modal Dialog Lookups for consistency
 - `checkbox` - Boolean checkbox (D365 native style)
 - `switch` - Boolean toggle switch (modern style)
 - `range` - Slider (use `extraAttributes: { min, max, step }`)
@@ -176,7 +176,7 @@ new err403.Modal({
       label: 'Account',
       type: 'lookup',
       entityName: 'account',
-      lookupColumns: ['name', 'accountnumber'],
+      columns: ['name', 'accountnumber'],
       filters: "statecode eq 0",  // Optional OData filter
       placeholder: 'Search accounts...',
       required: true
@@ -194,7 +194,7 @@ new err403.Modal({
 new err403.Lookup({
   entityName: 'account',
   multiple: true,
-  columns: ['name', 'telephone1', 'emailaddress1'],
+  columns: ['name', 'telephone1', 'emailaddress1'],  // Same 'columns' parameter
   filters: "statecode eq 0",
   onSelect: (records) => { /* handle selection */ }
 }).show();
@@ -206,7 +206,7 @@ Data grid component with sorting, selection, and D365 integration.
 ```javascript
 new err403.Table({
   id: 'productsTable',
-  columns: [
+  tableColumns: [
     { id: 'name', header: 'Product', visible: true, sortable: true, width: '200px' },
     { id: 'price', header: 'Price', visible: true, sortable: true, width: '100px' }
   ],

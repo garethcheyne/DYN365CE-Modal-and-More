@@ -147,7 +147,7 @@ interface FieldConfig {
         };
     };
     entityName?: string;
-    lookupColumns?: Array<string | {
+    columns?: Array<string | {
         attribute: string;
         label?: string;
         visible?: boolean;
@@ -169,7 +169,7 @@ interface FieldConfig {
     validation?: ValidationConfig;
     visibleWhen?: VisibilityCondition;
     onChange?: (value: any) => void;
-    columns?: TableColumn[];
+    tableColumns?: TableColumn[];
     data?: any[];
     selectionMode?: 'none' | 'single' | 'multiple';
     onRowSelect?: (selectedRows: any[]) => void;
@@ -718,7 +718,7 @@ declare class Table implements FieldConfig {
     id: string;
     label?: string;
     type: string;
-    columns?: Array<{
+    tableColumns?: Array<{
         id: string;
         header: string;
         visible?: boolean;

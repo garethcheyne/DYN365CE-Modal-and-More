@@ -110,7 +110,7 @@ export interface FieldConfig {
     };
     // Inline Lookup configuration (D365-style dropdown)
     entityName?: string;               // Entity logical name (e.g., 'account', 'contact')
-    lookupColumns?: Array<string | {   // Columns to display with configuration
+    columns?: Array<string | {         // Columns to display with configuration
         attribute: string;              // Attribute name
         label?: string;                 // Display label
         visible?: boolean;              // true = always visible, false = show on expand
@@ -133,7 +133,7 @@ export interface FieldConfig {
     visibleWhen?: VisibilityCondition;
     onChange?: (value: any) => void;
     // Table-specific properties
-    columns?: TableColumn[];
+    tableColumns?: TableColumn[];
     data?: any[];
     selectionMode?: 'none' | 'single' | 'multiple';
     onRowSelect?: (selectedRows: any[]) => void;

@@ -257,7 +257,7 @@ export const Demo: React.FC = () => {
           label: 'Account (with expand)', 
           type: 'lookup', 
           entityName: 'account', 
-          lookupColumns: [
+          columns: [
             'name',                                        // Always visible
             { attribute: 'accountnumber', visible: true }, // Always visible
             { attribute: 'telephone1', label: 'Phone', visible: false },      // Shown on expand
@@ -271,7 +271,7 @@ export const Demo: React.FC = () => {
           label: 'Contact (simple)',
           type: 'lookup',
           entityName: 'contact',
-          lookupColumns: [
+          columns: [
             'fullname',
             { attribute: 'emailaddress1', visible: true }
           ],

@@ -333,7 +333,7 @@ export class Lookup {
       {
         id: 'table',
         type: 'table',
-        columns: columns,
+        tableColumns: columns,
         data: tableData,
         selectionMode: this.options.multiSelect ? 'multiple' as const : 'single' as const,
         onRowSelect: (selectedRows: any[]) => {

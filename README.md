@@ -1313,12 +1313,12 @@ new err403.Modal({
   - displayMode: 'dropdown' (default) or 'badges' for clickable badge buttons
 - 'lookup' - Inline D365-style dropdown lookup (columns displayed in order specified)
   - entityName: D365 entity name
-  - lookupColumns: Array of columns - strings or objects with {attribute, label, visible}
+  - columns: Array of columns - strings or objects with {attribute, label, visible}
     - String format: ['name', 'accountnumber'] - uses attribute name as label
     - Object format: [{attribute: 'name', label: 'Account Name'}, ...] - uses custom label
     - First column is primary display, second is subtitle
   - filters: OData filter string or FetchXML fragment
-  - Note: lookupColumns is specific to lookup fields only
+  - Note: Same 'columns' parameter used for both inline lookup fields and Modal Dialog Lookups
 - 'checkbox' - Boolean checkbox (D365 native style)
 - 'switch' - Boolean toggle switch (modern style)
 - 'range' - Slider with min, max, step (use extraAttributes)
@@ -1369,11 +1369,11 @@ new err403.Modal({
   label: 'Account', 
   type: 'lookup',
   entityName: 'account',
-  lookupColumns: [
+  columns: [
     { attribute: 'name', label: 'Account Name' },     // Custom label
     { attribute: 'accountnumber', label: 'Number' }   // Custom label
   ],
-  // Or simple strings: lookupColumns: ['name', 'accountnumber'],
+  // Or simple strings: columns: ['name', 'accountnumber'],
   filters: "statecode eq 0",  // Optional OData or FetchXML filter
   placeholder: 'Search accounts...',
   required: true
@@ -1393,7 +1393,7 @@ new err403.Modal({
 // Example: Table field
 new err403.Table({ 
   id: 'productsTable', 
-  columns: [
+  tableColumns: [
     { id: 'name', header: 'Product Name', visible: true, sortable: true, width: '250px' },
     { id: 'price', header: 'Price', visible: true, sortable: true, width: '100px' }
   ],
