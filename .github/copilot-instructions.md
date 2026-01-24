@@ -68,6 +68,8 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
 - `date` - Date picker
 - `select` - Dropdown (use `options` array)
 - `lookup` - Inline D365-style dropdown lookup (entityName, lookupColumns, filters)
+  - `lookupColumns`: Array of columns (strings or {attribute, label, visible}) - shown in order specified
+  - Note: lookupColumns is specific to lookup field type only, not a global parameter
 - `checkbox` - Boolean checkbox (D365 native style)
 - `switch` - Boolean toggle switch (modern style)
 - `range` - Slider (use `extraAttributes: { min, max, step }`)

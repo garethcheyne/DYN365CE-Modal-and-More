@@ -115,7 +115,7 @@ export interface FieldConfig {
         label?: string;                 // Display label
         visible?: boolean;              // true = always visible, false = show on expand
     }>;
-    filters?: string;                  // OData filter string
+    filters?: string;                  // OData filter string or FetchXML fragment
     startDate?: Date;
     endDate?: Date;
     entityTypes?: string[];

@@ -23,11 +23,14 @@ export const CheckboxFluentUi: React.FC<CheckboxFluentUiProps> = ({
   tooltip,
   orientation = 'horizontal'
 }) => {
+  // If no label, force vertical orientation for full width
+  const effectiveOrientation = !label ? 'vertical' : orientation;
+  
   return (
     <Field
       label={label}
       hint={tooltip}
-      orientation={orientation}
+      orientation={effectiveOrientation}
       style={{ marginBottom: '8px' }}
     >
       <Checkbox

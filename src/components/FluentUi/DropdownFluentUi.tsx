@@ -55,17 +55,20 @@ export const DropdownFluentUi: React.FC<DropdownFluentUiProps> = ({
 
     // Badge display mode
     if (displayMode === 'badges') {
+        // If no label, force vertical orientation for full width
+        const effectiveOrientation = !label ? 'vertical' : orientation;
+        
         return (
             <Field
                 label={label}
                 required={required}
                 hint={tooltip}
-                orientation={orientation}
+                orientation={effectiveOrientation}
                 style={{ marginBottom: '8px' }}
             >
-                <div style={{ 
-                    display: 'flex', 
-                    flexWrap: 'wrap', 
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
                     gap: '8px',
                     alignItems: 'center'
                 }}>
@@ -96,12 +99,15 @@ export const DropdownFluentUi: React.FC<DropdownFluentUiProps> = ({
     }
 
     // Default dropdown display mode
+    // If no label, force vertical orientation for full width
+    const effectiveOrientation = !label ? 'vertical' : orientation;
+    
     return (
         <Field
             label={label}
             required={required}
             hint={tooltip}
-            orientation={orientation}
+            orientation={effectiveOrientation}
             style={{ marginBottom: '8px' }}
         >
             <Dropdown

@@ -7,7 +7,7 @@
     <Descriptions>
       <Description description="TypeScript UI utility library for Dynamics 365 CE with Toast notifications, Modal dialogs, and Lookup components" languagecode="1033" />
     </Descriptions>
-    <Version>2026.01.25.1130</Version>
+    <Version>2026.01.25.1238</Version>
     <Managed>0</Managed>
     <Publisher>
       <UniqueName>err403com</UniqueName>

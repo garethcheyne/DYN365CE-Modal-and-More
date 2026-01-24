@@ -57,6 +57,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
     const [searchValue, setSearchValue] = React.useState('');
     const [options, setOptions] = React.useState<LookupOption[]>([]);
     const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState<string | null>(null);
     const [selectedOption, setSelectedOption] = React.useState<LookupOption | null>(value || null);
     const [entityIcon, setEntityIcon] = React.useState<string>('');
     const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
@@ -120,6 +121,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
     // Fetch records from D365 or generate mock data
     const fetchRecords = React.useCallback(async (searchTerm: string) => {
         setLoading(true);
+        setError(null); // Clear previous errors
 
         try {
             // Check if running in D365 with Xrm available
@@ -131,22 +133,48 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                 const primaryId = `${entityName}id`;
                 const select = [primaryId, ...selectColumns].join(',');
 
-                // Build filter query
-                let filterQuery = filters || '';
-                if (searchTerm) {
-                    const searchFilters = selectColumns
-                        .map(col => `contains(${col}, '${searchTerm}')`)
-                        .join(' or ');
-                    filterQuery = filterQuery
-                        ? `(${filterQuery}) and (${searchFilters})`
-                        : searchFilters;
+                // Check if filters is FetchXML (contains <filter or <condition tags)
+                const isFetchXml = filters && (filters.includes('<filter') || filters.includes('<condition'));
+
+                let result;
+                if (isFetchXml) {
+                    // Build FetchXML query
+                    let fetchXml = `
+                        <fetch top="25">
+                            <entity name="${entityName}">
+                                <attribute name="${primaryId}" />
+                                ${selectColumns.map(col => `<attribute name="${col}" />`).join('')}
+                                ${filters || ''}
+                                ${searchTerm ? `
+                                <filter type="or">
+                                    ${selectColumns.map(col => `<condition attribute="${col}" operator="like" value="%${searchTerm}%" />`).join('')}
+                                </filter>
+                                ` : ''}
+                                <order attribute="${selectColumns[0]}" descending="false" />
+                            </entity>
+                        </fetch>
+                    `.trim();
+
+                    // Use fetchXml method
+                    result = await xrmWebApi.retrieveMultipleRecords(entityName, `?fetchXml=${encodeURIComponent(fetchXml)}`);
+                } else {
+                    // Build OData filter query
+                    let filterQuery = filters || '';
+                    if (searchTerm) {
+                        const searchFilters = selectColumns
+                            .map(col => `contains(${col}, '${searchTerm}')`)
+                            .join(' or ');
+                        filterQuery = filterQuery
+                            ? `(${filterQuery}) and (${searchFilters})`
+                            : searchFilters;
+                    }
+
+                    // Build full query
+                    const query = `?$select=${select}${filterQuery ? `&$filter=${filterQuery}` : ''}&$top=25&$orderby=${selectColumns[0]} asc`;
+
+                    // Fetch records
+                    result = await xrmWebApi.retrieveMultipleRecords(entityName, query);
                 }
-
-                // Build full query
-                const query = `?$select=${select}${filterQuery ? `&$filter=${filterQuery}` : ''}&$top=25&$orderby=${selectColumns[0]} asc`;
-
-                // Fetch records
-                const result = await xrmWebApi.retrieveMultipleRecords(entityName, query);
 
                 // Map to lookup options
                 const lookupOptions: LookupOption[] = result.entities.map((record: any) => {
@@ -171,11 +199,25 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                 const mockData = generateMockLookupData(entityName, searchTerm, columnConfigs, entityIcon);
                 setOptions(mockData);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to fetch lookup records:', error);
-            // Fallback to mock data
-            const mockData = generateMockLookupData(entityName, searchTerm, columnConfigs, entityIcon);
-            setOptions(mockData);
+            
+            // Check if filters is FetchXML for better error message
+            const isFetchXml = filters && (filters.includes('<filter') || filters.includes('<condition'));
+            
+            // Set error message for display
+            const errorMessage = error?.message || 'Failed to load records';
+            setError(errorMessage);
+            setOptions([]);
+            
+            // Log detailed error for developers
+            if (isFetchXml) {
+                console.error('Invalid FetchXML query. Check your filters configuration.');
+                console.error('Filter:', filters);
+            } else {
+                console.error('Invalid OData query. Check your filters configuration.');
+                console.error('Filter:', filters);
+            }
         } finally {
             setLoading(false);
         }
@@ -312,6 +354,20 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                     {loading ? (
                         <div style={{ padding: '16px', textAlign: 'center' }}>
                             <Spinner size="small" label="Loading..." />
+                        </div>
+                    ) : error ? (
+                        <div style={{ 
+                            padding: '16px', 
+                            textAlign: 'center', 
+                            color: '#d13438',
+                            fontWeight: 600,
+                            backgroundColor: '#fef6f6',
+                            borderLeft: '3px solid #d13438'
+                        }}>
+                            <div style={{ marginBottom: '4px' }}>Invalid Query</div>
+                            <div style={{ fontSize: '12px', fontWeight: 400, color: '#a4262c' }}>
+                                {error}
+                            </div>
                         </div>
                     ) : options.length === 0 ? (
                         <div style={{ padding: '16px', textAlign: 'center', color: '#605e5c' }}>

@@ -268,14 +268,14 @@ export const Demo: React.FC = () => {
         },
         { 
           id: 'contactLookup', 
-          label: 'Contact (simple)', 
-          type: 'lookup', 
-          entityName: 'contact', 
+          label: 'Contact (simple)',
+          type: 'lookup',
+          entityName: 'contact',
           lookupColumns: [
             'fullname',
             { attribute: 'emailaddress1', visible: true }
           ],
-          placeholder: 'Search contacts...' 
+          placeholder: 'Search contacts...'
         },
         { id: 'checkboxInput', label: 'Accept Terms', type: 'checkbox', value: false, tooltip: 'D365-style checkbox' },
         { id: 'switchInput', label: 'Enable Notifications', type: 'switch', value: true, tooltip: 'Modern toggle switch' },
