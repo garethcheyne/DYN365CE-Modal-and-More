@@ -316,7 +316,7 @@ export const Demo: React.FC = () => {
           type: 'addressLookup',
           addressLookup: {
             provider: 'google',
-            apiKey: '***REMOVED_API_KEY***', // From .env
+            apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_API_KEY_HERE',
             placeholder: 'Start typing an address...',
             componentRestrictions: { country: ['nz', 'au'] }, // Restrict to New Zealand and Australia
             fields: {
