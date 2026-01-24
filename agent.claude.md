@@ -1,48 +1,18 @@
-# Directive: D365 CE UI Utilities Library
+# AI Agent Guide: err403 Dynamics 365 UI Library
 
-## Project Overview
-Create a TypeScript-based UI utility library for Dynamics 365 CE that bundles into a single JavaScript file for easy deployment. The library provides Toast notifications, Modal dialogs with tabs, and other common UI components with a native D365 CE look and feel.
+## Overview
+This is a professional UI component library for Microsoft Dynamics 365 CE. It provides Toast notifications, Modal dialogs, Lookups, and Tables with native Fluent UI v9 styling through a simple vanilla JavaScript API.
 
-**Global Namespace**: `err403` (e.g., `err403.Toast`, `err403.Modal`, `err403.Lookup`)
+## Architecture
+- **User-facing API**: Vanilla JavaScript/TypeScript - simple and intuitive
+- **Internal implementation**: React 18 + Fluent UI v9 (bundled, invisible to users)
+- **Build system**: Vite + TypeScript + Rollup
+- **Output**: Single minified bundle (~690KB, ~280KB gzipped) + TypeScript definitions
 
-## Technical Stack
-- **Language**: TypeScript
-- **Build Tool**: Vite (preferred by Microsoft projects)
-- **Output**: Single minified JavaScript file for production
-- **Global Name**: `err403` (configurable for future changes)
-- **Style**: Vanilla JavaScript (no React/framework dependencies)
-- **Design System**: Custom implementation inspired by Fluent UI v9 design tokens
-- **Browser Support**: Modern browsers (ES6+) + D365 CE compatibility
+## Key Components
 
-## Project Structure
-```
-/src
-  /components
-    /Toast
-      Toast.ts          # Toast notification system
-      Toast.types.ts    # TypeScript interfaces
-    /Modal
-      Modal.ts          # Modal (Dialog) system
-      Modal.types.ts    # TypeScript interfaces
-    /Logger
-      Logger.ts         # err403 logging utility
-  /styles
-    theme.ts            # Fluent-inspired design tokens
-    animations.ts       # Reusable animations
-  index.ts              # Main entry point
-/demo
-  index.html            # Demo page for testing
-  demo.ts               # Demo implementations
-/dist                   # Build output
-vite.config.ts
-tsconfig.json
-package.json
-```
-
-## Component Specifications
-
-### 1. Toast Notification System
-**Based on existing vanilla implementation** - Convert to TypeScript
+### 1. Toast Notifications (`err403.Toast`)
+Simple notification system matching D365's native toast style.
 
 **API Design**:
 ```typescript
@@ -76,28 +46,155 @@ err403.Toast.error("Error Title", "Error message", 4000, true);  // with sound
 - Icons: Inline SVG (success=checkmark, error=X, warn=!, info=i)
 - Sound: Optional notification sound for success/error toasts (subtle, non-intrusive)
 
-### 2. Modal System
-**New component** - Build from scratch, inspired by Magnetism Solutions Dialog Builder API
+### 2. Modal Dialogs (`err403.Modal`)
+Professional modal system with forms, wizards, tabs, and conditional visibility.
 
-**API Design** (based on Dialog Builder pattern):
-```typescript
-// Simple alert
-err403.Modal.alert({
-    title: "Attention",
-    message: "This action cannot be undone."
+**Features:**
+- Alert, confirm, and complex form dialogs
+- Wizard with visual step indicators (circles, checkmarks, connectors)
+- Conditional field visibility using `visibleWhen` property
+- All field types: text, number, date, switch, checkbox, slider, textarea, dropdown, lookup, table
+- Tabs, validation, draggable, dismissible
+- Fullscreen mode toggle
+- Badge display mode for dropdowns
+
+**Field Configuration Pattern:**
+```javascript
+{
+  id: 'fieldId',              // Required - unique identifier
+  label: 'Field Label',       // Display label
+  type: 'text',               // Field type
+  value: 'initial',           // Initial value
+  required: true,             // Validation
+  disabled: false,            // State
+  placeholder: 'Enter...',    // Hint text
+  orientation: 'horizontal',  // Layout (default) or 'vertical'
+  
+  // Conditional visibility
+  visibleWhen: {
+    field: 'otherFieldId',    // Field to watch
+    operator: 'equals',       // equals | notEquals | contains | greaterThan | lessThan | truthy | falsy
+    value: 'someValue'        // Comparison value
+  },
+  
+  // D365 Option Set auto-fetch
+  optionSet: {
+    entityName: 'account',       // D365 entity name
+    attributeName: 'industrycode', // Attribute name
+    includeNull: true,           // Include blank option
+    sortByLabel: true            // Sort alphabetically
+  },
+  
+  // Badge display for dropdowns
+  displayMode: 'badges'  // 'dropdown' (default) or 'badges'
+}
+```
+
+**Available Field Types:**
+- `text`, `email`, `tel`, `password`, `url`, `search` - Text inputs
+- `number` - Number input
+- `textarea` - Multi-line text (use `rows` property)
+- `date` - Date picker
+- `select` - Dropdown (use `options` array, `displayMode` for badges)
+- `lookup` - Inline D365-style dropdown lookup (entityName, lookupColumns, filters)
+- `checkbox` - Boolean checkbox (D365 native style)
+- `switch` - Boolean toggle switch (modern style)
+- `range` - Slider (use `extraAttributes: { min, max, step }`)
+- `table` - Data grid (use Table class)
+- `addressLookup` - Address autocomplete with Google/Azure Maps
+- `custom` - Custom HTML (use `render()` function)
+
+**Wizard Pattern:**
+```javascript
+new err403.Modal({
+  title: 'Setup Wizard',
+  progress: {
+    enabled: true,
+    currentStep: 1,
+    allowStepNavigation: true,
+    steps: [
+      { id: 'step1', label: 'Account Info', fields: [...] },
+      { id: 'step2', label: 'Preferences', fields: [...] },
+      { id: 'step3', label: 'Review', fields: [...] }
+    ]
+  },
+  buttons: [
+    new err403.ModalButton('Previous', () => { modal.previousStep(); return false; }),
+    new err403.ModalButton('Next', () => { modal.nextStep(); return false; }),
+    new err403.ModalButton('Finish', () => { /* submit */ }, true)
+  ]
 });
+```
 
-// Confirm dialog
-err403.Modal.confirm({
-    title: "Delete Record?",
-    message: "Are you sure you want to delete this record?",
-    onConfirm: () => { /* delete logic */ },
-    onCancel: () => { /* cancel logic */ }
+**Wizard Step Indicators:**
+- **Blue circle with number** = current step
+- **Green circle with checkmark** = completed steps with all required fields filled
+- **Red circle with exclamation (!)** = completed steps with missing required fields
+- **Gray circle with number** = pending steps (not yet visited)
+- **Connector lines** match the step color (blue/green/red/gray)
+
+**Automatic Validation:**
+- Steps are validated automatically when fields change
+- Required fields are checked: empty values (null, undefined, '', empty arrays) trigger red indicator
+- Step indicators update in real-time as users fill in or clear required fields
+- No manual validation code needed - library handles it automatically
+
+### 3. Lookup (`err403.Lookup`)
+Advanced record selection with search, filter, sort, and multi-select.
+
+**Two Lookup Options:**
+
+1. **Inline Dropdown Lookup** (NEW - D365 Native Style) - Use as a field type in modals:
+```javascript
+new err403.Modal({
+  fields: [
+    {
+      id: 'accountLookup',
+      label: 'Account',
+      type: 'lookup',
+      entityName: 'account',
+      lookupColumns: ['name', 'accountnumber'],
+      filters: "statecode eq 0",  // Optional OData filter
+      placeholder: 'Search accounts...',
+      required: true
+    }
+  ]
 });
+// - Inline dropdown appears below the field
+// - Search as you type
+// - Click to select
+// - Returns: { id, name, subtitle, entityType, record }
+```
 
-// Custom modal with fields and tabs
-const options = {
-    id: 'bestPricing',
+2. **Modal Dialog Lookup** (Advanced) - Full-screen modal with table:
+```javascript
+new err403.Lookup({
+  entityName: 'account',
+  multiple: true,
+  columns: ['name', 'telephone1', 'emailaddress1'],
+  filters: "statecode eq 0",
+  onSelect: (records) => { /* handle selection */ }
+}).show();
+```
+
+### 4. Table (`err403.Table`)
+Data grid component with sorting, selection, and D365 integration.
+
+```javascript
+new err403.Table({
+  id: 'productsTable',
+  columns: [
+    { id: 'name', header: 'Product', visible: true, sortable: true, width: '200px' },
+    { id: 'price', header: 'Price', visible: true, sortable: true, width: '100px' }
+  ],
+  data: [
+    { id: 1, name: 'Product A', price: 100 },
+    { id: 2, name: 'Product B', price: 200 }
+  ],
+  selectionMode: 'multiple',
+  onRowSelect: (rows) => { console.log(rows); }
+})
+```
     title: 'Best Pricing Options',
     message: 'Select the best pricing option',  // Sub-heading text
     content: tableHtml,        // Supports HTML content (main content area)
@@ -1251,36 +1348,39 @@ interface LookupOptions {
 - [ ] **Method chaining** for all setters
 
 #### Modal Component - Field Types
-- [ ] **Modal.Input enhancements**:
-  - [ ] Toggle type (D365-style switch)
-  - [ ] Validation rules system
-  - [ ] Custom validation functions
-  - [ ] Inline error messages
-  - [ ] validateOn options (blur/change/submit)
-  - [ ] showValue for range sliders
-- [ ] **Modal.DateRange** (NEW field type)
-- [ ] **Modal.MultiLine** improvements
-- [ ] **Modal.OptionSet** improvements
-- [ ] **Modal.Lookup enhancements**:
-  - [ ] Dropdown mode (default) with lazy loading
-  - [ ] Side panel mode (D365-style)
-  - [ ] Custom FetchXML queries
-  - [ ] Pagination support
-  - [ ] Search/filter functionality
-  - [ ] Multi-select support
-- [ ] **Modal.Custom** for custom HTML elements
+- [x] **All standard field types implemented**:
+  - [x] Text inputs (text, email, tel, password, url, search)
+  - [x] Number input
+  - [x] Textarea with rows property
+  - [x] Date picker (Fluent UI DatePicker)
+  - [x] Select/Dropdown with badge display mode
+  - [x] Checkbox (D365 native style)
+  - [x] Switch (modern toggle)
+  - [x] Range slider with value display
+  - [x] Lookup (inline D365-style dropdown)
+  - [x] Table (embedded DataGrid)
+  - [x] Address lookup (Google/Azure Maps)
+  - [x] Custom HTML with render() function
+- [x] **Conditional field visibility** with visibleWhen property
+- [x] **Badge display mode** for dropdowns (displayMode: 'badges')
+- [x] **Fullscreen mode** toggle for modals
+- [x] **Visual wizard steps** with validation indicators
+- [x] **D365 Option Set auto-fetch** from entity metadata
 
 #### Lookup Component (Standalone)
-- [ ] **New component** - Dedicated entity lookup with table display
-- [ ] Search bar with real-time filtering
-- [ ] Table display with sortable columns
-- [ ] Column label auto-resolution from entity metadata
-- [ ] Pagination controls
-- [ ] Single/multi-select modes
-- [ ] FetchXML filter support
-- [ ] Loading states and error handling
-- [ ] Integration with Modal component
-- [ ] Return EntityReference format
+- [x] **Implemented** - Two lookup modes available
+- [x] **Inline Dropdown Lookup** - D365-native style dropdown with search
+  - [x] Search bar with real-time filtering
+  - [x] Entity icons from metadata
+  - [x] Two-line display (primary + secondary text)
+  - [x] Integration with Modal as field type
+- [x] **Modal Dialog Lookup** - Full-screen lookup with table
+  - [x] Table display with sortable columns
+  - [x] Column label auto-resolution from entity metadata
+  - [x] Single/multi-select modes
+  - [x] OData filter support
+  - [x] Loading states and error handling
+  - [x] Return EntityReference format
 
 #### Logger Utility
 - [ ] **Convert to TypeScript** (currently vanilla JS)

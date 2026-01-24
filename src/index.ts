@@ -25,13 +25,13 @@ import { initializeFluentProvider, d365Theme, FluentProvider } from './providers
 /**
  * Automatically load the CSS file based on the script's location
  */
-function loadCSS(): void {
+function loadCSS(): boolean {
     const cssId = 'err403-ui-lib-styles';
     
     // Check if CSS is already loaded
     if (document.getElementById(cssId)) {
         console.debug(...TRACE, 'UI-lib CSS already loaded');
-        return;
+        return true;
     }
     
     try {
@@ -62,20 +62,36 @@ function loadCSS(): void {
             document.head.appendChild(link);
             
             console.debug(...TRACE, 'UI-lib CSS loaded from:', cssPath);
+            return true;
         } else {
             console.warn('err403: Could not determine script location for CSS auto-loading');
+            return false;
         }
     } catch (error) {
         console.error('err403: Error loading CSS:', error);
+        return false;
     }
+}
+
+/**
+ * Health state of the UI library
+ */
+export interface HealthState {
+    loaded: boolean;
+    cssLoaded: boolean;
+    inWindow: boolean;
+    version: string;
+    timestamp: string;
+    instance?: any; // Reference to library instance
 }
 
 /**
  * D365 Form OnLoad Handler
  * This function is called by D365 when the form loads
  * @param executionContext - The execution context from D365
+ * @returns Health state of the library
  */
-export function init(executionContext?: any): void {
+export function init(executionContext?: any): HealthState {
     console.debug(...TRACE, 'UI-lib init() - Starting initialization', {
         version: PACKAGE_VERSION,
         executionContext,
@@ -83,7 +99,7 @@ export function init(executionContext?: any): void {
     });
     
     // Load CSS automatically
-    loadCSS();
+    const cssLoaded = loadCSS();
     
     // Initialize Fluent UI provider for consistent theming
     initializeFluentProvider();
@@ -91,17 +107,71 @@ export function init(executionContext?: any): void {
     // Initialize Toast container (custom implementation handles this automatically)
     // No manual container mounting needed
     
+    // Check if library is in window
+    const inWindow = typeof window !== 'undefined' && typeof (window as any).err403 !== 'undefined';
+    
+    // Get reference to library instance
+    const libraryInstance = typeof window !== 'undefined' ? (window as any).err403 : undefined;
+    
+    const health: HealthState = {
+        loaded: true,
+        cssLoaded,
+        inWindow,
+        version: PACKAGE_VERSION,
+        timestamp: new Date().toISOString(),
+        instance: libraryInstance
+    };
+    
     console.debug(...TRACE, 'UI-lib init() - Initialization complete. Library available in DOM as window.err403', {
         version: PACKAGE_VERSION,
-        availableComponents: ['Toast', 'Modal', 'Lookup', 'Table', 'TRACE', 'WAR', 'ERR']
+        availableComponents: ['Toast', 'Modal', 'Lookup', 'Table', 'TRACE', 'WAR', 'ERR'],
+        health
     });
+    
+    return health;
 }
 
 /**
  * D365 Form OnLoad Handler (alias)
+ * @returns Health state of the library
  */
-export function onLoad(executionContext?: any): void {
-    init(executionContext);
+export function onLoad(executionContext?: any): HealthState {
+    return init(executionContext);
+}
+
+/**
+ * Find library instance in current or parent windows (iframe support)
+ * @returns Library instance or null if not found
+ */
+export function findInstance(): any {
+    // Check current window first
+    if (typeof window !== 'undefined' && typeof (window as any).err403 !== 'undefined' && (window as any).err403) {
+        return (window as any).err403;
+    }
+    
+    // Check top window
+    try {
+        if (typeof window !== 'undefined' && window.top && window.top !== window) {
+            if (typeof (window.top as any).err403 !== 'undefined' && (window.top as any).err403) {
+                return (window.top as any).err403;
+            }
+        }
+    } catch (e) {
+        // Cross-origin, skip
+    }
+    
+    // Check parent window
+    try {
+        if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+            if (typeof (window.parent as any).err403 !== 'undefined' && (window.parent as any).err403) {
+                return (window.parent as any).err403;
+            }
+        }
+    } catch (e) {
+        // Cross-origin, skip
+    }
+    
+    return null;
 }
 
 // Export all components (named exports)
@@ -132,12 +202,13 @@ export {
     d365Theme
 };
 
-// D365 iframe support - expose library to parent window
+// D365 iframe support - auto-detect and expose library
 if (typeof window !== 'undefined') {
     // Create the library object
     const err403Library = {
         init,
         onLoad,
+        findInstance,
         Toast,
         Modal,
         ModalButton,
@@ -165,21 +236,60 @@ if (typeof window !== 'undefined') {
         d365Theme
     };
 
-    // Expose to current window (iframe)
-    (window as any).err403 = err403Library;
-
-    // Expose to parent window if in iframe
-    try {
-        if (window.parent && window.parent !== window) {
-            (window.parent as any).err403 = err403Library;
+    // Auto-detect if library is already loaded in parent windows (iframe scenario)
+    (function() {
+        let existingInstance: any = null;
+        
+        // Check if already loaded in top window
+        try {
+            if (window.top && window.top !== window && typeof (window.top as any).err403 !== 'undefined') {
+                existingInstance = (window.top as any).err403;
+            }
+        } catch (e) {
+            // Cross-origin, skip
         }
-
-        // Also expose to top window for D365
-        if (window.top && window.top !== window) {
-            (window.top as any).err403 = err403Library;
+        
+        // Check parent window if not found in top
+        if (!existingInstance) {
+            try {
+                if (window.parent && window.parent !== window && typeof (window.parent as any).err403 !== 'undefined') {
+                    existingInstance = (window.parent as any).err403;
+                }
+            } catch (e) {
+                // Cross-origin, skip
+            }
         }
-    } catch (e) {
-        // Cross-origin iframe - can't access parent
-        console.warn('err403: Running in cross-origin iframe, library only available in current frame');
-    }
+        
+        // Check current window
+        if (!existingInstance && typeof (window as any).err403 !== 'undefined') {
+            existingInstance = (window as any).err403;
+        }
+        
+        if (existingInstance && existingInstance !== err403Library) {
+            // Already loaded in parent window, copy reference to current window
+            (window as any).err403 = existingInstance;
+            console.debug(...TRACE, 'UI Library found in parent window, assigned to current window');
+        } else {
+            // First time loading or already in correct scope
+            (window as any).err403 = err403Library;
+            
+            // Expose to parent window if in iframe (for first load scenario)
+            try {
+                if (window.parent && window.parent !== window) {
+                    (window.parent as any).err403 = err403Library;
+                }
+            } catch (e) {
+                // Cross-origin iframe - can't access parent
+            }
+            
+            // Also expose to top window for D365
+            try {
+                if (window.top && window.top !== window) {
+                    (window.top as any).err403 = err403Library;
+                }
+            } catch (e) {
+                // Cross-origin iframe - can't access parent
+            }
+        }
+    })();
 }

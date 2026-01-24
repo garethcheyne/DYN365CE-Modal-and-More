@@ -14,9 +14,25 @@ import {
   TableCellLayout,
   makeStyles,
   tokens,
-  Switch,
-  Checkbox,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
+  MenuDivider,
+  Button,
+  Input,
 } from '@fluentui/react-components';
+import {
+  ChevronDown20Regular,
+  ArrowSortUp20Regular,
+  ArrowSortDown20Regular,
+  GroupList20Regular,
+  Filter20Regular,
+  ColumnTriple20Regular,
+  ArrowLeft20Regular,
+  ArrowRight20Regular,
+} from '@fluentui/react-icons';
 import { FieldConfig } from '../Modal/Modal.types';
 
 // Define local types for table columns (simplified version)
@@ -61,7 +77,7 @@ const useStyles = makeStyles({
       fontWeight: 600,
       fontSize: '12px',
       color: '#323130',
-      padding: '8px 12px',
+      padding: '4px 8px',
       borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
       textTransform: 'none',
       letterSpacing: 'normal',
@@ -73,7 +89,7 @@ const useStyles = makeStyles({
       },
     },
     '& .fui-DataGridCell': {
-      padding: '8px 12px',
+      padding: '4px 8px',
       fontSize: '14px',
       color: '#323130',
       borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
@@ -98,6 +114,25 @@ const useStyles = makeStyles({
     cursor: 'pointer',
     accentColor: tokens.colorBrandBackground,
   },
+  columnHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: '4px',
+  },
+  columnHeaderButton: {
+    minWidth: 'auto',
+    padding: '4px',
+    height: '24px',
+    color: '#605e5c',
+    '&:hover': {
+      backgroundColor: '#edebe9',
+    },
+  },
+  filterInput: {
+    width: '200px',
+  },
 });
 
 export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectionChange }) => {
@@ -111,6 +146,63 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     sortColumn: TableColumnId | undefined;
     sortDirection: 'ascending' | 'descending';
   }>({ sortColumn: undefined, sortDirection: 'ascending' });
+  
+  // Column configuration state
+  const [columnOrder, setColumnOrder] = useState<string[]>(
+    (config.columns || []).filter(col => col.visible !== false).map(col => col.id)
+  );
+  const [columnFilters, setColumnFilters] = useState<{ [key: string]: string }>({});
+  const [filterInputs, setFilterInputs] = useState<{ [key: string]: string }>({});
+
+  // Column menu handlers
+  const handleSortAscending = useCallback((columnId: string) => {
+    setSortState({ sortColumn: columnId, sortDirection: 'ascending' });
+  }, []);
+
+  const handleSortDescending = useCallback((columnId: string) => {
+    setSortState({ sortColumn: columnId, sortDirection: 'descending' });
+  }, []);
+
+  const handleMoveLeft = useCallback((columnId: string) => {
+    setColumnOrder(prev => {
+      const index = prev.indexOf(columnId);
+      if (index <= 0) return prev;
+      const newOrder = [...prev];
+      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+      return newOrder;
+    });
+  }, []);
+
+  const handleMoveRight = useCallback((columnId: string) => {
+    setColumnOrder(prev => {
+      const index = prev.indexOf(columnId);
+      if (index >= prev.length - 1) return prev;
+      const newOrder = [...prev];
+      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+      return newOrder;
+    });
+  }, []);
+
+  const handleApplyFilter = useCallback((columnId: string) => {
+    const filterValue = filterInputs[columnId] || '';
+    setColumnFilters(prev => ({
+      ...prev,
+      [columnId]: filterValue,
+    }));
+  }, [filterInputs]);
+
+  const handleClearFilter = useCallback((columnId: string) => {
+    setColumnFilters(prev => {
+      const newFilters = { ...prev };
+      delete newFilters[columnId];
+      return newFilters;
+    });
+    setFilterInputs(prev => {
+      const newInputs = { ...prev };
+      delete newInputs[columnId];
+      return newInputs;
+    });
+  }, []);
 
   // Handle row selection
   const handleRowSelect = useCallback((rowIndex: number, checked: boolean) => {
@@ -150,7 +242,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   }, [data, onSelectionChange]);
 
   // Handle sorting
-  const handleSort = useCallback((columnId: TableColumnId) => {
+  const handleSort = useCallback((columnId: string) => {
     setSortState(prev => {
       const newDirection = 
         prev.sortColumn === columnId && prev.sortDirection === 'ascending'
@@ -163,9 +255,22 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
 
   // Sort data
   const sortedData = useMemo(() => {
-    if (!sortState.sortColumn) return data;
+    let filtered = data;
+    
+    // Apply filters
+    Object.entries(columnFilters).forEach(([columnId, filterValue]) => {
+      if (filterValue) {
+        filtered = filtered.filter(row => {
+          const cellValue = row[columnId];
+          return cellValue != null && String(cellValue).toLowerCase().includes(filterValue.toLowerCase());
+        });
+      }
+    });
+    
+    // Apply sorting
+    if (!sortState.sortColumn) return filtered;
 
-    return [...data].sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       const aVal = a[sortState.sortColumn as string];
       const bVal = b[sortState.sortColumn as string];
 
@@ -181,84 +286,159 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
 
       return sortState.sortDirection === 'descending' ? -comparison : comparison;
     });
-  }, [data, sortState]);
+  }, [data, sortState, columnFilters]);
+
+  // Column header menu component
+  const ColumnHeaderMenu: React.FC<{ columnId: string; columnLabel: string; columnIndex: number }> = ({
+    columnId,
+    columnLabel,
+    columnIndex,
+  }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const canMoveLeft = columnIndex > 0;
+    const canMoveRight = columnIndex < columnOrder.length - 1;
+    const hasFilter = columnFilters[columnId];
+
+    return (
+      <div className={styles.columnHeader}>
+        <span>{columnLabel}</span>
+        <Menu open={isOpen} onOpenChange={(_, data) => setIsOpen(data.open)}>
+          <MenuTrigger disableButtonEnhancement>
+            <Button
+              appearance="subtle"
+              icon={<ChevronDown20Regular />}
+              className={styles.columnHeaderButton}
+              aria-label="Column options"
+            />
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList>
+              <MenuItem
+                icon={<ArrowSortUp20Regular />}
+                onClick={() => {
+                  handleSortAscending(columnId);
+                  setIsOpen(false);
+                }}
+              >
+                A to Z
+              </MenuItem>
+              <MenuItem
+                icon={<ArrowSortDown20Regular />}
+                onClick={() => {
+                  handleSortDescending(columnId);
+                  setIsOpen(false);
+                }}
+              >
+                Z to A
+              </MenuItem>
+              <MenuDivider />
+              <MenuItem icon={<GroupList20Regular />} disabled>
+                Group by
+              </MenuItem>
+              <MenuDivider />
+              <MenuItem icon={<Filter20Regular />}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px 0' }}>
+                  <span>Filter by</span>
+                  <Input
+                    className={styles.filterInput}
+                    placeholder="Enter filter value..."
+                    value={filterInputs[columnId] || ''}
+                    onChange={(e) => setFilterInputs(prev => ({ ...prev, [columnId]: e.target.value }))}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <Button
+                      size="small"
+                      appearance="primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleApplyFilter(columnId);
+                        setIsOpen(false);
+                      }}
+                    >
+                      Apply
+                    </Button>
+                    {hasFilter && (
+                      <Button
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleClearFilter(columnId);
+                          setIsOpen(false);
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </MenuItem>
+              <MenuDivider />
+              <MenuItem icon={<ColumnTriple20Regular />} disabled>
+                Column width
+              </MenuItem>
+              <MenuDivider />
+              <MenuItem
+                icon={<ArrowLeft20Regular />}
+                onClick={() => {
+                  handleMoveLeft(columnId);
+                  setIsOpen(false);
+                }}
+                disabled={!canMoveLeft}
+              >
+                Move left
+              </MenuItem>
+              <MenuItem
+                icon={<ArrowRight20Regular />}
+                onClick={() => {
+                  handleMoveRight(columnId);
+                  setIsOpen(false);
+                }}
+                disabled={!canMoveRight}
+              >
+                Move right
+              </MenuItem>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
+      </div>
+    );
+  };
 
   // Define columns
   const columns: TableColumnDefinition<TableRow>[] = useMemo(() => {
     const cols: TableColumnDefinition<TableRow>[] = [];
 
-    // Selection column
-    if (config.selectionMode !== 'none') {
-      cols.push(
-        createTableColumn<TableRow>({
-          columnId: '_selection',
-          renderHeaderCell: () => {
-            if (config.selectionMode === 'multiple') {
-              const allSelected = data.length > 0 && selectedRows.size === data.length;
-              return (
-                <Switch
-                  checked={allSelected}
-                  onChange={(_, data) => handleSelectAll(data.checked)}
-                />
-              );
-            }
-            return null;
-          },
-          renderCell: (item) => {
-            const isSelected = selectedRows.has(item._index);
-            if (config.selectionMode === 'single') {
-              return (
-                <Checkbox
-                  // type="radio"
-                  name={`${config.id}-selection`}
-                  checked={isSelected}
-                  onChange={(e) => handleRowSelect(item._index, e.target.checked)}
-                  className={styles.radioButton}
-                />
-              );
-            } else {
-              return (
-                <Switch
-                  checked={isSelected}
-                  onChange={(_, data) => handleRowSelect(item._index, data.checked)}
-                />
-              );
-            }
-          },
-          compare: () => 0,
-        })
-      );
-    }
-
     // Data columns
     const visibleColumns = (config.columns || []).filter(col => col.visible !== false);
-    visibleColumns.forEach(column => {
+    
+    // Sort columns by columnOrder
+    const orderedColumns = columnOrder
+      .map(colId => visibleColumns.find(col => col.id === colId))
+      .filter(col => col != null);
+    
+    orderedColumns.forEach((column, index) => {
       cols.push(
         createTableColumn<TableRow>({
           columnId: column.id,
-          renderHeaderCell: () => column.header,
-          renderCell: (item) => (
+          renderHeaderCell: () => (
+            <ColumnHeaderMenu
+              columnId={column.id}
+              columnLabel={column.header}
+              columnIndex={index}
+            />
+          ),
+          renderCell: (item: TableRow) => (
             <TableCellLayout>
               {item[column.id] != null ? String(item[column.id]) : ''}
             </TableCellLayout>
           ),
-          compare: column.sortable ? (a, b) => {
-            const aVal = a[column.id];
-            const bVal = b[column.id];
-            if (aVal == null && bVal == null) return 0;
-            if (aVal == null) return 1;
-            if (bVal == null) return -1;
-            if (typeof aVal === 'number' && typeof bVal === 'number') {
-              return aVal - bVal;
-            }
-            return String(aVal).localeCompare(String(bVal));
-          } : undefined,
         })
       );
     });
 
     return cols;
-  }, [config, data.length, selectedRows, handleSelectAll, handleRowSelect, styles.radioButton]);
+  }, [config, data.length, selectedRows, handleSelectAll, handleRowSelect, styles.radioButton, columnOrder, columnFilters, filterInputs, handleSortAscending, handleSortDescending, handleMoveLeft, handleMoveRight, handleApplyFilter, handleClearFilter]);
 
   // Prepare sort options for DataGrid
   const sortOptions = sortState.sortColumn
@@ -277,16 +457,31 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     <div className={styles.container}>
       <DataGrid
         items={sortedData}
-        columns={columns}
+        columns={columns as any}
         sortable
         {...(sortOptions && {
           sortState: sortOptions,
           onSortChange: (_, data) => {
             if (data.sortColumn) {
-              handleSort(data.sortColumn);
+              handleSort(String(data.sortColumn));
             }
           },
         })}
+        selectionMode={config.selectionMode === 'none' ? undefined : config.selectionMode === 'multiple' ? 'multiselect' : 'single'}
+        selectedItems={Array.from(selectedRows)}
+        onSelectionChange={(_, data) => {
+          const newSelectedIndexes = new Set<number>();
+          const selectedItemsArray = Array.from(data.selectedItems);
+          selectedItemsArray.forEach((itemId: any) => {
+            const idx = typeof itemId === 'number' ? itemId : parseInt(String(itemId));
+            if (!isNaN(idx)) newSelectedIndexes.add(idx);
+          });
+          setSelectedRows(newSelectedIndexes);
+          if (onSelectionChange) {
+            const selectedData = Array.from(newSelectedIndexes).map(idx => sortedData[idx]);
+            onSelectionChange(selectedData);
+          }
+        }}
         className={styles.dataGrid}
       >
         <DataGridHeader>

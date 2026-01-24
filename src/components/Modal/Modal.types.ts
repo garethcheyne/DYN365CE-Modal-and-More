@@ -81,6 +81,7 @@ export interface FieldConfig {
     rows?: number;
     options?: Array<string | { label: string; value: string }>;
     multiSelect?: boolean;
+    displayMode?: 'dropdown' | 'badges';  // Display mode for select/optionset fields
     // D365 OptionSet auto-fetch configuration
     optionSet?: {
         entityName: string;      // e.g., 'account'
@@ -88,6 +89,33 @@ export interface FieldConfig {
         includeNull?: boolean;   // Include blank/null option
         sortByLabel?: boolean;   // Sort alphabetically by label (default: by value)
     };
+    // Address Lookup configuration
+    addressLookup?: {
+        provider: 'google' | 'azure';  // Maps provider
+        apiKey?: string;               // API key (optional, can use global config)
+        onSelect?: (address: AddressResult) => void;  // Callback when address selected
+        placeholder?: string;          // Search placeholder text
+        componentRestrictions?: {      // Restrict search to specific countries
+            country: string | string[]; // ISO country codes (e.g., 'nz', 'au', or ['nz', 'au'])
+        };
+        fields?: {                     // Auto-populate related fields
+            street?: string;           // Field ID for street address
+            city?: string;             // Field ID for city
+            state?: string;            // Field ID for state/province
+            postalCode?: string;       // Field ID for postal/zip code
+            country?: string;          // Field ID for country
+            latitude?: string;         // Field ID for latitude
+            longitude?: string;        // Field ID for longitude
+        };
+    };
+    // Inline Lookup configuration (D365-style dropdown)
+    entityName?: string;               // Entity logical name (e.g., 'account', 'contact')
+    lookupColumns?: Array<string | {   // Columns to display with configuration
+        attribute: string;              // Attribute name
+        label?: string;                 // Display label
+        visible?: boolean;              // true = always visible, false = show on expand
+    }>;
+    filters?: string;                  // OData filter string
     startDate?: Date;
     endDate?: Date;
     entityTypes?: string[];
@@ -103,6 +131,7 @@ export interface FieldConfig {
     tooltip?: string;
     validation?: ValidationConfig;
     visibleWhen?: VisibilityCondition;
+    onChange?: (value: any) => void;
     // Table-specific properties
     columns?: TableColumn[];
     data?: any[];
@@ -126,6 +155,17 @@ export interface VisibilityCondition {
     field: string;
     operator?: 'equals' | 'notEquals' | 'contains' | 'greaterThan' | 'lessThan' | 'truthy' | 'falsy';
     value?: any;
+}
+
+export interface AddressResult {
+    formattedAddress: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+    latitude?: number;
+    longitude?: number;
 }
 
 export class ModalButton {

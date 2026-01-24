@@ -20,14 +20,19 @@ Show success messages, warnings, and errors that appear in the top-right corner,
 ### 🪟 Modal Dialogs
 Create professional forms, wizards, and confirmation dialogs with full validation, tabs, progress indicators, conditional field visibility, and custom fields. Build complex data entry experiences that feel native to D365.
 
-**New Features:**
+**Key Features:**
 - ✨ **Conditional Field Visibility** - Show/hide fields based on other field values
-- 🧙 **Visual Wizard Steps** - Step indicators with circles, labels, and connectors
-- 📊 **All Field Types** - Text, number, date, switch, slider, textarea, dropdown, table
+- 🧙 **Visual Wizard Steps** - Step indicators with circles, checkmarks, and validation states
+- 📊 **All Field Types** - Text, number, date, switch, checkbox, slider, textarea, dropdown with badges, table, lookup
 - 🎨 **Fluent UI Styling** - Authentic D365 appearance with filled-darker inputs
+- 🖥️ **Fullscreen Mode** - Toggle between normal and fullscreen display
+- 🔍 **Inline Lookups** - D365-native lookup dropdowns with entity icons
+- 🏷️ **Badge Display Mode** - Show dropdown options as clickable badges
 
 ### 🔍 Advanced Lookups
-Powerful record selection dialogs with search, filtering, sorting, and multi-select. Integrate seamlessly with D365's entity metadata for a consistent user experience.
+Powerful record selection with two modes:
+- **Inline Dropdown Lookup** - Search and select records in a dropdown (D365 native style)
+- **Modal Dialog Lookup** - Full-screen lookup with table, search, filter, and multi-select
 
 ## Architecture
 
@@ -563,7 +568,114 @@ function createLeadForm() {
 // 4. Handles both local and global option sets
 ```
 
-### Example 8: Account Lookup with Selection
+### Example 8: Address Lookup with Google Maps or Azure Maps
+
+Auto-complete addresses with country restrictions. The addressLookup field stores the **complete address object** with all components:
+
+```javascript
+function createContactWithAddress() {
+  const modal = new err403.Modal({
+    title: 'New Contact with Address',
+    fields: [
+      { id: 'firstname', label: 'First Name', type: 'text', required: true },
+      { id: 'lastname', label: 'Last Name', type: 'text', required: true },
+      { id: 'email', label: 'Email', type: 'email', required: true },
+      
+      // Address lookup field with Google Maps
+      { 
+        id: 'businessAddress', 
+        label: 'Business Address', 
+        type: 'addressLookup',
+        addressLookup: {
+          provider: 'google', // or 'azure'
+          apiKey: 'YOUR_GOOGLE_MAPS_API_KEY', // or Azure Maps subscription key
+          placeholder: 'Start typing an address...',
+          componentRestrictions: { country: ['nz', 'au'] }, // Optional: restrict to countries
+          fields: { // Optional: auto-populate related fields
+            street: 'address1_line1',
+            city: 'address1_city',
+            state: 'address1_stateorprovince',
+            postalCode: 'address1_postalcode',
+            country: 'address1_country',
+            latitude: 'address1_latitude',
+            longitude: 'address1_longitude'
+          },
+          onSelect: (address) => {
+            console.log('Selected address:', address);
+            // address = { formattedAddress, street, city, state, postalCode, country, latitude, longitude }
+            err403.Toast.success({ 
+              message: `Address: ${address.formattedAddress}` 
+            });
+          }
+        }
+      },
+      
+      // These fields will be auto-populated by the address lookup (optional)
+      { id: 'address1_line1', label: 'Street', type: 'text' },
+      { id: 'address1_city', label: 'City', type: 'text' },
+      { id: 'address1_stateorprovince', label: 'State', type: 'text' },
+      { id: 'address1_postalcode', label: 'Postal Code', type: 'text' },
+      { id: 'address1_country', label: 'Country', type: 'text' },
+      { id: 'address1_latitude', label: 'Latitude', type: 'number' },
+      { id: 'address1_longitude', label: 'Longitude', type: 'number' }
+    ],
+    buttons: [
+      new err403.ModalButton('Create Contact', function() {
+        const data = modal.getFieldValues();
+        
+        // The businessAddress field contains the full address object:
+        console.log(data.businessAddress);
+        // {
+        //   formattedAddress: "9 Clendon Court, Templestowe VIC 3106, Australia",
+        //   street: "9 Clendon Court",
+        //   city: "Templestowe",
+        //   state: "Victoria",
+        //   postalCode: "3106",
+        //   country: "Australia",
+        //   latitude: -37.7566088,
+        //   longitude: 145.1612761
+        // }
+        
+        // Create contact with address in D365
+        Xrm.WebApi.createRecord('contact', {
+          firstname: data.firstname,
+          lastname: data.lastname,
+          emailaddress1: data.email,
+          address1_line1: data.address1_line1,
+          address1_city: data.address1_city,
+          address1_stateorprovince: data.address1_stateorprovince,
+          address1_postalcode: data.address1_postalcode,
+          address1_country: data.address1_country,
+          address1_latitude: parseFloat(data.address1_latitude),
+          address1_longitude: parseFloat(data.address1_longitude)
+        }).then(() => {
+          err403.Toast.success({ message: 'Contact created with address' });
+        });
+        
+        return true;
+      }, true)
+    ]
+  });
+  modal.show();
+}
+
+// Azure Maps alternative:
+// addressLookup: {
+//   provider: 'azure',
+//   apiKey: 'YOUR_AZURE_MAPS_SUBSCRIPTION_KEY',
+//   componentRestrictions: { country: 'AU' }, // Single country
+//   ...
+// }
+
+// Without field auto-population (address object only):
+// addressLookup: {
+//   provider: 'google',
+//   apiKey: 'YOUR_API_KEY',
+//   // No 'fields' property - just stores the address object
+// }
+```
+
+### Example 9: Account Lookup with Selection
 
 Let users search and select records:
 
@@ -602,7 +714,7 @@ function selectAccount() {
 
 **Search Behavior:** The lookup uses "contains" logic, so searching for "smith" will find "John Smith", "Smithson Inc", and "Blacksmith Corp". The search checks both visible fields (`name`, `accountnumber`) and hidden fields (`emailaddress1`, `websiteurl`), allowing users to find records by email or website even though those columns aren't displayed in the grid.
 
-### Example 9: Multi-Select Contacts
+### Example 10: Multi-Select Contacts
 
 Select multiple records at once:
 
@@ -634,7 +746,7 @@ function selectMultipleContacts() {
 }
 ```
 
-### Example 10: Filtered Lookup (Active Accounts Only)
+### Example 11: Filtered Lookup (Active Accounts Only)
 
 Show only records that match specific criteria:
 
@@ -661,7 +773,7 @@ function selectActiveAccount() {
 }
 ```
 
-### Example 11: Data Table with Sorting and Selection
+### Example 12: Data Table with Sorting and Selection
 
 Display tabular data with sorting, selection, and customizable columns:
 
@@ -744,7 +856,7 @@ function refreshTableData() {
 - **Selection callback**: Get notified when users select rows
 - **Dynamic updates**: Update table data using `setFieldValue()`
 
-### Example 10: Form with Tabs
+### Example 13: Form with Tabs
 
 Organize complex forms with tabs:
 
@@ -867,7 +979,7 @@ function onCityChange(executionContext) {
 }
 ```
 
-### Example 13: Progress Indicator
+### Example 14: Progress Indicator
 
 Show progress during long operations:
 
@@ -906,6 +1018,113 @@ function processRecords() {
 
 ---
 
+## Library Initialization
+
+### Health State Monitoring
+
+The `err403.init()` function returns a health state object that provides information about the library's initialization status:
+
+```javascript
+function onFormLoad(executionContext) {
+  const health = err403.init(executionContext);
+  
+  console.log(health);
+  // {
+  //   loaded: true,                    // Library initialized successfully
+  //   cssLoaded: true,                 // CSS file found and loaded
+  //   inWindow: true,                  // Available as window.err403
+  //   version: "2026.01.24.01",       // Current version
+  //   timestamp: "2026-01-24T12:34:56.789Z", // Initialization time
+  //   instance: err403                 // Reference to library instance
+  // }
+  
+  // Check for issues
+  if (!health.cssLoaded) {
+    console.warn('UI library CSS failed to load - check web resource paths');
+  }
+  
+  if (!health.inWindow) {
+    console.error('Library not available in window scope');
+  }
+}
+```
+
+**Health State Properties:**
+- `loaded` - Library initialization completed successfully
+- `cssLoaded` - CSS stylesheet was found and loaded
+- `inWindow` - Library is available as `window.err403`
+- `version` - Current library version
+- `timestamp` - ISO timestamp of when initialization occurred
+- `instance` - Reference to the library instance
+
+**Note:** Call `err403.init()` in your form's OnLoad event handler before using any library components. The function automatically loads the CSS file and initializes Fluent UI theming.
+
+### Iframe Support (Dynamics 365)
+
+The library automatically handles Dynamics 365's iframe architecture, where the library is loaded once in the main window but used by scripts in multiple child iframes.
+
+**How It Works:**
+1. Library is loaded once (typically in the main D365 window or top-level iframe)
+2. When any child iframe loads, the library automatically detects existing instances in parent windows
+3. The parent instance is automatically assigned to the child iframe's `window.err403`
+4. All iframes can use `err403` directly without manual parent window checks
+
+**Simple Usage (Recommended):**
+```javascript
+// ✅ Works in any iframe - library auto-detects parent instance
+function onFormLoad(executionContext) {
+  if (typeof err403 !== 'undefined' && typeof err403.init === 'function') {
+    const health = err403.init(executionContext);
+    
+    // Use library normally
+    err403.Toast.success({ message: 'Form loaded' });
+  }
+}
+```
+
+**What Happens Behind the Scenes:**
+- **Main window/parent iframe**: Library loads and exposes `window.err403`
+- **Child iframe A**: Script runs → library detects parent instance → assigns to `window.err403`
+- **Child iframe B**: Script runs → library detects parent instance → assigns to `window.err403`
+- **Result**: All iframes share the same library instance
+
+**Before (Complex Parent Detection) ❌:**
+```javascript
+// Old approach - NO LONGER NEEDED
+const err403Instance = (typeof err403 !== 'undefined' && err403) ||
+    (typeof window.top?.err403 !== 'undefined' && window.top.err403) ||
+    (typeof window.parent?.err403 !== 'undefined' && window.parent.err403);
+
+if (err403Instance) {
+  err403Instance.init();
+}
+```
+
+**After (Auto-Detection) ✅:**
+```javascript
+// New approach - library handles parent detection automatically
+if (typeof err403 !== 'undefined') {
+  err403.init();
+}
+```
+
+**Manual Parent Window Detection (Optional):**
+```javascript
+// Use findInstance() if you need explicit control
+const libraryInstance = err403.findInstance();
+if (libraryInstance) {
+  const health = libraryInstance.init();
+}
+```
+
+**Key Benefits:**
+- ✅ Scripts in different iframes can use the library without knowing where it's loaded
+- ✅ No duplicate library instances across iframes
+- ✅ Simpler, cleaner consumer code
+- ✅ Automatic parent window traversal (checks `window.top` → `window.parent` → `window`)
+
+---
+
 ## Using on Forms (Form Events)
 
 Add the library to your form's Form Libraries, then use it in event handlers:
@@ -913,11 +1132,19 @@ Add the library to your form's Form Libraries, then use it in event handlers:
 **OnLoad Event:**
 ```javascript
 function onFormLoad(executionContext) {
+  // Initialize library and get health state
+  const health = err403.init(executionContext);
+  
+  // Health object: { loaded, cssLoaded, inWindow, version, timestamp }
+  if (!health.cssLoaded) {
+    console.warn('UI library CSS not loaded');
+  }
+  
   var formContext = executionContext.getFormContext();
   
   // Show a welcome message
   err403.Toast.info({
-    message: 'Form loaded successfully',
+    message: `Form loaded successfully (v${health.version})`,
     duration: 2000
   });
 }
@@ -1010,6 +1237,50 @@ const modal = new err403.Modal({
 modal.show();
 ```
 
+**Wizard Step Indicators:**
+
+The library automatically validates wizard steps and provides visual feedback:
+
+- **Blue circle with number** = current step
+- **Green circle with checkmark (✓)** = completed steps with all required fields filled
+- **Red circle with exclamation (!)** = completed steps with missing required fields
+- **Gray circle with number** = pending steps (not yet visited)
+- **Connector lines** = color-coded to match step state (blue/green/red/gray)
+
+**Automatic Validation:**
+- Steps are validated automatically when field values change
+- Required fields are checked: empty values (null, undefined, '', empty arrays) trigger red indicator
+- Step indicators update in real-time as users fill in or clear required fields
+- No manual validation code needed - the library handles it automatically
+
+**Example:**
+```javascript
+new err403.Modal({
+  progress: {
+    enabled: true,
+    currentStep: 1,
+    steps: [
+      { 
+        id: 'step1', 
+        label: 'Basic Info', 
+        fields: [
+          { id: 'name', label: 'Name', type: 'text', required: true },
+          { id: 'email', label: 'Email', type: 'email', required: true }
+        ]
+      },
+      { 
+        id: 'step2', 
+        label: 'Details', 
+        fields: [
+          { id: 'notes', label: 'Notes', type: 'textarea', required: true }
+        ]
+      }
+    ]
+  }
+});
+// Step 1 will show red if user moves to step 2 without filling required fields
+```
+
 **Field Configuration:**
 ```javascript
 // All field types support:
@@ -1039,10 +1310,24 @@ modal.show();
 - 'textarea' - with rows property
 - 'date' - Fluent UI DatePicker
 - 'select' - with options: ['Option 1', 'Option 2'] or [{ label, value }]
-- 'switch' - Boolean toggle
+  - displayMode: 'dropdown' (default) or 'badges' for clickable badge buttons
+- 'lookup' - Inline D365-style dropdown lookup (entityName, lookupColumns, filters)
+- 'checkbox' - Boolean checkbox (D365 native style)
+- 'switch' - Boolean toggle switch (modern style)
 - 'range' - Slider with min, max, step (use extraAttributes)
 - 'table' - Embedded data grid (use Table class)
+- 'addressLookup' - Address autocomplete with Google/Azure Maps
 - 'custom' - Custom HTML with render() function
+
+// Example: Dropdown with badge display mode
+{ 
+  id: 'status', 
+  label: 'Status', 
+  type: 'select',
+  options: ['Draft', 'Active', 'Inactive'],
+  value: 'Active',
+  displayMode: 'badges'  // Show as clickable badges instead of dropdown
+}
 
 // Example: Number field with range slider
 { 
@@ -1052,6 +1337,35 @@ modal.show();
   value: 75,
   showValue: true,
   extraAttributes: { min: 0, max: 100, step: 5 }
+}
+
+// Example: Checkbox (D365 native style)
+{ 
+  id: 'acceptTerms', 
+  label: 'Accept Terms and Conditions', 
+  type: 'checkbox',
+  value: false,
+  required: true
+}
+
+// Example: Switch (modern toggle)
+{ 
+  id: 'enableNotifications', 
+  label: 'Enable Notifications', 
+  type: 'switch',
+  value: true
+}
+
+// Example: Lookup (D365-style inline dropdown)
+{ 
+  id: 'accountLookup', 
+  label: 'Account', 
+  type: 'lookup',
+  entityName: 'account',
+  lookupColumns: ['name', 'accountnumber'],
+  filters: "statecode eq 0",  // Optional OData filter
+  placeholder: 'Search accounts...',
+  required: true
 }
 
 // Example: Conditional field visibility

@@ -121,12 +121,38 @@ interface FieldConfig {
         value: string;
     }>;
     multiSelect?: boolean;
+    displayMode?: 'dropdown' | 'badges';
     optionSet?: {
         entityName: string;
         attributeName: string;
         includeNull?: boolean;
         sortByLabel?: boolean;
     };
+    addressLookup?: {
+        provider: 'google' | 'azure';
+        apiKey?: string;
+        onSelect?: (address: AddressResult) => void;
+        placeholder?: string;
+        componentRestrictions?: {
+            country: string | string[];
+        };
+        fields?: {
+            street?: string;
+            city?: string;
+            state?: string;
+            postalCode?: string;
+            country?: string;
+            latitude?: string;
+            longitude?: string;
+        };
+    };
+    entityName?: string;
+    lookupColumns?: Array<string | {
+        attribute: string;
+        label?: string;
+        visible?: boolean;
+    }>;
+    filters?: string;
     startDate?: Date;
     endDate?: Date;
     entityTypes?: string[];
@@ -142,6 +168,7 @@ interface FieldConfig {
     tooltip?: string;
     validation?: ValidationConfig;
     visibleWhen?: VisibilityCondition;
+    onChange?: (value: any) => void;
     columns?: TableColumn[];
     data?: any[];
     selectionMode?: 'none' | 'single' | 'multiple';
@@ -161,6 +188,16 @@ interface VisibilityCondition {
     field: string;
     operator?: 'equals' | 'notEquals' | 'contains' | 'greaterThan' | 'lessThan' | 'truthy' | 'falsy';
     value?: any;
+}
+interface AddressResult {
+    formattedAddress: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+    latitude?: number;
+    longitude?: number;
 }
 declare class ModalButton {
     label: string;
@@ -230,6 +267,7 @@ declare class Modal implements ModalInstance {
     private dragStartY;
     private modalStartX;
     private modalStartY;
+    private isFullscreen;
     constructor(options: ModalOptions);
     /**
      * Initialize modal asynchronously (for D365 option set fetching)
@@ -239,6 +277,10 @@ declare class Modal implements ModalInstance {
      * Fetch option set values from D365 metadata
      */
     private fetchD365OptionSet;
+    /**
+     * Create address lookup field with Google Maps or Azure Maps
+     */
+    private createAddressLookupField;
     private createModal;
     private getModalDimensions;
     private createIconElement;
@@ -258,6 +300,7 @@ declare class Modal implements ModalInstance {
     private handleDrag;
     private stopDrag;
     private handleEscapeKey;
+    private toggleFullscreen;
     show(): void;
     showAsync(): Promise<ModalResponse>;
     close(): void;
@@ -266,6 +309,10 @@ declare class Modal implements ModalInstance {
     nextStep(): void;
     previousStep(): void;
     goToStep(stepId: string): void;
+    /**
+     * Validate if a step has all required fields filled
+     */
+    private validateStep;
     getFieldValue(fieldId: string): any;
     getFieldValues(): Record<string, any>;
     setFieldValue(fieldId: string, value: any): void;
@@ -702,17 +749,36 @@ declare const d365Theme: Theme;
  */
 
 /**
+ * Health state of the UI library
+ */
+interface HealthState {
+    loaded: boolean;
+    cssLoaded: boolean;
+    inWindow: boolean;
+    version: string;
+    timestamp: string;
+    instance?: any;
+}
+/**
  * D365 Form OnLoad Handler
  * This function is called by D365 when the form loads
  * @param executionContext - The execution context from D365
+ * @returns Health state of the library
  */
-declare function init(executionContext?: any): void;
+declare function init(executionContext?: any): HealthState;
 /**
  * D365 Form OnLoad Handler (alias)
+ * @returns Health state of the library
  */
-declare function onLoad(executionContext?: any): void;
+declare function onLoad(executionContext?: any): HealthState;
+/**
+ * Find library instance in current or parent windows (iframe support)
+ * @returns Library instance or null if not found
+ */
+declare function findInstance(): any;
 
-export { BUG, ModalButton as Button, Custom, DateRange, ERR, Group, Input, Logger, Lookup$1 as Lookup, Lookup as LookupField, Modal, ModalButton, ModalHelpers_d as ModalHelpers, MultiLine, OptionSet, TRACE, Table, Toast, WAR, d365Theme, init, onLoad, theme };
+export { BUG, ModalButton as Button, Custom, DateRange, ERR, Group, Input, Logger, Lookup$1 as Lookup, Lookup as LookupField, Modal, ModalButton, ModalHelpers_d as ModalHelpers, MultiLine, OptionSet, TRACE, Table, Toast, WAR, d365Theme, findInstance, init, onLoad, theme };
+export type { HealthState };
 
 /**
  * Global err403 namespace declarations

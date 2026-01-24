@@ -17,9 +17,9 @@ export function alert(
   return new Promise((resolve) => {
     new Modal({
       title,
-      message,
+      content: message, // Use content instead of message to allow HTML
       icon: options?.icon || 'INFO',
-      size: 'small',
+      size: 'medium',
       ...options,
       buttons: [
         new ModalButton('OK', () => resolve(), true)

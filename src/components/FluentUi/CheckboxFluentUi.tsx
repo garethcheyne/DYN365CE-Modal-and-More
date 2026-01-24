@@ -1,27 +1,40 @@
 /**
  * Checkbox component using Fluent UI
- * Uses @fluentui/react-components Checkbox
+ * Uses Field component for consistent layout
  */
 
 import React from 'react';
-import { Checkbox } from '@fluentui/react-components';
+import { Checkbox, Field } from '@fluentui/react-components';
 
 interface CheckboxFluentUiProps {
+  id?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
   label?: string;
+  tooltip?: string;
+  orientation?: 'horizontal' | 'vertical';
 }
 
 export const CheckboxFluentUi: React.FC<CheckboxFluentUiProps> = ({ 
+  id,
   checked, 
   onChange, 
-  label 
+  label,
+  tooltip,
+  orientation = 'horizontal'
 }) => {
   return (
-    <Checkbox
-      checked={checked}
-      onChange={(_, data) => onChange(data.checked === true)}
+    <Field
       label={label}
-    />
+      hint={tooltip}
+      orientation={orientation}
+      style={{ marginBottom: '8px' }}
+    >
+      <Checkbox
+        id={id}
+        checked={checked}
+        onChange={(_, data) => onChange(data.checked === true)}
+      />
+    </Field>
   );
 };

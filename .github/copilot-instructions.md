@@ -61,6 +61,20 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
 }
 ```
 
+**Available Field Types:**
+- `text`, `email`, `tel`, `password`, `url`, `search` - Text inputs
+- `number` - Number input
+- `textarea` - Multi-line text (use `rows` property)
+- `date` - Date picker
+- `select` - Dropdown (use `options` array)
+- `lookup` - Inline D365-style dropdown lookup (entityName, lookupColumns, filters)
+- `checkbox` - Boolean checkbox (D365 native style)
+- `switch` - Boolean toggle switch (modern style)
+- `range` - Slider (use `extraAttributes: { min, max, step }`)
+- `table` - Data grid (use Table class)
+- `addressLookup` - Address autocomplete with Google/Azure Maps
+- `custom` - Custom HTML (use `render()` function)
+
 **Wizard Pattern:**
 ```javascript
 new err403.Modal({
@@ -82,6 +96,19 @@ new err403.Modal({
   ]
 });
 ```
+
+**Wizard Step Indicators:**
+- **Blue circle with number** = current step
+- **Green circle with checkmark** = completed steps with all required fields filled
+- **Red circle with exclamation (!)** = completed steps with missing required fields
+- **Gray circle with number** = pending steps (not yet visited)
+- **Connector lines** match the step color (blue/green/red/gray)
+
+**Automatic Validation:**
+- Steps are validated automatically when fields change
+- Required fields are checked: empty values (null, undefined, '', empty arrays) trigger red indicator
+- Step indicators update in real-time as users fill in or clear required fields
+- No manual validation code needed - library handles it automatically
 
 **Conditional Visibility Example:**
 ```javascript
@@ -136,6 +163,31 @@ fields: [
 ### 3. Lookup (`err403.Lookup`)
 Advanced record selection with search, filter, sort, and multi-select.
 
+**Two Lookup Options:**
+
+1. **Inline Dropdown Lookup** (NEW - D365 Native Style) - Use as a field type in modals:
+```javascript
+new err403.Modal({
+  fields: [
+    {
+      id: 'accountLookup',
+      label: 'Account',
+      type: 'lookup',
+      entityName: 'account',
+      lookupColumns: ['name', 'accountnumber'],
+      filters: "statecode eq 0",  // Optional OData filter
+      placeholder: 'Search accounts...',
+      required: true
+    }
+  ]
+});
+// - Inline dropdown appears below the field
+// - Search as you type
+// - Click to select
+// - Returns: { id, name, subtitle, entityType, record }
+```
+
+2. **Modal Dialog Lookup** (Advanced) - Full-screen modal with table:
 ```javascript
 new err403.Lookup({
   entityName: 'account',
@@ -173,10 +225,11 @@ new err403.Table({
 - `components/Toast/Toast.ts` - Toast notification system
 - `components/Lookup/Lookup.ts` - Lookup dialog
 - `components/FluentUi/*.tsx` - React wrapper components for Fluent UI
-- `index.ts` - Main entry point and global API
+- `components/FluentUi/AddressLookupFluentUi.tsx` - Address autocomplete with Google/Azure Maps
+- `index.ts` - Main entry point, global API, and init() function
 
 ### Build Outputs (`build/` and `release/`)
-- `ui-lib.min.js` - Minified bundle (~690KB)
+- `ui-lib.min.js` - Minified bundle (~741KB, ~208KB gzipped)
 - `ui-lib.types.d.ts` - TypeScript definitions
 - `demo.html` - Interactive demo with code examples
 - `tests.html` - Test suite
@@ -185,6 +238,79 @@ new err403.Table({
 - D365 CE solution with web resources
 - Scripts to update and package solution
 - Managed/unmanaged solution support
+
+## Initialization and Health Checking
+
+### Library Initialization
+The library provides an `init()` function that returns a health state object:
+
+```javascript
+// In D365 form OnLoad event
+function onFormLoad(executionContext) {
+  const health = err403.init(executionContext);
+  
+  // Health state object:
+  // {
+  //   loaded: true,           // Library initialization completed
+  //   cssLoaded: true,        // CSS file found and loaded
+  //   inWindow: true,         // Available as window.err403
+  //   version: "2026.01.24.01", // Current version
+  //   timestamp: "2026-01-24T...", // Initialization time
+  //   instance: err403        // Reference to library instance
+  // }
+  
+  if (!health.cssLoaded) {
+    console.warn('UI library CSS not loaded');
+  }
+}
+```
+
+**Health State Properties:**
+- `loaded`: Boolean - library initialization completed successfully
+- `cssLoaded`: Boolean - CSS stylesheet was found and loaded
+- `inWindow`: Boolean - library is available as `window.err403`
+- `version`: String - current library version
+- `timestamp`: String - ISO timestamp of when initialization occurred
+- `instance`: Object - reference to the library instance
+
+### Iframe Support (Dynamics 365)
+
+The library automatically detects and handles Dynamics 365's iframe architecture:
+
+```javascript
+// BEFORE: Complex parent window detection (NO LONGER NEEDED)
+const err403Instance = (typeof err403 !== 'undefined' && err403) ||
+    (typeof window.top?.err403 !== 'undefined' && window.top.err403) ||
+    (typeof window.parent?.err403 !== 'undefined' && window.parent.err403);
+
+// AFTER: Simple check - library handles parent window detection automatically
+if (typeof err403 !== 'undefined' && typeof err403.init === 'function') {
+  const health = err403.init();
+}
+```
+
+**Auto-Detection Features:**
+- Checks if library is already loaded in parent windows (window.top, window.parent)
+- Automatically assigns parent instance to current iframe window
+- Prevents duplicate loading across iframe boundaries
+- Works seamlessly with D365 form iframes
+
+**Multiple Iframes (Common in D365 Forms):**
+When different form scripts are running in separate iframes (e.g., Account form in iframe 1, Contact form in iframe 2), each script can use the library seamlessly because:
+1. Library is loaded once in the parent window (main page)
+2. Each iframe's script checks for parent instance automatically
+3. Auto-detection assigns parent instance to each iframe's `window.err403`
+4. No coordination needed between scripts in different iframes
+
+**Manual Parent Window Detection (Optional):**
+```javascript
+// Use findInstance() if you need explicit parent window checking
+const libraryInstance = err403.findInstance();
+if (libraryInstance) {
+  // Library found in current or parent window
+  const health = libraryInstance.init();
+}
+```
 
 ## Development Workflow
 
@@ -221,11 +347,18 @@ Located in `src/components/Modal/Modal.ts`:
 - Works in both regular modals and wizard steps
 
 ### Wizard Step Indicators
-Visual indicators with circles, checkmarks, and connector lines:
-- Blue circle with number = current step
-- Green circle with checkmark = completed steps
-- Gray circle with number = pending steps
-- Color-coded connector lines between steps
+Visual indicators with circles, checkmarks, exclamation marks, and connector lines:
+- **Blue circle with number** = current step
+- **Green circle with checkmark (✓)** = completed steps with all required fields filled
+- **Red circle with exclamation (!)** = completed steps with missing required fields
+- **Gray circle with number** = pending steps (not yet visited)
+- **Connector lines** = color-coded to match step state (blue, green, red, or gray)
+
+**Validation Logic:**
+- `validateStep(stepIndex)` checks all required fields in a step
+- Empty values trigger validation errors: `null`, `undefined`, `''`, or empty arrays `[]`
+- Indicators update automatically when field values change
+- `updateStepIndicator()` recalculates colors based on validation status
 
 ### Fluent UI Integration
 React components wrap Fluent UI v9 components:
@@ -282,6 +415,76 @@ const modal = new err403.Modal({
   ]
 });
 ```
+
+### Address Lookup with Auto-Population
+```javascript
+const modal = new err403.Modal({
+  fields: [
+    { 
+      id: 'address', 
+      label: 'Search Address', 
+      type: 'addressLookup',
+      addressLookup: {
+        provider: 'google', // or 'azure'
+        apiKey: 'YOUR_API_KEY',
+        placeholder: 'Start typing...',
+        componentRestrictions: { country: ['nz', 'au'] }, // Optional: restrict to countries
+        fields: {
+          street: 'street',
+          city: 'city',
+          state: 'state',
+          postalCode: 'zip',
+          country: 'country',
+          latitude: 'lat',
+          longitude: 'lng'
+        },
+        onSelect: (address) => {
+          console.log('Selected:', address.formattedAddress);
+          // address object contains: formattedAddress, street, city, state, 
+          // postalCode, country, latitude, longitude
+        }
+      }
+    },
+    // These fields will be auto-populated (optional)
+    { id: 'street', label: 'Street', type: 'text' },
+    { id: 'city', label: 'City', type: 'text' },
+    { id: 'state', label: 'State', type: 'text' },
+    { id: 'zip', label: 'Postal Code', type: 'text' },
+    { id: 'country', label: 'Country', type: 'text' }
+  ]
+});
+
+// The library automatically:
+// 1. Stores the complete address object in field value
+// 2. Provides autocomplete for addresses via Google Maps or Azure Maps API
+// 3. Parses the selected address into components
+// 4. Optionally populates related fields based on mapping
+// 5. Returns full address object: { formattedAddress, street, city, state, postalCode, country, latitude, longitude }
+```
+
+### Displaying Styled JSON in Modals
+The demo page includes a helper function for syntax-highlighted JSON output:
+
+```javascript
+// Helper function (from Demo.tsx)
+const formatJsonWithStyle = (obj: any): string => {
+  const json = JSON.stringify(obj, null, 2);
+  
+  const highlighted = json
+    .replace(/"([^"]+)":/g, '<span style="color: #0078d4; font-weight: bold;">"$1"</span>:') // Property names (blue)
+    .replace(/: "([^"]*)"/g, ': <span style="color: #107c10;">"$1"</span>') // String values (green)
+    .replace(/: (-?\d+\.?\d*)/g, ': <span style="color: #ca5010;">$1</span>') // Numbers (orange)
+    .replace(/: (true|false)/g, ': <span style="color: #8764b8;">$1</span>') // Booleans (purple)
+    .replace(/: null/g, ': <span style="color: #605e5c;">null</span>'); // Null (gray)
+  
+  return `<pre style="background: #f3f2f1; padding: 20px; border-radius: 6px; overflow: auto; max-height: 500px; text-align: left; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.6; border: 1px solid #e1dfdd;">${highlighted}</pre>`;
+};
+
+// Usage in alert modals
+err403.ModalHelpers.alert('Form Data', formatJsonWithStyle(data));
+```
+
+**Note:** The `err403.ModalHelpers.alert()` function uses `content` property (innerHTML) instead of `message` (textContent), allowing HTML rendering for styled JSON output.
 
 ### Multi-Step Wizard with Validation
 ```javascript

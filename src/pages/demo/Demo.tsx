@@ -9,6 +9,21 @@ import * as err403Module from '../../index';
 const err403 = err403Module;
 declare const PACKAGE_VERSION: string;
 
+// Helper function to format JSON with syntax highlighting
+const formatJsonWithStyle = (obj: any): string => {
+  const json = JSON.stringify(obj, null, 2);
+  
+  // Apply syntax highlighting (no HTML escaping needed since we control the input)
+  const highlighted = json
+    .replace(/"([^"]+)":/g, '<span style="color: #0078d4; font-weight: bold;">"$1"</span>:') // Property names (blue)
+    .replace(/: "([^"]*)"/g, ': <span style="color: #107c10;">"$1"</span>') // String values (green)
+    .replace(/: (-?\d+\.?\d*)/g, ': <span style="color: #ca5010;">$1</span>') // Numbers (orange)
+    .replace(/: (true|false)/g, ': <span style="color: #8764b8;">$1</span>') // Booleans (purple)
+    .replace(/: null/g, ': <span style="color: #605e5c;">null</span>'); // Null (gray)
+  
+  return `<pre style="background: #f3f2f1; padding: 20px; border-radius: 6px; overflow: auto; max-height: 500px; text-align: left; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.6; border: 1px solid #e1dfdd;">${highlighted}</pre>`;
+};
+
 // Code Viewer Component
 interface CodeViewerProps {
   code: string;
@@ -218,6 +233,10 @@ export const Demo: React.FC = () => {
         new err403.Button('Cancel', () => {}),
         new err403.Button('Create', () => {
           const data = modal.getFieldValues();
+          err403.ModalHelpers.alert(
+            'Form Data Submitted',
+            formatJsonWithStyle(data)
+          );
           err403.Toast.success({ title: 'Contact Created', message: `${data.firstname} ${data.lastname} has been created.` });
         }, true)
       ]
@@ -233,18 +252,119 @@ export const Demo: React.FC = () => {
         { id: 'textInput', label: 'Text Input', type: 'text', placeholder: 'Enter text' },
         { id: 'numberInput', label: 'Number Input', type: 'number', value: 42 },
         { id: 'dateInput', label: 'Date', type: 'date' },
-        { id: 'switchInput', label: 'Enable Notifications', type: 'switch', value: true },
+        { 
+          id: 'accountLookup', 
+          label: 'Account (with expand)', 
+          type: 'lookup', 
+          entityName: 'account', 
+          lookupColumns: [
+            'name',                                        // Always visible
+            { attribute: 'accountnumber', visible: true }, // Always visible
+            { attribute: 'telephone1', label: 'Phone', visible: false },      // Shown on expand
+            { attribute: 'emailaddress1', label: 'Email', visible: false },   // Shown on expand
+            { attribute: 'address1_city', label: 'City', visible: false }     // Shown on expand
+          ],
+          placeholder: 'Search accounts...' 
+        },
+        { 
+          id: 'contactLookup', 
+          label: 'Contact (simple)', 
+          type: 'lookup', 
+          entityName: 'contact', 
+          lookupColumns: [
+            'fullname',
+            { attribute: 'emailaddress1', visible: true }
+          ],
+          placeholder: 'Search contacts...' 
+        },
+        { id: 'checkboxInput', label: 'Accept Terms', type: 'checkbox', value: false, tooltip: 'D365-style checkbox' },
+        { id: 'switchInput', label: 'Enable Notifications', type: 'switch', value: true, tooltip: 'Modern toggle switch' },
         { id: 'rangeInput', label: 'Range Slider', type: 'range', value: 50, showValue: true, extraAttributes: { min: 0, max: 100, step: 5 } },
         { id: 'textarea', label: 'Multi-line Text', type: 'textarea', rows: 3, placeholder: 'Enter notes' },
-        { id: 'optionset', label: 'Status', type: 'select', options: ['Draft', 'Active', 'Inactive'], value: 'Active' },
-        { id: 'lookup', label: 'Account', type: 'lookup', entity: 'account', columns: ['name', 'accountnumber'] }
+        { id: 'optionset', label: 'Status (Dropdown)', type: 'select', options: ['Draft', 'Active', 'Inactive'], value: 'Active', displayMode: 'dropdown' },
+        { id: 'priority', label: 'Priority (Badges)', type: 'select', options: ['Low', 'Medium', 'High', 'Critical'], value: 'Medium', displayMode: 'badges' }
       ],
       buttons: [
         new err403.ModalButton('Close', () => {}),
         new err403.ModalButton('Submit', () => {
           const data = modal.getFieldValues();
           console.log('Form data:', data);
-          err403.Toast.success({ title: 'Data Captured', message: 'Check console for output.' });
+          err403.ModalHelpers.alert(
+            'Form Data Submitted',
+            formatJsonWithStyle(data)
+          );
+          err403.Toast.success({ title: 'Data Captured', message: 'All field values captured!' });
+        }, true)
+      ]
+    });
+    modal.show();
+  };
+
+  const showAddressLookupForm = () => {
+    const modal = new err403.Modal({
+      title: 'Create Contact with Address',
+      size: 'large',
+      fields: [
+        new err403.Input({ id: 'firstname', label: 'First Name', type: 'text', required: true, placeholder: 'Enter first name' }),
+        new err403.Input({ id: 'lastname', label: 'Last Name', type: 'text', required: true, placeholder: 'Enter last name' }),
+        new err403.Input({ id: 'email', label: 'Email', type: 'text', placeholder: 'example@company.com' }),
+        
+        // Address lookup field - using field config object
+        { 
+          id: 'addressLookup', 
+          label: 'Search Address', 
+          type: 'addressLookup',
+          addressLookup: {
+            provider: 'google',
+            apiKey: '***REMOVED_API_KEY***', // From .env
+            placeholder: 'Start typing an address...',
+            componentRestrictions: { country: ['nz', 'au'] }, // Restrict to New Zealand and Australia
+            fields: {
+              street: 'address1_line1',
+              city: 'address1_city',
+              state: 'address1_stateorprovince',
+              postalCode: 'address1_postalcode',
+              country: 'address1_country',
+              latitude: 'address1_latitude',
+              longitude: 'address1_longitude'
+            },
+            onSelect: (address) => {
+              console.log('Selected address:', address);
+              err403.Toast.success({ 
+                title: 'Address Selected',
+                message: `${address.formattedAddress}`,
+                duration: 5000
+              });
+            }
+          }
+        },
+        
+        // These fields will be auto-populated
+        new err403.Input({ id: 'address1_line1', label: 'Street', type: 'text' }),
+        new err403.Input({ id: 'address1_city', label: 'City', type: 'text' }),
+        new err403.Input({ id: 'address1_stateorprovince', label: 'State/Province', type: 'text' }),
+        new err403.Input({ id: 'address1_postalcode', label: 'Postal Code', type: 'text' }),
+        new err403.Input({ id: 'address1_country', label: 'Country', type: 'text' }),
+        new err403.Input({ id: 'address1_latitude', label: 'Latitude', type: 'number' }),
+        new err403.Input({ id: 'address1_longitude', label: 'Longitude', type: 'number' })
+      ],
+      buttons: [
+        new err403.ModalButton('Cancel', () => {}),
+        new err403.ModalButton('Create Contact', () => {
+          const data = modal.getFieldValues();
+          console.log('Contact data with address:', data);
+          
+          // Show result modal with formatted JSON
+          err403.ModalHelpers.alert(
+            'Form Data Submitted',
+            formatJsonWithStyle(data)
+          );
+          
+          err403.Toast.success({ 
+            title: 'Contact Created', 
+            message: `${data.firstname} ${data.lastname} created with address in ${data.address1_city || 'N/A'}` 
+          });
+          return true;
         }, true)
       ]
     });
@@ -275,6 +395,11 @@ export const Demo: React.FC = () => {
       buttons: [
         new err403.ModalButton('Cancel', () => {}),
         new err403.ModalButton('Save', () => {
+          const data = modal.getFieldValues();
+          err403.ModalHelpers.alert(
+            'Settings Saved',
+            formatJsonWithStyle(data)
+          );
           err403.Toast.success({ title: 'Settings Saved', message: 'Your preferences have been updated.' });
         }, true)
       ]
@@ -378,6 +503,10 @@ export const Demo: React.FC = () => {
             err403.Toast.warn({ title: 'No Selection', message: 'Please select at least one contact' });
             return false;
           }
+          err403.ModalHelpers.alert(
+            'Selected Contacts',
+            formatJsonWithStyle(selected)
+          );
           err403.Toast.success({ title: 'Processing Complete', message: `Processed ${selected.length} contact(s)` });
           return true;
         }, true)
@@ -421,11 +550,21 @@ export const Demo: React.FC = () => {
             id: 'step2',
             label: 'Business Details',
             fields: [
-              { id: 'revenue', label: 'Annual Revenue', type: 'number', value: 5000000, placeholder: 'Enter revenue' },
-              { id: 'employees', label: 'Number of Employees', type: 'number', value: 250 },
+              { id: 'revenue', label: 'Annual Revenue', type: 'number', required: true, placeholder: 'Enter revenue (required)' },
+              { id: 'employees', label: 'Number of Employees', type: 'number', required: true, value: 250 },
               { id: 'foundedDate', label: 'Founded Date', type: 'date' },
               { id: 'publiclyTraded', label: 'Publicly Traded', type: 'switch', value: true },
-              { id: 'satisfactionScore', label: 'Customer Satisfaction', type: 'range', value: 85, showValue: true, extraAttributes: { min: 0, max: 100, step: 5 } }
+              { id: 'satisfactionScore', label: 'Customer Satisfaction', type: 'range', value: 85, showValue: true, extraAttributes: { min: 0, max: 100, step: 5 } },
+              { 
+                id: 'businessAddress', 
+                label: 'Business Address', 
+                type: 'addressLookup',
+                placeholder: 'Search for address...',
+                addressLookup: {
+                  provider: 'google',
+                  componentRestrictions: { country: ['nz', 'au'] }
+                }
+              }
             ]
           },
           {
@@ -477,8 +616,8 @@ export const Demo: React.FC = () => {
                 value: true,
                 visibleWhen: { field: 'allowMarketing', operator: 'truthy' }
               },
-              { id: 'language', label: 'Preferred Language', type: 'select', options: ['English', 'Spanish', 'French', 'German', 'Chinese'], value: 'English' },
-              { id: 'notes', label: 'Additional Notes', type: 'textarea', rows: 3, placeholder: 'Any special requirements or notes...' }
+              { id: 'language', label: 'Preferred Language', type: 'select', required: true, options: ['English', 'Spanish', 'French', 'German', 'Chinese'], value: 'English' },
+              { id: 'notes', label: 'Additional Notes (Required)', type: 'textarea', required: true, rows: 3, placeholder: 'Please provide some notes...' }
             ]
           }
         ]
@@ -499,6 +638,16 @@ export const Demo: React.FC = () => {
           
           console.log('📦 Complete Wizard Data:', allData);
           console.log('✅ Selected Products:', selectedProducts);
+          
+          const summary = {
+            ...allData,
+            selectedProducts: selectedProducts
+          };
+          
+          err403.ModalHelpers.alert(
+            '🎉 Wizard Completed!',
+            formatJsonWithStyle(summary)
+          );
           
           err403.Toast.success({
             title: '🎉 Wizard Completed!',
@@ -644,6 +793,40 @@ const modal = new err403.Modal({
 });
 modal.show();
 
+// Address Lookup with Google Maps
+const addressModal = new err403.Modal({
+  title: "Contact with Address",
+  fields: [
+    { id: 'firstname', label: 'First Name', type: 'text', required: true },
+    { id: 'lastname', label: 'Last Name', type: 'text', required: true },
+    { 
+      id: 'address', 
+      label: 'Search Address', 
+      type: 'addressLookup',
+      addressLookup: {
+        provider: 'google', // or 'azure'
+        apiKey: 'YOUR_API_KEY',
+        placeholder: 'Start typing...',
+        fields: {
+          street: 'street',
+          city: 'city',
+          state: 'state',
+          postalCode: 'zip',
+          country: 'country'
+        },
+        onSelect: (address) => {
+          console.log('Selected:', address.formattedAddress);
+        }
+      }
+    },
+    // Auto-populated fields
+    { id: 'street', label: 'Street', type: 'text' },
+    { id: 'city', label: 'City', type: 'text' },
+    { id: 'state', label: 'State', type: 'text' },
+    { id: 'zip', label: 'Postal Code', type: 'text' }
+  ]
+});
+
 // Wizard Modal with Steps
 const wizardModal = new err403.Modal({
   title: "Setup Wizard",
@@ -700,6 +883,7 @@ const conditionalModal = new err403.Modal({
             <div className="d365-btn-group">
               <button className="d365-btn d365-btn--primary" onClick={showSimpleForm}>Simple Form</button>
               <button className="d365-btn d365-btn--primary" onClick={showAllFieldTypes}>All Field Types</button>
+              <button className="d365-btn d365-btn--primary d365-btn--highlight" onClick={showAddressLookupForm}>📍 Address Lookup</button>
             </div>
           </Section>
           <Section title="Advanced Features">

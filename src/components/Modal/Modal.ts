@@ -9,6 +9,8 @@ import {
   Warning24Regular,
   ErrorCircle24Regular,
   QuestionCircle24Regular,
+  FullScreenMaximizeRegular,
+  FullScreenMinimizeRegular,
 } from '@fluentui/react-icons';
 import { theme } from '../../styles/theme';
 import { injectAnimations } from '../../styles/animations';
@@ -26,11 +28,14 @@ import {
   TabList,
   Tab,
   Button,
+  CheckboxFluentUi,
   SwitchFluentUi,
   DatePickerFluentUi,
   TableFluentUi,
   InputFluentUi,
   DropdownFluentUi,
+  AddressLookupFluentUi,
+  LookupFluentUi,
   Slider,
   Field,
   mountFluentComponent,
@@ -61,6 +66,7 @@ export class Modal implements ModalInstance {
   private dragStartY: number = 0;
   private modalStartX: number = 0;
   private modalStartY: number = 0;
+  private isFullscreen: boolean = false;
 
   constructor(options: ModalOptions) {
     this.options = {
@@ -149,6 +155,86 @@ export class Modal implements ModalInstance {
       console.log(...ERR, `Error fetching option set for ${entityName}.${attributeName}:`, error);
       return [];
     }
+  }
+
+  /**
+   * Create address lookup field with Google Maps or Azure Maps
+   */
+  private async createAddressLookupField(field: FieldConfig): Promise<HTMLElement | null> {
+    const doc = getTargetDocument();
+    const container = doc.createElement('div');
+    container.setAttribute('data-field-id', field.id);
+
+    if (!field.addressLookup) {
+      console.log(...WAR, 'Address lookup configuration missing');
+      return null;
+    }
+
+    const { provider, apiKey, placeholder, fields: relatedFields, onSelect } = field.addressLookup;
+
+    if (!apiKey) {
+      console.log(...ERR, `${provider === 'google' ? 'Google Maps' : 'Azure Maps'} API key required`);
+      return null;
+    }
+
+    // Mount the AddressLookupFluentUi React component
+    const handleSelect = (address: any) => {
+      // Store the complete address object
+      this.fieldValues.set(field.id, address);
+      field.value = address;
+
+      // Auto-populate related fields
+      if (relatedFields) {
+        if (relatedFields.street && address.street) {
+          this.setFieldValue(relatedFields.street, address.street);
+        }
+        if (relatedFields.city && address.city) {
+          this.setFieldValue(relatedFields.city, address.city);
+        }
+        if (relatedFields.state && address.state) {
+          this.setFieldValue(relatedFields.state, address.state);
+        }
+        if (relatedFields.postalCode && address.postalCode) {
+          this.setFieldValue(relatedFields.postalCode, address.postalCode);
+        }
+        if (relatedFields.country && address.country) {
+          this.setFieldValue(relatedFields.country, address.country);
+        }
+        if (relatedFields.latitude && address.latitude) {
+          this.setFieldValue(relatedFields.latitude, address.latitude.toString());
+        }
+        if (relatedFields.longitude && address.longitude) {
+          this.setFieldValue(relatedFields.longitude, address.longitude.toString());
+        }
+      }
+
+      // Call custom callback
+      if (onSelect) {
+        onSelect(address);
+      }
+
+      // Update field visibility
+      this.updateFieldVisibility(field.id);
+    };
+
+    mountFluentComponent(
+      container,
+      React.createElement(AddressLookupFluentUi, {
+        id: field.id,
+        label: field.label,
+        provider: provider,
+        apiKey: apiKey,
+        placeholder: placeholder,
+        disabled: field.disabled,
+        required: field.required,
+        orientation: field.orientation,
+        componentRestrictions: field.addressLookup.componentRestrictions,
+        onSelect: handleSelect,
+      })
+    );
+
+    this.fieldValues.set(field.id, field.value || '');
+    return container;
   }
 
   private async createModal(): Promise<void> {
@@ -384,6 +470,45 @@ export class Modal implements ModalInstance {
     titleContainer.appendChild(titleEl);
     this.header.appendChild(titleContainer);
 
+    // Create button container for header actions
+    const buttonContainer = doc.createElement('div');
+    buttonContainer.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    `;
+
+    // Add fullscreen toggle button
+    const fullscreenBtn = doc.createElement('button');
+    fullscreenBtn.setAttribute('aria-label', 'Toggle Fullscreen');
+    fullscreenBtn.style.cssText = `
+      background: transparent;
+      border: none;
+      outline: none;
+      font-size: 20px;
+      line-height: 1;
+      color: #424242;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    `;
+
+    // Mount fullscreen icon
+    const fullscreenIconContainer = doc.createElement('div');
+    fullscreenIconContainer.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; margin: 0;';
+    const FullscreenIcon = React.createElement(FullScreenMaximizeRegular);
+    mountFluentComponent(fullscreenIconContainer, FullscreenIcon, defaultTheme);
+    fullscreenBtn.appendChild(fullscreenIconContainer);
+
+    fullscreenBtn.onclick = () => this.toggleFullscreen(fullscreenIconContainer);
+    buttonContainer.appendChild(fullscreenBtn);
+
     if (!this.options.preventClose) {
       const closeBtn = doc.createElement('button');
       closeBtn.innerHTML = '×';
@@ -392,44 +517,25 @@ export class Modal implements ModalInstance {
       closeBtn.style.cssText = `
         background: transparent;
         border: none;
-        border-radius: 4px;
+        outline: none;
         font-size: 20px;
         line-height: 1;
         color: #424242;
         cursor: pointer;
         padding: 0;
+        margin: 0;
         width: 28px;
         height: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background-color 0.1s ease-in-out, color 0.1s ease-in-out;
         flex-shrink: 0;
       `;
-      closeBtn.addEventListener('mouseenter', () => {
-        closeBtn.style.backgroundColor = '#f3f2f1';
-        closeBtn.style.color = '#201f1e';
-      });
-      closeBtn.addEventListener('mouseleave', () => {
-        closeBtn.style.backgroundColor = 'transparent';
-        closeBtn.style.color = '#424242';
-      });
-      closeBtn.addEventListener('mousedown', () => {
-        closeBtn.style.backgroundColor = '#edebe9';
-      });
-      closeBtn.addEventListener('mouseup', () => {
-        closeBtn.style.backgroundColor = '#f3f2f1';
-      });
-      closeBtn.addEventListener('focus', () => {
-        closeBtn.style.outline = '2px solid #0078d4';
-        closeBtn.style.outlineOffset = '2px';
-      });
-      closeBtn.addEventListener('blur', () => {
-        closeBtn.style.outline = 'none';
-      });
       closeBtn.onclick = () => this.close();
-      this.header.appendChild(closeBtn);
+      buttonContainer.appendChild(closeBtn);
     }
+
+    this.header.appendChild(buttonContainer);
 
     if (this.options.draggable && this.header) {
       this.header.onmousedown = (e) => this.startDrag(e);
@@ -570,6 +676,8 @@ export class Modal implements ModalInstance {
       const stepNum = index + 1;
       const isCurrent = stepNum === this.currentStep;
       const isCompleted = stepNum < this.currentStep;
+      const isValid = this.validateStep(index);
+      const showError = isCompleted && !isValid;
 
       const stepEl = doc.createElement('div');
       stepEl.setAttribute('data-step-indicator', String(stepNum));
@@ -584,6 +692,10 @@ export class Modal implements ModalInstance {
 
       // Step circle
       const circle = doc.createElement('div');
+      const bgColor = isCurrent ? '#0078d4' : showError ? '#d13438' : isCompleted ? '#107c10' : '#f3f2f1';
+      const textColor = isCurrent || isCompleted || showError ? '#ffffff' : '#605e5c';
+      const borderColor = isCurrent ? '#0078d4' : showError ? '#d13438' : isCompleted ? '#107c10' : '#d2d0ce';
+      
       circle.style.cssText = `
         width: 32px;
         height: 32px;
@@ -593,11 +705,11 @@ export class Modal implements ModalInstance {
         justify-content: center;
         font-weight: 600;
         font-size: 14px;
-        background: ${isCurrent ? '#0078d4' : isCompleted ? '#107c10' : '#f3f2f1'};
-        color: ${isCurrent || isCompleted ? '#ffffff' : '#605e5c'};
-        border: 2px solid ${isCurrent ? '#0078d4' : isCompleted ? '#107c10' : '#d2d0ce'};
+        background: ${bgColor};
+        color: ${textColor};
+        border: 2px solid ${borderColor};
       `;
-      circle.textContent = isCompleted ? '✓' : String(stepNum);
+      circle.textContent = showError ? '!' : isCompleted ? '✓' : String(stepNum);
       stepEl.appendChild(circle);
 
       // Step label
@@ -622,10 +734,11 @@ export class Modal implements ModalInstance {
       // Add connector line (except after last step)
       if (index < this.options.progress!.steps!.length - 1) {
         const connector = doc.createElement('div');
+        const connectorColor = showError ? '#d13438' : isCompleted ? '#107c10' : '#d2d0ce';
         connector.style.cssText = `
           flex: 1;
           height: 2px;
-          background: ${isCompleted ? '#107c10' : '#d2d0ce'};
+          background: ${connectorColor};
           margin-top: -24px;
         `;
         container.appendChild(connector);
@@ -642,21 +755,27 @@ export class Modal implements ModalInstance {
       const stepNum = index + 1;
       const isCurrent = stepNum === this.currentStep;
       const isCompleted = stepNum < this.currentStep;
+      const isValid = this.validateStep(index);
+      const showError = isCompleted && !isValid;
 
       const stepEl = this.stepIndicator!.querySelector(`[data-step-indicator="${stepNum}"]`) as HTMLElement;
       if (!stepEl) return;
 
       const circle = stepEl.querySelector('div') as HTMLElement;
       if (circle) {
-        circle.style.background = isCurrent ? '#0078d4' : isCompleted ? '#107c10' : '#f3f2f1';
-        circle.style.color = isCurrent || isCompleted ? '#ffffff' : '#605e5c';
-        circle.style.borderColor = isCurrent ? '#0078d4' : isCompleted ? '#107c10' : '#d2d0ce';
-        circle.textContent = isCompleted ? '✓' : String(stepNum);
+        const bgColor = isCurrent ? '#0078d4' : showError ? '#d13438' : isCompleted ? '#107c10' : '#f3f2f1';
+        const textColor = isCurrent || isCompleted || showError ? '#ffffff' : '#605e5c';
+        const borderColor = isCurrent ? '#0078d4' : showError ? '#d13438' : isCompleted ? '#107c10' : '#d2d0ce';
+        
+        circle.style.background = bgColor;
+        circle.style.color = textColor;
+        circle.style.borderColor = borderColor;
+        circle.textContent = showError ? '!' : isCompleted ? '✓' : String(stepNum);
       }
 
       const label = stepEl.querySelector('div:last-child') as HTMLElement;
       if (label && label !== circle) {
-        label.style.color = isCurrent ? '#0078d4' : '#605e5c';
+        label.style.color = isCurrent ? '#0078d4' : showError ? '#d13438' : '#605e5c';
         label.style.fontWeight = isCurrent ? '600' : '400';
       }
     });
@@ -664,8 +783,11 @@ export class Modal implements ModalInstance {
     // Update connector lines
     const connectors = this.stepIndicator!.querySelectorAll('div[style*="height: 2px"]');
     connectors.forEach((connector, index) => {
+      const isValid = this.validateStep(index);
       const isCompleted = index + 1 < this.currentStep;
-      (connector as HTMLElement).style.background = isCompleted ? '#107c10' : '#d2d0ce';
+      const showError = isCompleted && !isValid;
+      const connectorColor = showError ? '#d13438' : isCompleted ? '#107c10' : '#d2d0ce';
+      (connector as HTMLElement).style.background = connectorColor;
     });
   }
 
@@ -818,6 +940,77 @@ export class Modal implements ModalInstance {
     // labels are handled by the components themselves, not here
 
     switch (field.type) {
+      case 'lookup':
+        // Inline D365-style lookup field
+        const lookupWrapper = doc.createElement('div');
+        lookupWrapper.setAttribute('data-field-id', field.id);
+
+        const LookupWrapper = () => {
+          const [selectedLookup, setSelectedLookup] = React.useState<any>(field.value || null);
+
+          return React.createElement(LookupFluentUi, {
+            id: field.id,
+            label: field.label,
+            placeholder: field.placeholder || 'Search...',
+            tooltip: field.tooltip,
+            orientation: field.orientation || 'horizontal',
+            entityName: field.entityName || 'account',
+            lookupColumns: field.lookupColumns || ['name'],
+            filters: field.filters || '',
+            value: selectedLookup,
+            disabled: field.disabled,
+            required: field.required,
+            onChange: (selected: any) => {
+              setSelectedLookup(selected);
+              this.fieldValues.set(field.id, selected);
+              this.updateFieldVisibility(field.id);
+              field.onChange?.(selected);
+            }
+          });
+        };
+
+        mountFluentComponent(lookupWrapper, React.createElement(LookupWrapper), defaultTheme);
+        container.appendChild(lookupWrapper);
+
+        // Store initial value
+        this.fieldValues.set(field.id, field.value || null);
+
+        return container;
+      case 'addressLookup':
+        // Address lookup with Google Maps or Azure Maps
+        return await this.createAddressLookupField(field);
+      case 'checkbox':
+        // Use Fluent UI Checkbox component for boolean fields (D365 style)
+        const checkboxWrapper = doc.createElement('div');
+        checkboxWrapper.setAttribute('data-field-id', field.id);
+
+        // Create a stateful wrapper component to handle checkbox toggling
+        const CheckboxWrapper = () => {
+          const [checked, setChecked] = React.useState(field.value === true);
+
+          return React.createElement(CheckboxFluentUi, {
+            id: field.id,
+            checked: checked,
+            label: field.label,
+            tooltip: field.tooltip,
+            orientation: field.orientation || 'horizontal',
+            onChange: (newChecked: boolean) => {
+              setChecked(newChecked);
+              field.value = newChecked;
+              this.fieldValues.set(field.id, newChecked);
+              this.updateFieldVisibility(field.id);
+              field.onChange?.(newChecked);
+            }
+          });
+        };
+
+        mountFluentComponent(checkboxWrapper, React.createElement(CheckboxWrapper), defaultTheme);
+        container.appendChild(checkboxWrapper);
+
+        // Store initial value
+        this.fieldValues.set(field.id, field.value === true);
+
+        return container;
       case 'switch':
         // Use Fluent UI Switch component for boolean fields
         const switchWrapper = doc.createElement('div');
@@ -903,6 +1096,7 @@ export class Modal implements ModalInstance {
             label: field.label,
             value: selectValue,
             options: optionStrings,
+            displayMode: field.displayMode || 'dropdown',
             placeholder: field.placeholder || '---',
             required: field.required,
             disabled: field.disabled,
@@ -1137,6 +1331,11 @@ export class Modal implements ModalInstance {
         }
       }
     });
+    
+    // Update step indicator if we're in a wizard (validation status may have changed)
+    if (this.options.progress?.enabled) {
+      this.updateStepIndicator();
+    }
   }
 
   private getAllFields(): FieldConfig[] {
@@ -1272,6 +1471,51 @@ export class Modal implements ModalInstance {
       this.close();
     }
   };
+
+  private toggleFullscreen(iconContainer: HTMLElement): void {
+    if (!this.modal || !this.container) return;
+
+    this.isFullscreen = !this.isFullscreen;
+
+    if (this.isFullscreen) {
+      // Fullscreen mode
+      this.modal.style.width = '100vw';
+      this.modal.style.height = '100vh';
+      this.modal.style.maxWidth = '100vw';
+      this.modal.style.maxHeight = '100vh';
+      this.modal.style.borderRadius = '0';
+      this.container.style.top = '0';
+      this.container.style.left = '0';
+      this.container.style.transform = 'none';
+
+      // Update icon to minimize
+      const MinimizeIcon = React.createElement(FullScreenMinimizeRegular);
+      iconContainer.innerHTML = '';
+      mountFluentComponent(iconContainer, MinimizeIcon, defaultTheme);
+    } else {
+      // Restore normal mode
+      const { width, height } = this.getModalDimensions();
+      const formatSize = (value: number | string | null | undefined): string => {
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'string') return value;
+        return `${value}px`;
+      };
+
+      this.modal.style.width = formatSize(width);
+      this.modal.style.height = height ? formatSize(height) : '';
+      this.modal.style.maxWidth = '95vw';
+      this.modal.style.maxHeight = '90vh';
+      this.modal.style.borderRadius = '8px';
+      this.container.style.top = '50%';
+      this.container.style.left = '50%';
+      this.container.style.transform = 'translate(-50%, -50%)';
+
+      // Update icon to maximize
+      const MaximizeIcon = React.createElement(FullScreenMaximizeRegular);
+      iconContainer.innerHTML = '';
+      mountFluentComponent(iconContainer, MaximizeIcon, defaultTheme);
+    }
+  }
 
   show(): void {
     console.debug('UI-lib Modal.show()', {
@@ -1413,6 +1657,30 @@ export class Modal implements ModalInstance {
     }
   }
 
+  /**
+   * Validate if a step has all required fields filled
+   */
+  private validateStep(stepIndex: number): boolean {
+    if (!this.options.progress?.steps) return true;
+    
+    const step = this.options.progress.steps[stepIndex];
+    if (!step?.fields) return true;
+
+    // Check all required fields in this step
+    for (const field of step.fields) {
+      if (field.required) {
+        const value = this.getFieldValue(field.id);
+        // Empty values: null, undefined, empty string, empty array
+        if (value === null || value === undefined || value === '' || 
+            (Array.isArray(value) && value.length === 0)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
   getFieldValue(fieldId: string): any {
     const value = this.fieldValues.get(fieldId);
     // If it's a Table instance, get the selected rows
@@ -1474,11 +1742,11 @@ export class Modal implements ModalInstance {
   }
 
   updateSideCart(_content: string | { imageUrl: string }): void {
-    // TODO: Implement
+    // Not implemented
   }
 
   clearAutoSave(): void {
-    // TODO: Implement
+    // Not implemented
   }
 
   getElement(selector?: string): HTMLElement | HTMLElement[] | null {

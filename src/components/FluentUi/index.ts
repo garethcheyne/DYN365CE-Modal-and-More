@@ -22,6 +22,8 @@ export { CheckboxFluentUi } from './CheckboxFluentUi';
 export { TableFluentUi } from './TableFluentUi';
 export { InputFluentUi } from './InputFluentUi';
 export { DropdownFluentUi } from './DropdownFluentUi';
+export { AddressLookupFluentUi } from './AddressLookupFluentUi';
+export { LookupFluentUi } from './LookupFluentUi';
 
 // Components (organized by category)
 export * from './Button';
@@ -44,4 +46,4 @@ export * from './Accordion';
 export * from './Table';
 export * from './DataGrid';
 export * from './Toolbar';
-export { Slider, Label } from '@fluentui/react-components';
+export { Slider, Label, SearchBox } from '@fluentui/react-components';
