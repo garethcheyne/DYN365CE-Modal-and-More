@@ -1,7 +1,9 @@
-# AI Agent Guide: err403 Dynamics 365 UI Library
+# AI Agent Guide: UI Library for Dynamics 365
 
 ## Overview
 This is a professional UI component library for Microsoft Dynamics 365 CE. It provides Toast notifications, Modal dialogs, Lookups, and Tables with native Fluent UI v9 styling through a simple vanilla JavaScript API.
+
+**Namespace:** Available as `window.uiLib` (primary) or `window.err403` (backward compatibility)
 
 ## Architecture
 - **User-facing API**: Vanilla JavaScript/TypeScript - simple and intuitive
@@ -9,20 +11,78 @@ This is a professional UI component library for Microsoft Dynamics 365 CE. It pr
 - **Build system**: Vite + TypeScript + Rollup
 - **Output**: Single minified bundle (~690KB, ~280KB gzipped) + TypeScript definitions
 
+## Dynamics 365 Integration
+
+### Form Library Setup
+The library must be added to D365 forms as a form library:
+1. Form Properties → Events → Form Libraries
+2. Add `err403_/ui-lib.min.js`
+3. Place at top of library list
+4. Available to all scripts on the form
+
+### Iframe Architecture
+D365 uses multiple iframes. The library handles this automatically:
+- **Form library**: Loaded once in top window
+- **Form scripts**: Run in child iframes, auto-assigned from parent
+- **Web resources**: Custom iframes, also auto-assigned
+- **No manual detection needed**: Just check `typeof uiLib !== 'undefined'`
+
+### Common Integration Patterns
+
+**Form OnLoad:**
+```javascript
+function onFormLoad(executionContext) {
+  const health = uiLib.init(executionContext);
+  if (!health.loaded) return;
+  
+  const formContext = executionContext.getFormContext();
+  // Use library with form context
+}
+```
+
+**Field OnChange:**
+```javascript
+function onFieldChange(executionContext) {
+  const formContext = executionContext.getFormContext();
+  const value = formContext.getAttribute('fieldname').getValue();
+  
+  uiLib.Toast.info({ message: `Value changed to: ${value}` });
+}
+```
+
+**Ribbon Commands:**
+```javascript
+function onRibbonClick() {
+  // No executionContext in ribbon
+  uiLib.Modal.confirm('Action', 'Perform action?').then(confirmed => {
+    if (confirmed) performAction();
+  });
+}
+```
+
+**Web Resource Iframe:**
+```javascript
+// Custom HTML page embedded in form
+if (typeof uiLib !== 'undefined') {
+  // Auto-assigned from parent window
+  uiLib.Toast.success({ message: 'Web resource loaded' });
+}
+```
+
 ## Key Components
 
-### 1. Toast Notifications (`err403.Toast`)
+### 1. Toast Notifications (`uiLib.Toast`)
 Simple notification system matching D365's native toast style.
 
 ```javascript
 // Success, error, warning, info toasts
-err403.Toast.success({ title: 'Saved!', message: 'Record updated', sound: true });
-err403.Toast.error({ title: 'Error', message: 'Failed to save' });
-err403.Toast.warn({ title: 'Warning', message: 'Check fields' });
-err403.Toast.info({ title: 'Info', message: 'Processing...' });
+uiLib.Toast.success({ title: 'Saved!', message: 'Record updated', sound: true });
+uiLib.Toast.error({ title: 'Error', message: 'Failed to save' });
+uiLib.Toast.warn({ title: 'Warning', message: 'Check fields' });
+uiLib.Toast.info({ title: 'Info', message: 'Processing...' });
 ```
 
-### 2. Modal Dialogs (`err403.Modal`)
+### 2. Modal Dialogs (`uiLib.Modal`)
 Professional modal system with forms, wizards, tabs, and conditional visibility.
 
 **Features:**
@@ -90,7 +150,7 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
 
 **Wizard Pattern:**
 ```javascript
-new err403.Modal({
+new uiLib.Modal({
   title: 'Setup Wizard',
   progress: {
     enabled: true,
@@ -103,9 +163,9 @@ new err403.Modal({
     ]
   },
   buttons: [
-    new err403.ModalButton('Previous', () => { modal.previousStep(); return false; }),
-    new err403.ModalButton('Next', () => { modal.nextStep(); return false; }),
-    new err403.ModalButton('Finish', () => { /* submit */ }, true)
+    new uiLib.ModalButton('Previous', () => { modal.previousStep(); return false; }),
+    new uiLib.ModalButton('Next', () => { modal.nextStep(); return false; }),
+    new uiLib.ModalButton('Finish', () => { /* submit */ }, true)
   ]
 });
 ```
@@ -197,7 +257,7 @@ fields: [
 ```javascript
 // Using Table class
 fields: [
-  new err403.Table({
+  new uiLib.Table({
     id: 'productsTable',
     label: 'Products',
     tableColumns: [
@@ -240,20 +300,39 @@ fields: [
 // - Custom column widths
 // - onRowSelect callback
 // - Dynamic data updates via setFieldValue()
+// - HTML rendering in cells (automatically detects and renders HTML)
 
 // Update table data dynamically:
 modal.setFieldValue('productsTable', newData);
 // The table will automatically re-render with new data
+
+// Example with HTML rendering in cells:
+const styledData = [
+  { 
+    id: 1, 
+    product: 'Product A', 
+    price: '<span style="color: #388e3c; font-weight: 600;">↓ $99.00</span>',
+    status: '<span style="color: #1976d2;">Active</span>'
+  },
+  { 
+    id: 2, 
+    product: 'Product B', 
+    price: '<span style="color: #d32f2f; font-weight: 600;">↑ $205.00</span>',
+    status: '<span style="color: #f57c00;">Pending</span>'
+  }
+];
+modal.setFieldValue('productsTable', styledData);
+// HTML in cells will be rendered with styling - perfect for colored values, icons, badges
 ```
 
-### 3. Lookup (`err403.Lookup`)
+### 3. Lookup (`uiLib.Lookup`)
 Advanced record selection with search, filter, sort, and multi-select.
 
 **Two Lookup Options:**
 
 1. **Inline Dropdown Lookup** (NEW - D365 Native Style) - Use as a field type in modals:
 ```javascript
-new err403.Modal({
+new uiLib.Modal({
   fields: [
     {
       id: 'accountLookup',
@@ -275,7 +354,7 @@ new err403.Modal({
 
 2. **Modal Dialog Lookup** (Advanced) - Full-screen modal with table:
 ```javascript
-new err403.Lookup({
+new uiLib.Lookup({
   entityName: 'account',
   multiple: true,
   columns: ['name', 'telephone1', 'emailaddress1'],  // Same 'columns' parameter
@@ -284,11 +363,11 @@ new err403.Lookup({
 }).show();
 ```
 
-### 4. Table (`err403.Table`)
+### 4. Table (`uiLib.Table`)
 Data grid component with sorting, selection, and D365 integration.
 
 ```javascript
-new err403.Table({
+new uiLib.Table({
   id: 'productsTable',
   tableColumns: [
     { id: 'name', header: 'Product', visible: true, sortable: true, width: '200px' },
@@ -333,7 +412,7 @@ The library provides an `init()` function that returns a health state object:
 ```javascript
 // In D365 form OnLoad event
 function onFormLoad(executionContext) {
-  const health = err403.init(executionContext);
+  const health = uiLib.init(executionContext);
   
   // Health state object:
   // {
@@ -371,7 +450,7 @@ const err403Instance = (typeof err403 !== 'undefined' && err403) ||
 
 // AFTER: Simple check - library handles parent window detection automatically
 if (typeof err403 !== 'undefined' && typeof err403.init === 'function') {
-  const health = err403.init();
+  const health = uiLib.init();
 }
 ```
 
@@ -480,18 +559,18 @@ React components wrap Fluent UI v9 components:
 
 ### Form Validation
 ```javascript
-const modal = new err403.Modal({
+const modal = new uiLib.Modal({
   fields: [
     { id: 'email', label: 'Email', type: 'email', required: true },
     { id: 'phone', label: 'Phone', type: 'tel', required: true }
   ],
   buttons: [
-    new err403.ModalButton('Submit', function() {
+    new uiLib.ModalButton('Submit', function() {
       const email = modal.getFieldValue('email');
       const phone = modal.getFieldValue('phone');
       
       if (!email || !phone) {
-        err403.Toast.error({ message: 'Please fill required fields' });
+        uiLib.Toast.error({ message: 'Please fill required fields' });
         return false; // Keep modal open
       }
       
@@ -504,7 +583,7 @@ const modal = new err403.Modal({
 
 ### Address Lookup with Auto-Population
 ```javascript
-const modal = new err403.Modal({
+const modal = new uiLib.Modal({
   fields: [
     { 
       id: 'address', 
@@ -567,31 +646,31 @@ const formatJsonWithStyle = (obj: any): string => {
 };
 
 // Usage in alert modals
-err403.ModalHelpers.alert('Form Data', formatJsonWithStyle(data));
+uiLib.ModalHelpers.alert('Form Data', formatJsonWithStyle(data));
 ```
 
-**Note:** The `err403.ModalHelpers.alert()` function uses `content` property (innerHTML) instead of `message` (textContent), allowing HTML rendering for styled JSON output.
+**Note:** The `uiLib.ModalHelpers.alert()` function uses `content` property (innerHTML) instead of `message` (textContent), allowing HTML rendering for styled JSON output.
 
 ### Multi-Step Wizard with Validation
 ```javascript
-const wizard = new err403.Modal({
+const wizard = new uiLib.Modal({
   progress: { enabled: true, currentStep: 1, steps: [...] },
   buttons: [
-    new err403.ModalButton('Previous', () => { wizard.previousStep(); return false; }),
-    new err403.ModalButton('Next', () => { 
+    new uiLib.ModalButton('Previous', () => { wizard.previousStep(); return false; }),
+    new uiLib.ModalButton('Next', () => { 
       if (validateCurrentStep()) {
         wizard.nextStep(); 
       }
       return false; 
     }),
-    new err403.ModalButton('Finish', () => { submitForm(); }, true)
+    new uiLib.ModalButton('Finish', () => { submitForm(); }, true)
   ]
 });
 ```
 
 ### Dynamic Field Updates
 ```javascript
-const modal = new err403.Modal({ fields: [...] });
+const modal = new uiLib.Modal({ fields: [...] });
 modal.show();
 
 // Update field values programmatically
@@ -602,15 +681,159 @@ modal.setFieldValue('priority', 'High');
 const status = modal.getFieldValue('status');
 ```
 
+### Dynamic Button Updates
+The library provides a chainable API for manipulating buttons after a modal is created. All button methods return `this` for fluent chaining.
+
+```javascript
+const modal = new uiLib.Modal({
+  title: 'Process Data',
+  fields: [...],
+  buttons: [
+    new uiLib.ModalButton('Cancel', () => true),
+    new uiLib.ModalButton('Submit', function() {
+      // Process...
+    }, true)
+  ]
+});
+modal.show();
+
+// Get a button by label or index (0-based)
+const submitBtn = modal.getButton('Submit');  // or modal.getButton(1)
+if (submitBtn) {
+  // All methods are chainable
+  submitBtn.setLabel('Processing...').disable();
+  
+  // After async operation
+  submitBtn.setLabel('Submit').enable();
+}
+```
+
+**Available Button Methods (All Chainable):**
+- `setLabel(text: string)` - Change button text
+- `setDisabled(disabled: boolean)` - Enable/disable button
+- `setVisible(visible: boolean)` - Show/hide button
+- `enable()` - Shorthand for `setDisabled(false)`
+- `disable()` - Shorthand for `setDisabled(true)`
+- `show()` - Shorthand for `setVisible(true)`
+- `hide()` - Shorthand for `setVisible(false)`
+
+**Practical Example (Async Operation):**
+```javascript
+const modal = new uiLib.Modal({
+  title: 'Save Record',
+  fields: [
+    { id: 'name', label: 'Name', type: 'text', required: true }
+  ],
+  buttons: [
+    new uiLib.ModalButton('Cancel', () => true),
+    new uiLib.ModalButton('Save', async function() {
+      const name = modal.getFieldValue('name');
+      if (!name) {
+        uiLib.Toast.error({ message: 'Name is required' });
+        return false;
+      }
+      
+      // Update button during async operation
+      modal.getButton('Save')
+        .setLabel('Saving...')
+        .disable();
+      
+      try {
+        await saveToD365(name);
+        uiLib.Toast.success({ message: 'Saved successfully' });
+        return true; // Close modal
+      } catch (error) {
+        uiLib.Toast.error({ message: 'Save failed: ' + error.message });
+        
+        // Restore button on error
+        modal.getButton('Save')
+          .setLabel('Save')
+          .enable();
+        
+        return false; // Keep modal open
+      }
+    }, true)
+  ]
+});
+```
+
+**Wizard Step Navigation Example:**
+```javascript
+const wizard = new uiLib.Modal({
+  progress: { enabled: true, currentStep: 1, steps: [...] },
+  buttons: [
+    new uiLib.ModalButton('Previous', () => { wizard.previousStep(); return false; }),
+    new uiLib.ModalButton('Next', () => { wizard.nextStep(); return false; }),
+    new uiLib.ModalButton('Finish', () => { submitForm(); }, true)
+  ]
+});
+wizard.show();
+
+// Manage button visibility based on step
+wizard.getButton('Previous').hide();  // Hide on first step
+
+// Later in nextStep/previousStep handlers
+if (currentStep === 1) {
+  wizard.getButton('Previous').hide();
+  wizard.getButton('Next').show();
+  wizard.getButton('Finish').hide();
+} else if (currentStep === lastStep) {
+  wizard.getButton('Previous').show();
+  wizard.getButton('Next').hide();
+  wizard.getButton('Finish').show();
+}
+```
+
+## Common Issues & Solutions
+
+### Library Not Found in Iframe
+**Symptom:** `uiLib is not defined` in form script or web resource
+**Solution:** 
+- Library auto-detects parent window automatically
+- Check if library is added to form libraries (Form Properties → Form Libraries)
+- Ensure library is first in the list (loads before scripts)
+- Use safe check: `if (typeof uiLib !== 'undefined')`
+
+### CSS Not Loading
+**Symptom:** Components appear unstyled
+**Solution:**
+- Check `health.cssLoaded` from `uiLib.init(executionContext)`
+- Verify `err403_/ui-lib.styles.css` web resource is deployed
+- Clear browser cache (Ctrl+Shift+R)
+
+### Modal Won't Show
+**Symptom:** `modal.show()` doesn't display modal
+**Solution:**
+- Check for JavaScript errors in browser console
+- Verify field configurations are valid
+- Test with simple alert: `uiLib.Modal.alert('Test', 'Message')`
+
+### Dynamic Table Updates
+**Symptom:** Table data doesn't update when calling `setFieldValue`
+**Solution:**
+- Use: `modal.setFieldValue('tableId', newDataArray)`
+- Library automatically triggers React re-render
+- Ensure data is an array of objects with unique IDs
+
+### Conditional Visibility Not Working
+**Symptom:** Fields don't show/hide based on `visibleWhen`
+**Solution:**
+- Check `field` property matches the exact field ID being watched
+- Verify `operator` is valid: equals, notEquals, contains, greaterThan, lessThan, truthy, falsy
+- Ensure `value` type matches expected value (string, number, boolean)
+
 ## Best Practices for AI Agents
 
-1. **Use field config objects**, not old helper classes like `new err403.Input()`
+1. **Use field config objects**, not old helper classes like `new uiLib.Input()`
 2. **Leverage conditional visibility** (`visibleWhen`) instead of manual DOM manipulation
-3. **Use wizard steps** for multi-step forms with `progress.steps`
-4. **Always provide code examples** when documenting features
-5. **Test in demo page** before updating documentation
-6. **Keep README.md and demo page in sync** with actual implementation
-7. **Use TypeScript types** from `Modal.types.ts` for accurate IntelliSense
+3. **Use conditional required** (`requiredWhen`) for dynamic validation
+4. **Use wizard steps** for multi-step forms with `progress.steps`
+5. **Always provide code examples** when documenting features
+6. **Test in demo page** before updating documentation
+7. **Keep README.md and demo page in sync** with actual implementation
+8. **Use TypeScript types** from `Modal.types.ts` for accurate IntelliSense
+9. **Initialize library first** - Always call `uiLib.init()` before using components
+10. **Check health state** - Use returned health object to verify CSS loaded
 
 ## Version Management
 - Version format: `YYYY.MM.DD.NN` (e.g., 2026.01.24.01)

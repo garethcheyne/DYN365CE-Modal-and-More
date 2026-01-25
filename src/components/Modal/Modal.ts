@@ -1892,6 +1892,27 @@ export class Modal implements ModalInstance {
     return null;
   }
 
+  /**
+   * Get button by label or index with chainable methods
+   * @param labelOrIndex - Button label (string) or index (number, 0-based)
+   * @returns Chainable button controller or null if not found
+   */
+  getButton(labelOrIndex: string | number): ButtonController | null {
+    if (!this.options.buttons || this.options.buttons.length === 0) return null;
+
+    let button: ModalButton | undefined;
+
+    if (typeof labelOrIndex === 'number') {
+      button = this.options.buttons[labelOrIndex];
+    } else {
+      button = this.options.buttons.find(btn => btn.label === labelOrIndex);
+    }
+
+    if (!button) return null;
+
+    return new ButtonController(button, this.buttonElements);
+  }
+
   title(title: string): this {
     this.options.title = title;
     if (this.header) {
@@ -2111,6 +2132,101 @@ export class Modal implements ModalInstance {
     if (!this.overlay?.parentElement) {
       this.show();
     }
+  }
+}
+
+/**
+ * Chainable button controller for manipulating modal buttons
+ */
+class ButtonController {
+  private button: ModalButton;
+  private buttonElements: Map<ModalButton, HTMLElement>;
+
+  constructor(button: ModalButton, buttonElements: Map<ModalButton, HTMLElement>) {
+    this.button = button;
+    this.buttonElements = buttonElements;
+  }
+
+  /**
+   * Set button label text
+   * @param label - New label text
+   * @returns This ButtonController for chaining
+   */
+  setLabel(label: string): this {
+    this.button.label = label;
+
+    const buttonElement = this.buttonElements.get(this.button);
+    if (buttonElement) {
+      const fluentButton = buttonElement.querySelector('button');
+      if (fluentButton) {
+        fluentButton.textContent = label;
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Enable or disable the button
+   * @param disabled - True to disable, false to enable
+   * @returns This ButtonController for chaining
+   */
+  setDisabled(disabled: boolean): this {
+    const buttonElement = this.buttonElements.get(this.button);
+    if (buttonElement) {
+      const fluentButton = buttonElement.querySelector('button');
+      if (fluentButton) {
+        fluentButton.disabled = disabled;
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Show or hide the button
+   * @param visible - True to show, false to hide
+   * @returns This ButtonController for chaining
+   */
+  setVisible(visible: boolean): this {
+    const buttonElement = this.buttonElements.get(this.button);
+    if (buttonElement) {
+      buttonElement.style.display = visible ? '' : 'none';
+    }
+
+    return this;
+  }
+
+  /**
+   * Enable the button (convenience method)
+   * @returns This ButtonController for chaining
+   */
+  enable(): this {
+    return this.setDisabled(false);
+  }
+
+  /**
+   * Disable the button (convenience method)
+   * @returns This ButtonController for chaining
+   */
+  disable(): this {
+    return this.setDisabled(true);
+  }
+
+  /**
+   * Show the button (convenience method)
+   * @returns This ButtonController for chaining
+   */
+  show(): this {
+    return this.setVisible(true);
+  }
+
+  /**
+   * Hide the button (convenience method)
+   * @returns This ButtonController for chaining
+   */
+  hide(): this {
+    return this.setVisible(false);
   }
 }
 

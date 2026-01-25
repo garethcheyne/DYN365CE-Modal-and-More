@@ -1,8 +1,10 @@
-# Testing the err403 UI Library in D365
+# Testing the UI Library for Dynamics 365
+
+> **Note:** The library is available as `window.uiLib` (primary) or `window.err403` (backward compatible).
 
 ## Solution Contents
 
-The D365 solution package (`err403UILibrary_1_0_0_0.zip`) includes:
+The D365 solution package includes:
 
 1. **err403_err403-ui-lib.min.js** - The main library (64 KB)
 2. **err403_demo.html** - Interactive demo page with all component examples
@@ -81,12 +83,13 @@ https://[your-org].dynamics.com/WebResources/err403_/tests.html
 **In a Form OnLoad Event:**
 ```javascript
 function onLoad(executionContext) {
-  // Get form context
-  var formContext = executionContext.getFormContext();
+  const health = uiLib.init(executionContext);
+  if (!health.loaded) return;
+  
+  const formContext = executionContext.getFormContext();
   
   // Show welcome toast
-  err403.Toast.show({
-    type: 'success',
+  uiLib.Toast.success({
     message: 'Form loaded successfully!',
     duration: 3000
   });
@@ -96,23 +99,17 @@ function onLoad(executionContext) {
 **In a Custom Button/Ribbon:**
 ```javascript
 function openAccountSelector() {
-  err403.Lookup.open({
-    entity: 'account',
+  new uiLib.Lookup({
+    entityName: 'account',
     columns: ['name', 'accountnumber', 'telephone1'],
-    columnLabels: {
-      name: 'Account Name',
-      accountnumber: 'Account Number',
-      telephone1: 'Phone'
-    },
     onSelect: function(results) {
       if (results.length > 0) {
-        err403.Toast.show({
-          type: 'success',
+        uiLib.Toast.success({
           message: 'Selected: ' + results[0].name
         });
       }
     }
-  });
+  }).show();
 }
 ```
 
@@ -122,29 +119,17 @@ function openAccountSelector() {
 <html>
 <head>
   <title>Custom Page</title>
-  <script src="/WebResources/err403_/err403-ui-lib.min.js"></script>
+  <script src="/WebResources/err403_/ui-lib.min.js"></script>
 </head>
 <body>
   <button onclick="showModal()">Click Me</button>
   
   <script>
     function showModal() {
-      err403.Modal.open({
-        title: 'Custom Modal',
-        message: 'This is a custom modal!',
-        buttons: [
-          {
-            label: 'OK',
-            primary: true,
-            onClick: () => {
-              err403.Toast.show({
-                type: 'success',
-                message: 'Modal closed!'
-              });
-              return true;
-            }
-          }
-        ]
+      uiLib.Modal.alert('Custom Modal', 'This is a custom modal!').then(() => {
+        uiLib.Toast.success({
+          message: 'Modal closed!'
+        });
       });
     }
   </script>
@@ -195,7 +180,7 @@ function openAccountSelector() {
 - Should work in all modern browsers
 
 ### Components Don't Appear
-- Verify library loaded: `console.log(typeof err403)`
+- Verify library loaded: `console.log(typeof uiLib)` (should show "object")
 - Check script path in your code
 - Look for JavaScript errors in console
 

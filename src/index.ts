@@ -1,6 +1,7 @@
 /**
- * err403 UI Library - Main Entry Point
- * D365 CE UI Utilities Library
+ * UI Library for Dynamics 365
+ * Main Entry Point
+ * Available as: window.uiLib (primary) or window.err403 (backward compatibility)
  */
 
 import { Toast } from './components/Toast/Toast';
@@ -26,11 +27,11 @@ import { initializeFluentProvider, d365Theme, FluentProvider } from './providers
  * Automatically load the CSS file based on the script's location
  */
 function loadCSS(): boolean {
-    const cssId = 'err403-ui-lib-styles';
+    const cssId = 'ui-lib-styles';
     
     // Check if CSS is already loaded
     if (document.getElementById(cssId)) {
-        console.debug(...TRACE, 'UI-lib CSS already loaded');
+        console.debug(...TRACE, 'UI Library CSS already loaded');
         return true;
     }
     
@@ -64,11 +65,11 @@ function loadCSS(): boolean {
             console.debug(...TRACE, 'UI-lib CSS loaded from:', cssPath);
             return true;
         } else {
-            console.warn('err403: Could not determine script location for CSS auto-loading');
+            console.warn('UI Library: Could not determine script location for CSS auto-loading');
             return false;
         }
     } catch (error) {
-        console.error('err403: Error loading CSS:', error);
+        console.error('UI Library: Error loading CSS:', error);
         return false;
     }
 }
@@ -122,7 +123,7 @@ export function init(executionContext?: any): HealthState {
         instance: libraryInstance
     };
     
-    console.debug(...TRACE, 'UI-lib init() - Initialization complete. Library available in DOM as window.err403', {
+    console.debug(...TRACE, 'UI Library init() - Initialization complete. Library available as window.uiLib and window.err403 (backward compatible)', {
         version: PACKAGE_VERSION,
         availableComponents: ['Toast', 'Modal', 'Lookup', 'Table', 'TRACE', 'WAR', 'ERR'],
         health
@@ -141,17 +142,26 @@ export function onLoad(executionContext?: any): HealthState {
 
 /**
  * Find library instance in current or parent windows (iframe support)
+ * Checks both uiLib (new) and err403 (backward compatibility)
  * @returns Library instance or null if not found
  */
 export function findInstance(): any {
-    // Check current window first
-    if (typeof window !== 'undefined' && typeof (window as any).err403 !== 'undefined' && (window as any).err403) {
-        return (window as any).err403;
+    // Check current window first (prefer new name)
+    if (typeof window !== 'undefined') {
+        if (typeof (window as any).uiLib !== 'undefined' && (window as any).uiLib) {
+            return (window as any).uiLib;
+        }
+        if (typeof (window as any).err403 !== 'undefined' && (window as any).err403) {
+            return (window as any).err403;
+        }
     }
     
     // Check top window
     try {
         if (typeof window !== 'undefined' && window.top && window.top !== window) {
+            if (typeof (window.top as any).uiLib !== 'undefined' && (window.top as any).uiLib) {
+                return (window.top as any).uiLib;
+            }
             if (typeof (window.top as any).err403 !== 'undefined' && (window.top as any).err403) {
                 return (window.top as any).err403;
             }
@@ -163,6 +173,9 @@ export function findInstance(): any {
     // Check parent window
     try {
         if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+            if (typeof (window.parent as any).uiLib !== 'undefined' && (window.parent as any).uiLib) {
+                return (window.parent as any).uiLib;
+            }
             if (typeof (window.parent as any).err403 !== 'undefined' && (window.parent as any).err403) {
                 return (window.parent as any).err403;
             }
@@ -205,7 +218,7 @@ export {
 // D365 iframe support - auto-detect and expose library
 if (typeof window !== 'undefined') {
     // Create the library object
-    const err403Library = {
+    const libraryObject = {
         init,
         onLoad,
         findInstance,
@@ -240,10 +253,14 @@ if (typeof window !== 'undefined') {
     (function() {
         let existingInstance: any = null;
         
-        // Check if already loaded in top window
+        // Check if already loaded in top window (check new name first, then old)
         try {
-            if (window.top && window.top !== window && typeof (window.top as any).err403 !== 'undefined') {
-                existingInstance = (window.top as any).err403;
+            if (window.top && window.top !== window) {
+                if (typeof (window.top as any).uiLib !== 'undefined') {
+                    existingInstance = (window.top as any).uiLib;
+                } else if (typeof (window.top as any).err403 !== 'undefined') {
+                    existingInstance = (window.top as any).err403;
+                }
             }
         } catch (e) {
             // Cross-origin, skip
@@ -252,31 +269,42 @@ if (typeof window !== 'undefined') {
         // Check parent window if not found in top
         if (!existingInstance) {
             try {
-                if (window.parent && window.parent !== window && typeof (window.parent as any).err403 !== 'undefined') {
-                    existingInstance = (window.parent as any).err403;
+                if (window.parent && window.parent !== window) {
+                    if (typeof (window.parent as any).uiLib !== 'undefined') {
+                        existingInstance = (window.parent as any).uiLib;
+                    } else if (typeof (window.parent as any).err403 !== 'undefined') {
+                        existingInstance = (window.parent as any).err403;
+                    }
                 }
             } catch (e) {
                 // Cross-origin, skip
             }
         }
         
-        // Check current window
-        if (!existingInstance && typeof (window as any).err403 !== 'undefined') {
-            existingInstance = (window as any).err403;
+        // Check current window (prefer new name)
+        if (!existingInstance) {
+            if (typeof (window as any).uiLib !== 'undefined') {
+                existingInstance = (window as any).uiLib;
+            } else if (typeof (window as any).err403 !== 'undefined') {
+                existingInstance = (window as any).err403;
+            }
         }
         
-        if (existingInstance && existingInstance !== err403Library) {
+        if (existingInstance && existingInstance !== libraryObject) {
             // Already loaded in parent window, copy reference to current window
-            (window as any).err403 = existingInstance;
+            (window as any).uiLib = existingInstance;
+            (window as any).err403 = existingInstance; // Backward compatibility
             console.debug(...TRACE, 'UI Library found in parent window, assigned to current window');
         } else {
             // First time loading or already in correct scope
-            (window as any).err403 = err403Library;
+            (window as any).uiLib = libraryObject;
+            (window as any).err403 = libraryObject; // Backward compatibility
             
             // Expose to parent window if in iframe (for first load scenario)
             try {
                 if (window.parent && window.parent !== window) {
-                    (window.parent as any).err403 = err403Library;
+                    (window.parent as any).uiLib = libraryObject;
+                    (window.parent as any).err403 = libraryObject; // Backward compatibility
                 }
             } catch (e) {
                 // Cross-origin iframe - can't access parent
@@ -285,7 +313,8 @@ if (typeof window !== 'undefined') {
             // Also expose to top window for D365
             try {
                 if (window.top && window.top !== window) {
-                    (window.top as any).err403 = err403Library;
+                    (window.top as any).uiLib = libraryObject;
+                    (window.top as any).err403 = libraryObject; // Backward compatibility
                 }
             } catch (e) {
                 // Cross-origin iframe - can't access parent

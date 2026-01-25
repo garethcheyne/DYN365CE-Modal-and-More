@@ -457,7 +457,7 @@ export const Demo: React.FC = () => {
       fields: [
         new err403.Table({
           id: 'companyTable',
-          columns: [
+          tableColumns: [
             { id: 'name', header: 'Company Name', visible: true, sortable: true, width: '250px' },
             { id: 'industry', header: 'Industry', visible: true, sortable: true, width: '200px' },
             { id: 'revenue', header: 'Revenue', visible: true, sortable: true, width: '150px' },
@@ -486,7 +486,7 @@ export const Demo: React.FC = () => {
       fields: [
         new err403.Table({
           id: 'contactTable',
-          columns: [
+          tableColumns: [
             { id: 'name', header: 'Full Name', visible: true, sortable: true, width: '200px' },
             { id: 'email', header: 'Email Address', visible: true, sortable: true, width: '250px' },
             { id: 'department', header: 'Department', visible: true, sortable: true, width: '150px' }

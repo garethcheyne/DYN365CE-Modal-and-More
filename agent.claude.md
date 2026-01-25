@@ -1,4 +1,30 @@
-# AI Agent Guide: err403 Dynamics 365 UI Library
+# AI Agent Guide: UI Library for Dynamics 365
+
+> **⚠️ DEPRECATED:** This file is outdated. Please refer to [.github/copilot-instructions.md](.github/copilot-instructions.md) for the current AI agent guide.
+> 
+> **Key Changes:**
+> - Namespace changed from `err403` to `uiLib` (backward compatible)
+> - Comprehensive D365 integration documentation added
+> - Enhanced troubleshooting section
+> - Updated with latest features and patterns
+
+## Quick Migration Guide
+
+If you're using this old guide, update your code:
+
+```javascript
+// Old (deprecated but still works)
+err403.Toast.success({ message: 'Hello' });
+
+// New (recommended)
+uiLib.Toast.success({ message: 'Hello' });
+```
+
+Both namespaces work identically. See [.github/copilot-instructions.md](.github/copilot-instructions.md) for complete documentation.
+
+---
+
+# Original Content Below (Outdated)
 
 ## Overview
 This is a professional UI component library for Microsoft Dynamics 365 CE. It provides Toast notifications, Modal dialogs, Lookups, and Tables with native Fluent UI v9 styling through a simple vanilla JavaScript API.

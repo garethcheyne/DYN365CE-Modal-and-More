@@ -1,14 +1,16 @@
-# err403 UI Library for Dynamics 365
+# UI Library for Dynamics 365
 
-<img src="./assets/brand.svg" alt="err403 UI Library" width="400">
+<img src="./assets/brand.svg" alt="UI Library for Dynamics 365" width="400">
 
 **Free and open source** professional-grade UI components that seamlessly integrate with Dynamics 365, giving your forms, ribbons, and custom pages the same polished look and feel as native D365 interfaces.
+
+> **Note:** Available as `window.uiLib` (primary) or `window.err403` (backward compatibility). Both names work identically.
 
 > **Disclaimer:** This is a free, open-source project provided "as-is" without any warranty or support. Use at your own risk. The authors and contributors take no responsibility for any issues, data loss, or problems that may arise from using this library. You are free to fork, modify, and distribute this project under the terms of the license.
 
 Stop wrestling with custom HTML and CSS. This library provides production-ready components that match Microsoft's Fluent UI design system, ensuring your customizations look and feel like they belong in Dynamics 365.
 
-## Why Choose err403 UI Library?
+## Why Choose This UI Library?
 
 ✅ **Free & Open Source** - MIT License, fork and customize as needed  
 ✅ **Matches Dynamics 365 Design** - Uses Microsoft Fluent UI v9 components for authentic D365 styling  
@@ -62,7 +64,7 @@ This library provides a simple vanilla JavaScript API that works seamlessly with
 
 ```javascript
 // You write simple vanilla JavaScript
-err403.Toast.success({ title: 'Done!', message: 'Record saved' });
+uiLib.Toast.success({ title: 'Done!', message: 'Record saved' });
 
 // Library handles React rendering internally
 // ↓ Converts to Fluent UI React components
@@ -92,11 +94,140 @@ err403.Toast.success({ title: 'Done!', message: 'Record saved' });
 **Step 3:** Reference the library in your form scripts or web resources:
 
 ```javascript
-// The library is now available globally as err403
-err403.Toast.success({ message: 'Library loaded!' });
+// The library is now available globally as uiLib
+uiLib.Toast.success({ message: 'Library loaded!' });
+
+// Backward compatible: err403 still works
+uiLib.Toast.success({ message: 'Also works!' });
 ```
 
 **That's it!** The library is installed as web resource `err403_/ui-lib.min.js` and ready to use.
+
+### D365 Form Library Setup
+
+**Adding to Form Libraries:**
+
+1. Open your form in the form designer
+2. Click **Form Properties**
+3. Go to **Events** tab → **Form Libraries** section
+4. Click **Add** and select `err403_/ui-lib.min.js`
+5. Move it to the top of the library list (loads first)
+6. Click **OK** and publish the form
+
+**Important:** The library must be referenced as a form library. It will then be available to all scripts on the form, regardless of which iframe they run in.
+
+### Common D365 Integration Scenarios
+
+**Scenario 1: Form OnLoad Event (Main Form)**
+```javascript
+// In your form's OnLoad event handler
+function myFormOnLoad(executionContext) {
+  // Initialize the library first
+  const health = uiLib.init(executionContext);
+  
+  if (!health.loaded) {
+    console.error('UI Library failed to load');
+    return;
+  }
+  
+  // Now use the library
+  const formContext = executionContext.getFormContext();
+  const accountName = formContext.getAttribute('name').getValue();
+  
+  if (accountName) {
+    uiLib.Toast.success({ 
+      title: 'Welcome', 
+      message: `Editing: ${accountName}` 
+    });
+  }
+}
+```
+
+**Scenario 2: Field OnChange Event**
+```javascript
+// In a field's OnChange handler
+function onIndustryChange(executionContext) {
+  const formContext = executionContext.getFormContext();
+  const industry = formContext.getAttribute('industrycode').getValue();
+  
+  // Library is already loaded from form OnLoad
+  if (industry === 1) { // Technology
+    uiLib.Toast.info({ 
+      message: 'Technology industry selected - additional fields may be required' 
+    });
+  }
+}
+```
+
+**Scenario 3: Ribbon Button Command**
+```javascript
+// In a ribbon button command function
+function onCustomButtonClick() {
+  // No executionContext available in ribbon commands
+  // But library is already loaded from form
+  
+  const selectedRecords = Xrm.Page.getControl('grid').getGrid().getSelectedRows();
+  
+  if (selectedRecords.length === 0) {
+    uiLib.Toast.warn({ message: 'Please select at least one record' });
+    return;
+  }
+  
+  uiLib.Modal.confirm(
+    'Bulk Update',
+    `Update ${selectedRecords.length} record(s)?`
+  ).then(confirmed => {
+    if (confirmed) {
+      // Perform bulk operation
+      processBulkUpdate(selectedRecords);
+    }
+  });
+}
+```
+
+**Scenario 4: Web Resource in Iframe**
+```javascript
+// Custom HTML web resource embedded in form iframe
+// The library auto-detects it's in an iframe and finds the parent instance
+
+function initCustomWebResource() {
+  // Check if library is available (auto-assigned from parent)
+  if (typeof uiLib === 'undefined') {
+    console.error('UI Library not found in parent window');
+    return;
+  }
+  
+  // Use library normally
+  document.getElementById('myButton').addEventListener('click', function() {
+    uiLib.Toast.success({ message: 'Button clicked in iframe!' });
+  });
+}
+
+// Wait for DOM to load
+window.addEventListener('DOMContentLoaded', initCustomWebResource);
+```
+
+**Scenario 5: Business Rule Alternative**
+```javascript
+// Use instead of business rules for complex logic
+function onAccountTypeChange(executionContext) {
+  const formContext = executionContext.getFormContext();
+  const accountType = formContext.getAttribute('accounttype').getValue();
+  
+  // Show/hide fields dynamically
+  if (accountType === 3) { // Partner
+    formContext.ui.tabs.get('tab_partner').setVisible(true);
+    
+    uiLib.Toast.info({
+      title: 'Partner Account',
+      message: 'Additional partner information is required',
+      duration: 5000
+    });
+  } else {
+    formContext.ui.tabs.get('tab_partner').setVisible(false);
+  }
+}
+```
 
 ### Try the Demo
 
@@ -115,7 +246,7 @@ Show feedback to users after they perform actions:
 ```javascript
 // When a record is saved successfully
 function onSave(executionContext) {
-  err403.Toast.success({
+  uiLib.Toast.success({
     title: 'Success',
     message: 'Contact saved successfully!',
     duration: 3000,
@@ -128,7 +259,7 @@ function validatePhoneNumber(executionContext) {
   var phone = Xrm.Page.getAttribute('telephone1').getValue();
   
   if (!phone || phone.length < 10) {
-    err403.Toast.error({
+    uiLib.Toast.error({
       title: 'Validation Error',
       message: 'Phone number must be at least 10 digits',
       duration: 5000
@@ -140,7 +271,7 @@ function validatePhoneNumber(executionContext) {
 
 // Show a warning
 function showDataWarning() {
-  err403.Toast.warn({
+  uiLib.Toast.warn({
     title: 'Data Notice',
     message: 'This record is missing required information',
     duration: 4000
@@ -154,14 +285,14 @@ Ask users to confirm before deleting a record:
 
 ```javascript
 function confirmDelete(recordId) {
-  err403.Modal.confirm(
+  uiLib.Modal.confirm(
     'Delete Record', 
     'Are you sure you want to delete this record? This cannot be undone.'
   ).then(function(confirmed) {
     if (confirmed) {
       // User clicked OK
       Xrm.WebApi.deleteRecord('account', recordId).then(function() {
-        err403.Toast.success({ message: 'Record deleted' });
+        uiLib.Toast.success({ message: 'Record deleted' });
       });
     }
     // User clicked Cancel - do nothing
@@ -175,7 +306,7 @@ Show important information to users:
 
 ```javascript
 function showLicenseInfo() {
-  err403.Modal.alert(
+  uiLib.Modal.alert(
     'License Expiring',
     'Your license will expire in 30 days. Please contact your administrator.'
   );
@@ -188,25 +319,25 @@ Build a complete data entry form with validation:
 
 ```javascript
 function createContact() {
-  var modal = new err403.Modal({
+  var modal = new uiLib.Modal({
     title: 'Create New Contact',
     size: 'medium',
     fields: [
-      new err403.Input({
+      new uiLib.Input({
         id: 'firstname',
         label: 'First Name',
         type: 'text',
         required: true,
         placeholder: 'Enter first name'
       }),
-      new err403.Input({
+      new uiLib.Input({
         id: 'lastname',
         label: 'Last Name',
         type: 'text',
         required: true,
         placeholder: 'Enter last name'
       }),
-      new err403.Input({
+      new uiLib.Input({
         id: 'email',
         label: 'Email',
         type: 'email',
@@ -218,13 +349,13 @@ function createContact() {
           ]
         }
       }),
-      new err403.Input({
+      new uiLib.Input({
         id: 'phone',
         label: 'Phone',
         type: 'text',
         placeholder: '(555) 123-4567'
       }),
-      new err403.OptionSet({
+      new uiLib.OptionSet({
         id: 'preferredcontactmethod',
         label: 'Preferred Contact Method',
         options: [
@@ -235,13 +366,13 @@ function createContact() {
       })
     ],
     buttons: [
-      new err403.Button('Cancel', function() {
+      new uiLib.Button('Cancel', function() {
         // Just close the modal
       }),
-      new err403.Button('Create Contact', function() {
+      new uiLib.Button('Create Contact', function() {
         // Validate all fields
         if (!modal.validateAllFields()) {
-          err403.Toast.error({ message: 'Please fix validation errors' });
+          uiLib.Toast.error({ message: 'Please fix validation errors' });
           return false; // Keep modal open
         }
         
@@ -259,13 +390,13 @@ function createContact() {
         
         Xrm.WebApi.createRecord('contact', contact).then(
           function success(result) {
-            err403.Toast.success({ 
+            uiLib.Toast.success({ 
               message: 'Contact created successfully!' 
             });
             console.log('Created contact ID:', result.id);
           },
           function error(err) {
-            err403.Toast.error({ 
+            uiLib.Toast.error({ 
               message: 'Failed to create contact: ' + err.message 
             });
           }
@@ -286,7 +417,7 @@ Guide users through a complex process:
 
 ```javascript
 function runAccountSetupWizard() {
-  var modal = err403.Modal.open({
+  var modal = uiLib.Modal.open({
     title: 'Account Setup Wizard',
     size: 'large',
     progress: {
@@ -301,18 +432,18 @@ function runAccountSetupWizard() {
           name: 'Basic Information',
           description: 'Enter account details',
           fields: [
-            new err403.Input({
+            new uiLib.Input({
               id: 'accountname',
               label: 'Account Name',
               type: 'text',
               required: true
             }),
-            new err403.Input({
+            new uiLib.Input({
               id: 'accountnumber',
               label: 'Account Number',
               type: 'text'
             }),
-            new err403.OptionSet({
+            new uiLib.OptionSet({
               id: 'industrycode',
               label: 'Industry',
               options: [
@@ -329,22 +460,22 @@ function runAccountSetupWizard() {
           name: 'Address Information',
           description: 'Enter business address',
           fields: [
-            new err403.Input({
+            new uiLib.Input({
               id: 'address1_line1',
               label: 'Street Address',
               type: 'text'
             }),
-            new err403.Input({
+            new uiLib.Input({
               id: 'address1_city',
               label: 'City',
               type: 'text'
             }),
-            new err403.Input({
+            new uiLib.Input({
               id: 'address1_stateorprovince',
               label: 'State/Province',
               type: 'text'
             }),
-            new err403.Input({
+            new uiLib.Input({
               id: 'address1_postalcode',
               label: 'Postal Code',
               type: 'text'
@@ -357,7 +488,7 @@ function runAccountSetupWizard() {
           name: 'Review & Submit',
           description: 'Review your information',
           fields: [
-            new err403.MultiLine({
+            new uiLib.MultiLine({
               id: 'description',
               label: 'Additional Notes',
               rows: 4,
@@ -368,22 +499,22 @@ function runAccountSetupWizard() {
       ]
     },
     buttons: [
-      new err403.Button('Previous', function() {
+      new uiLib.Button('Previous', function() {
         modal.previousStep();
         return false; // Don't close
       }),
-      new err403.Button('Next', function() {
+      new uiLib.Button('Next', function() {
         if (modal.validateCurrentStep()) {
           modal.nextStep();
         }
         return false; // Don't close
       }, true),
-      new err403.Button('Finish', function() {
+      new uiLib.Button('Finish', function() {
         var data = modal.getFieldValues();
         
         // Create the account
         Xrm.WebApi.createRecord('account', data).then(function(result) {
-          err403.Toast.success({ message: 'Account created successfully!' });
+          uiLib.Toast.success({ message: 'Account created successfully!' });
         });
         
         return true; // Close modal
@@ -399,7 +530,7 @@ Show or hide fields based on other field values - perfect for dynamic forms:
 
 ```javascript
 function createAccountWithConditionalFields() {
-  const modal = new err403.Modal({
+  const modal = new uiLib.Modal({
     title: 'New Account',
     size: 'medium',
     fields: [
@@ -464,11 +595,11 @@ function createAccountWithConditionalFields() {
       }
     ],
     buttons: [
-      new err403.ModalButton('Cancel', () => {}),
-      new err403.ModalButton('Save', () => {
+      new uiLib.ModalButton('Cancel', () => {}),
+      new uiLib.ModalButton('Save', () => {
         const data = modal.getFieldValues();
         console.log('Account data:', data);
-        err403.Toast.success({ title: 'Saved', message: 'Account created successfully' });
+        uiLib.Toast.success({ title: 'Saved', message: 'Account created successfully' });
         return true;
       }, true)
     ]
@@ -492,7 +623,7 @@ Make fields required based on other field values using `requiredWhen`:
 
 ```javascript
 function createFlexibleContactForm() {
-  const modal = new err403.Modal({
+  const modal = new uiLib.Modal({
     title: 'New Contact',
     size: 'medium',
     fields: [
@@ -576,11 +707,11 @@ function createFlexibleContactForm() {
       }
     ],
     buttons: [
-      new err403.ModalButton('Cancel', () => {}),
-      new err403.ModalButton('Save', () => {
+      new uiLib.ModalButton('Cancel', () => {}),
+      new uiLib.ModalButton('Save', () => {
         const data = modal.getFieldValues();
         console.log('Contact data:', data);
-        err403.Toast.success({ title: 'Saved', message: 'Contact created successfully' });
+        uiLib.Toast.success({ title: 'Saved', message: 'Contact created successfully' });
         return true;
       }, true)
     ]
@@ -598,7 +729,7 @@ Automatically load option set values from Dynamics 365 metadata:
 
 ```javascript
 function createLeadForm() {
-  const modal = new err403.Modal({
+  const modal = new uiLib.Modal({
     title: 'Create Lead',
     fields: [
       { 
@@ -651,8 +782,8 @@ function createLeadForm() {
       }
     ],
     buttons: [
-      new err403.ModalButton('Cancel', () => { /* close */ }),
-      new err403.ModalButton('Create Lead', function() {
+      new uiLib.ModalButton('Cancel', () => { /* close */ }),
+      new uiLib.ModalButton('Create Lead', function() {
         const data = modal.getAllFieldValues();
         
         Xrm.WebApi.createRecord('lead', {
@@ -663,7 +794,7 @@ function createLeadForm() {
           leadsourcecode: parseInt(data.leadsourcecode),
           leadqualitycode: parseInt(data.leadqualitycode)
         }).then(() => {
-          err403.Toast.success({ message: 'Lead created successfully' });
+          uiLib.Toast.success({ message: 'Lead created successfully' });
         });
         
         return true;
@@ -686,7 +817,7 @@ Auto-complete addresses with country restrictions. The addressLookup field store
 
 ```javascript
 function createContactWithAddress() {
-  const modal = new err403.Modal({
+  const modal = new uiLib.Modal({
     title: 'New Contact with Address',
     fields: [
       { id: 'firstname', label: 'First Name', type: 'text', required: true },
@@ -715,7 +846,7 @@ function createContactWithAddress() {
           onSelect: (address) => {
             console.log('Selected address:', address);
             // address = { formattedAddress, street, city, state, postalCode, country, latitude, longitude }
-            err403.Toast.success({ 
+            uiLib.Toast.success({ 
               message: `Address: ${address.formattedAddress}` 
             });
           }
@@ -732,7 +863,7 @@ function createContactWithAddress() {
       { id: 'address1_longitude', label: 'Longitude', type: 'number' }
     ],
     buttons: [
-      new err403.ModalButton('Create Contact', function() {
+      new uiLib.ModalButton('Create Contact', function() {
         const data = modal.getFieldValues();
         
         // The businessAddress field contains the full address object:
@@ -761,7 +892,7 @@ function createContactWithAddress() {
           address1_latitude: parseFloat(data.address1_latitude),
           address1_longitude: parseFloat(data.address1_longitude)
         }).then(() => {
-          err403.Toast.success({ message: 'Contact created with address' });
+          uiLib.Toast.success({ message: 'Contact created with address' });
         });
         
         return true;
@@ -793,7 +924,7 @@ Let users search and select records:
 
 ```javascript
 function selectAccount() {
-  err403.Lookup.open({
+  uiLib.Lookup.open({
     entity: 'account',
     columns: ['name', 'accountnumber', 'telephone1', 'address1_city'],
     columnLabels: {
@@ -815,7 +946,7 @@ function selectAccount() {
           entityType: 'account'
         }]);
         
-        err403.Toast.success({ 
+        uiLib.Toast.success({ 
           message: 'Selected: ' + account.name 
         });
       }
@@ -832,7 +963,7 @@ Select multiple records at once:
 
 ```javascript
 function selectMultipleContacts() {
-  err403.Lookup.open({
+  uiLib.Lookup.open({
     entity: 'contact',
     columns: ['fullname', 'emailaddress1', 'telephone1', 'jobtitle'],
     columnLabels: {
@@ -850,7 +981,7 @@ function selectMultipleContacts() {
         console.log(contact.fullname + ' - ' + contact.emailaddress1);
       });
       
-      err403.Toast.success({ 
+      uiLib.Toast.success({ 
         message: selectedContacts.length + ' contacts selected' 
       });
     }
@@ -864,7 +995,7 @@ Show only records that match specific criteria:
 
 ```javascript
 function selectActiveAccount() {
-  err403.Lookup.open({
+  uiLib.Lookup.open({
     entity: 'account',
     columns: ['name', 'accountnumber', 'revenue'],
     columnLabels: {
@@ -894,11 +1025,11 @@ function showContactsTable() {
   // Fetch contacts from D365
   Xrm.WebApi.retrieveMultipleRecords('contact', '?$select=fullname,emailaddress1,telephone1,jobtitle,birthdate&$top=50')
     .then(function(result) {
-      var modal = new err403.Modal({
+      var modal = new uiLib.Modal({
         title: 'Contact List',
         size: 'large',
         fields: [
-          new err403.Table({
+          new uiLib.Table({
             id: 'contactsTable',
             label: 'Contacts',
             tableColumns: [
@@ -912,21 +1043,21 @@ function showContactsTable() {
             selectionMode: 'multiple', // Options: 'none', 'single', 'multiple'
             onRowSelect: function(selectedRows) {
               console.log('Selected contacts:', selectedRows);
-              err403.Toast.info({ 
+              uiLib.Toast.info({ 
                 message: selectedRows.length + ' contact(s) selected' 
               });
             }
           })
         ],
         buttons: [
-          new err403.Button('Cancel', function() {
+          new uiLib.Button('Cancel', function() {
             // Close without action
           }),
-          new err403.Button('Process Selected', function() {
+          new uiLib.Button('Process Selected', function() {
             var selectedContacts = modal.getFieldValue('contactsTable');
             
             if (selectedContacts.length === 0) {
-              err403.Toast.warn({ message: 'Please select at least one contact' });
+              uiLib.Toast.warn({ message: 'Please select at least one contact' });
               return false; // Keep modal open
             }
             
@@ -935,7 +1066,7 @@ function showContactsTable() {
               console.log('Processing:', contact.fullname);
             });
             
-            err403.Toast.success({ 
+            uiLib.Toast.success({ 
               message: 'Processed ' + selectedContacts.length + ' contacts' 
             });
             
@@ -979,6 +1110,27 @@ function addContact() {
 - **Custom widths**: Set specific widths for columns
 - **Selection callback**: Get notified when users select rows
 - **Dynamic updates**: Update table data using `setFieldValue()` - table automatically re-renders
+- **HTML rendering**: Cell values containing HTML tags are automatically rendered with styling
+
+**Example with styled HTML in cells:**
+```javascript
+const dataWithStyledValues = [
+  { 
+    id: 1, 
+    product: 'Surface Laptop 5', 
+    price: '<span style="color: #388e3c; font-weight: 600;">↓ $360.15</span>',
+    stock: 45 
+  },
+  { 
+    id: 2, 
+    product: 'Office 365 E3', 
+    price: '<span style="color: #d32f2f; font-weight: 600;">↑ $25.00</span>',
+    stock: 999 
+  }
+];
+modal.setFieldValue('productsTable', dataWithStyledValues);
+// HTML in cells will be rendered - you'll see styled, colored text
+```
 
 ### Example 13: Form with Tabs
 
@@ -986,31 +1138,31 @@ Organize complex forms with tabs:
 
 ```javascript
 function editAccountDetails(accountId) {
-  var modal = new err403.Modal({
+  var modal = new uiLib.Modal({
     title: 'Edit Account',
     size: 'large',
     fields: [
-      new err403.Group({
+      new uiLib.Group({
         id: 'tabs',
         asTabs: true, // Display as tabs
         fields: [
           // General tab
-          new err403.Group({
+          new uiLib.Group({
             id: 'general',
             label: 'General',
             fields: [
-              new err403.Input({
+              new uiLib.Input({
                 id: 'name',
                 label: 'Account Name',
                 type: 'text',
                 required: true
               }),
-              new err403.Input({
+              new uiLib.Input({
                 id: 'telephone1',
                 label: 'Phone',
                 type: 'text'
               }),
-              new err403.Input({
+              new uiLib.Input({
                 id: 'websiteurl',
                 label: 'Website',
                 type: 'text'
@@ -1018,21 +1170,21 @@ function editAccountDetails(accountId) {
             ]
           }),
           // Address tab
-          new err403.Group({
+          new uiLib.Group({
             id: 'address',
             label: 'Address',
             fields: [
-              new err403.Input({
+              new uiLib.Input({
                 id: 'address1_line1',
                 label: 'Street',
                 type: 'text'
               }),
-              new err403.Input({
+              new uiLib.Input({
                 id: 'address1_city',
                 label: 'City',
                 type: 'text'
               }),
-              new err403.Input({
+              new uiLib.Input({
                 id: 'address1_postalcode',
                 label: 'Zip Code',
                 type: 'text'
@@ -1040,11 +1192,11 @@ function editAccountDetails(accountId) {
             ]
           }),
           // Notes tab
-          new err403.Group({
+          new uiLib.Group({
             id: 'notes',
             label: 'Notes',
             fields: [
-              new err403.MultiLine({
+              new uiLib.MultiLine({
                 id: 'description',
                 label: 'Description',
                 rows: 6
@@ -1055,14 +1207,14 @@ function editAccountDetails(accountId) {
       })
     ],
     buttons: [
-      new err403.Button('Cancel', function() {
+      new uiLib.Button('Cancel', function() {
         // Close without saving
       }),
-      new err403.Button('Save', function() {
+      new uiLib.Button('Save', function() {
         var data = modal.getFieldValues();
         
         Xrm.WebApi.updateRecord('account', accountId, data).then(function() {
-          err403.Toast.success({ message: 'Account updated' });
+          uiLib.Toast.success({ message: 'Account updated' });
           location.reload(); // Refresh the form
         });
         
@@ -1109,7 +1261,7 @@ Show progress during long operations:
 
 ```javascript
 function processRecords() {
-  var modal = err403.Modal.open({
+  var modal = uiLib.Modal.open({
     title: 'Processing Records',
     message: 'Please wait...',
     progress: {
@@ -1132,7 +1284,7 @@ function processRecords() {
     if (processed >= total) {
       clearInterval(interval);
       modal.close();
-      err403.Toast.success({ 
+      uiLib.Toast.success({ 
         message: 'Processing complete! ' + total + ' records updated.' 
       });
     }
@@ -1146,20 +1298,20 @@ function processRecords() {
 
 ### Health State Monitoring
 
-The `err403.init()` function returns a health state object that provides information about the library's initialization status:
+The `uiLib.init()` function returns a health state object that provides information about the library's initialization status:
 
 ```javascript
 function onFormLoad(executionContext) {
-  const health = err403.init(executionContext);
+  const health = uiLib.init(executionContext);
   
   console.log(health);
   // {
   //   loaded: true,                    // Library initialized successfully
   //   cssLoaded: true,                 // CSS file found and loaded
-  //   inWindow: true,                  // Available as window.err403
+  //   inWindow: true,                  // Available as window.uiLib
   //   version: "2026.01.24.01",       // Current version
   //   timestamp: "2026-01-24T12:34:56.789Z", // Initialization time
-  //   instance: err403                 // Reference to library instance
+  //   instance: uiLib                  // Reference to library instance
   // }
   
   // Check for issues
@@ -1176,66 +1328,137 @@ function onFormLoad(executionContext) {
 **Health State Properties:**
 - `loaded` - Library initialization completed successfully
 - `cssLoaded` - CSS stylesheet was found and loaded
-- `inWindow` - Library is available as `window.err403`
+- `inWindow` - Library is available as `window.uiLib` (and `window.err403` for backward compatibility)
 - `version` - Current library version
 - `timestamp` - ISO timestamp of when initialization occurred
 - `instance` - Reference to the library instance
 
-**Note:** Call `err403.init()` in your form's OnLoad event handler before using any library components. The function automatically loads the CSS file and initializes Fluent UI theming.
+**Note:** Call `uiLib.init()` in your form's OnLoad event handler before using any library components. The function automatically loads the CSS file and initializes Fluent UI theming.
 
 ### Iframe Support (Dynamics 365)
 
-The library automatically handles Dynamics 365's iframe architecture, where the library is loaded once in the main window but used by scripts in multiple child iframes.
+The library automatically handles Dynamics 365's complex iframe architecture. D365 forms often have multiple iframes:
+- **Main form iframe** - Contains form fields and tabs
+- **Quick view forms** - Embedded iframes showing related records
+- **Web resources** - Custom HTML pages in iframes
+- **Subgrids** - Lists of related records
 
-**How It Works:**
-1. Library is loaded once (typically in the main D365 window or top-level iframe)
-2. When any child iframe loads, the library automatically detects existing instances in parent windows
-3. The parent instance is automatically assigned to the child iframe's `window.err403`
-4. All iframes can use `err403` directly without manual parent window checks
+**How Auto-Detection Works:**
+
+1. **Library loads once** in the top window when added to form libraries
+2. **Scripts in any iframe** can immediately use `uiLib` without importing
+3. **Auto-assignment happens** when each iframe's script executes
+4. **All iframes share** the same library instance (no duplication)
+
+**Real D365 Example:**
+
+```javascript
+// FORM LIBRARY (loaded once at form level)
+// File: err403_/ui-lib.min.js
+// Added to form's library list in form designer
+
+// SCRIPT 1: Main form OnLoad (runs in main form iframe)
+function onMainFormLoad(executionContext) {
+  uiLib.init(executionContext);
+  uiLib.Toast.success({ message: 'Main form loaded' });
+}
+
+// SCRIPT 2: Field OnChange (runs in same or different iframe)
+function onFieldChange(executionContext) {
+  // uiLib is automatically available - no import needed
+  uiLib.Toast.info({ message: 'Field changed' });
+}
+
+// SCRIPT 3: Custom web resource (runs in embedded iframe)
+// HTML page embedded in form
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+  // uiLib is automatically available from parent
+  if (typeof uiLib !== 'undefined') {
+    document.getElementById('btn').onclick = function() {
+      uiLib.Modal.alert('Clicked', 'Button in iframe clicked!');
+    };
+  }
+});
+</script>
+
+// SCRIPT 4: Ribbon button (runs in ribbon context)
+function onRibbonCommand() {
+  // uiLib is available even though ribbon is in different context
+  uiLib.Modal.confirm('Delete', 'Delete selected records?')
+    .then(confirmed => {
+      if (confirmed) deleteRecords();
+    });
+}
+```
+
+**Why This Works:**
+
+D365 loads your form library into the top-level window. When scripts run in child iframes (which is almost always in D365), the library's auto-detection:
+
+1. Checks if `window.uiLib` exists in current iframe → ❌ Not yet
+2. Checks if `window.top.uiLib` exists in parent → ✅ Found!
+3. Assigns `window.top.uiLib` to current iframe's `window.uiLib`
+4. Your script can now use `uiLib` directly
+
+**No Manual Detection Needed:**
+
+```javascript
+// ❌ OLD WAY - Don't do this anymore
+const lib = window.top?.uiLib || window.parent?.uiLib || window.uiLib;
+if (lib) {
+  lib.Toast.success({ message: 'Found it!' });
+}
+
+// ✅ NEW WAY - Just use it
+if (typeof uiLib !== 'undefined') {
+  uiLib.Toast.success({ message: 'Works automatically!' });
+}
+```
 
 **Simple Usage (Recommended):**
 ```javascript
 // ✅ Works in any iframe - library auto-detects parent instance
 function onFormLoad(executionContext) {
-  if (typeof err403 !== 'undefined' && typeof err403.init === 'function') {
-    const health = err403.init(executionContext);
+  if (typeof uiLib !== 'undefined' && typeof uiLib.init === 'function') {
+    const health = uiLib.init(executionContext);
     
     // Use library normally
-    err403.Toast.success({ message: 'Form loaded' });
+    uiLib.Toast.success({ message: 'Form loaded' });
   }
 }
 ```
 
 **What Happens Behind the Scenes:**
-- **Main window/parent iframe**: Library loads and exposes `window.err403`
-- **Child iframe A**: Script runs → library detects parent instance → assigns to `window.err403`
-- **Child iframe B**: Script runs → library detects parent instance → assigns to `window.err403`
+- **Main window/parent iframe**: Library loads and exposes `window.uiLib` (and `window.err403`)
+- **Child iframe A**: Script runs → library detects parent instance → assigns to `window.uiLib`
+- **Child iframe B**: Script runs → library detects parent instance → assigns to `window.uiLib`
 - **Result**: All iframes share the same library instance
 
 **Before (Complex Parent Detection) ❌:**
 ```javascript
 // Old approach - NO LONGER NEEDED
-const err403Instance = (typeof err403 !== 'undefined' && err403) ||
-    (typeof window.top?.err403 !== 'undefined' && window.top.err403) ||
-    (typeof window.parent?.err403 !== 'undefined' && window.parent.err403);
+const libraryInstance = (typeof uiLib !== 'undefined' && uiLib) ||
+    (typeof window.top?.uiLib !== 'undefined' && window.top.uiLib) ||
+    (typeof window.parent?.uiLib !== 'undefined' && window.parent.uiLib);
 
-if (err403Instance) {
-  err403Instance.init();
+if (libraryInstance) {
+  libraryInstance.init();
 }
 ```
 
 **After (Auto-Detection) ✅:**
 ```javascript
 // New approach - library handles parent detection automatically
-if (typeof err403 !== 'undefined') {
-  err403.init();
+if (typeof uiLib !== 'undefined') {
+  uiLib.init();
 }
 ```
 
 **Manual Parent Window Detection (Optional):**
 ```javascript
 // Use findInstance() if you need explicit control
-const libraryInstance = err403.findInstance();
+const libraryInstance = uiLib.findInstance();
 if (libraryInstance) {
   const health = libraryInstance.init();
 }
@@ -1257,7 +1480,7 @@ Add the library to your form's Form Libraries, then use it in event handlers:
 ```javascript
 function onFormLoad(executionContext) {
   // Initialize library and get health state
-  const health = err403.init(executionContext);
+  const health = uiLib.init(executionContext);
   
   // Health object: { loaded, cssLoaded, inWindow, version, timestamp }
   if (!health.cssLoaded) {
@@ -1267,7 +1490,7 @@ function onFormLoad(executionContext) {
   var formContext = executionContext.getFormContext();
   
   // Show a welcome message
-  err403.Toast.info({
+  uiLib.Toast.info({
     message: `Form loaded successfully (v${health.version})`,
     duration: 2000
   });
@@ -1281,7 +1504,7 @@ function onAccountTypeChange(executionContext) {
   var accountType = formContext.getAttribute('accounttypecode').getValue();
   
   if (accountType === 3) { // If type is "Partner"
-    err403.Toast.warn({
+    uiLib.Toast.warn({
       title: 'Partner Account',
       message: 'Please ensure partner agreement is on file',
       duration: 5000
@@ -1296,15 +1519,15 @@ function onRibbonButtonClick() {
   var selectedRecords = Xrm.Page.getControl('grid').getGrid().getSelectedRows();
   
   if (selectedRecords.length === 0) {
-    err403.Toast.warn({ message: 'Please select at least one record' });
+    uiLib.Toast.warn({ message: 'Please select at least one record' });
     return;
   }
   
-  err403.Modal.confirm('Process Records', 'Process ' + selectedRecords.length + ' selected records?')
+  uiLib.Modal.confirm('Process Records', 'Process ' + selectedRecords.length + ' selected records?')
     .then(function(confirmed) {
       if (confirmed) {
         // Process records...
-        err403.Toast.success({ message: 'Processing started' });
+        uiLib.Toast.success({ message: 'Processing started' });
       }
     });
 }
@@ -1318,7 +1541,7 @@ function onRibbonButtonClick() {
 
 **Show a toast notification:**
 ```javascript
-err403.Toast.show({
+uiLib.Toast.show({
   type: 'success' | 'info' | 'warn' | 'error' | 'custom',
   title: 'Optional title',
   message: 'Your message',
@@ -1329,17 +1552,17 @@ err403.Toast.show({
 
 **Convenience methods:**
 ```javascript
-err403.Toast.success({ message: 'Success!' });
-err403.Toast.info({ message: 'Info message' });
-err403.Toast.warn({ message: 'Warning!' });
-err403.Toast.error({ message: 'Error occurred' });
+uiLib.Toast.success({ message: 'Success!' });
+uiLib.Toast.info({ message: 'Info message' });
+uiLib.Toast.warn({ message: 'Warning!' });
+uiLib.Toast.error({ message: 'Error occurred' });
 ```
 
 ### Modal
 
 **Create a modal:**
 ```javascript
-const modal = new err403.Modal({
+const modal = new uiLib.Modal({
   title: 'Title',
   message: 'Optional message',
   size: 'small' | 'medium' | 'large' | 'fullscreen' | { width: 800, height: 600 },
@@ -1361,6 +1584,80 @@ const modal = new err403.Modal({
 modal.show();
 ```
 
+**Modal Methods:**
+```javascript
+// Get field values
+const value = modal.getFieldValue('fieldId');
+const allValues = modal.getFieldValues();
+
+// Set field values
+modal.setFieldValue('fieldId', newValue);
+
+// Validate fields
+const isValid = modal.validateAllFields();
+const isStepValid = modal.validateCurrentStep();
+
+// Wizard navigation
+modal.nextStep();
+modal.previousStep();
+modal.goToStep(2);
+
+// Button manipulation (chainable)
+modal.getButton('Submit').setLabel('Processing...').setDisabled(true);
+modal.getButton('Submit').setLabel('Save').enable(); // enable() is shorthand for setDisabled(false)
+modal.getButton('Cancel').hide(); // hide() is shorthand for setVisible(false)
+modal.getButton('Cancel').show(); // show() is shorthand for setVisible(true)
+
+// By index (0-based)
+modal.getButton(0).setLabel('New Label').disable().hide();
+
+// Available methods (all chainable):
+// .setLabel(text) - Change button text
+// .setDisabled(bool) - Enable/disable button
+// .setVisible(bool) - Show/hide button  
+// .enable() - Enable button (shorthand)
+// .disable() - Disable button (shorthand)
+// .show() - Show button (shorthand)
+// .hide() - Hide button (shorthand)
+
+// Loading state
+modal.setLoading(true, 'Saving...');
+modal.setLoading(false);
+```
+
+**Button Manipulation Example:**
+```javascript
+const modal = new uiLib.Modal({
+  title: 'Save Record',
+  fields: [
+    { id: 'name', label: 'Name', type: 'text', required: true }
+  ],
+  buttons: [
+    new uiLib.ModalButton('Cancel', () => {}),
+    new uiLib.ModalButton('Save', async () => {
+      // Disable save button and show loading (chainable!)
+      modal.getButton('Save')
+        .setLabel('Saving...')
+        .disable();
+      
+      try {
+        await saveData();
+        uiLib.Toast.success({ message: 'Saved!' });
+        return true; // Close modal
+      } catch (error) {
+        uiLib.Toast.error({ message: 'Failed to save' });
+        // Re-enable button (chainable!)
+        modal.getButton('Save')
+          .setLabel('Save')
+          .enable();
+        return false; // Keep modal open
+      }
+    }, true)
+  ]
+});
+modal.show();
+```
+
 **Wizard Step Indicators:**
 
 The library automatically validates wizard steps and provides visual feedback:
@@ -1379,7 +1676,7 @@ The library automatically validates wizard steps and provides visual feedback:
 
 **Example:**
 ```javascript
-new err403.Modal({
+new uiLib.Modal({
   progress: {
     enabled: true,
     currentStep: 1,
@@ -1531,7 +1828,7 @@ new err403.Modal({
 }
 
 // Example: Table field using Table class
-new err403.Table({ 
+new uiLib.Table({ 
   id: 'productsTable', 
   tableColumns: [
     { id: 'name', header: 'Product Name', visible: true, sortable: true, width: '250px' },
@@ -1565,7 +1862,7 @@ new err403.Table({
 
 **Button helper:**
 ```javascript
-new err403.ModalButton(
+new uiLib.ModalButton(
   'Label',
   () => {
     // Callback function
@@ -1579,8 +1876,8 @@ new err403.ModalButton(
 
 **Static methods:**
 ```javascript
-err403.Modal.alert('Title', 'Message').then(() => { /* closed */ });
-err403.Modal.confirm('Title', 'Message').then((confirmed) => { /* boolean */ });
+uiLib.Modal.alert('Title', 'Message').then(() => { /* closed */ });
+uiLib.Modal.confirm('Title', 'Message').then((confirmed) => { /* boolean */ });
 ```
 
 **Modal methods:**
@@ -1600,7 +1897,7 @@ modal.previousStep(); // For wizards
 
 **Open a lookup:**
 ```javascript
-err403.Lookup.open({
+uiLib.Lookup.open({
   entity: 'account',
   columns: ['name', 'accountnumber'],
   columnLabels: { name: 'Name', accountnumber: 'Number' }, // optional
@@ -1619,10 +1916,167 @@ err403.Lookup.open({
 
 **Console logging with prefixes:**
 ```javascript
-console.log(...err403.BUG, 'Debug message', data);
-console.warn(...err403.WAR, 'Warning message');
-console.error(...err403.ERR, 'Error message', error);
+console.log(...uiLib.BUG, 'Debug message', data);
+console.warn(...uiLib.WAR, 'Warning message');
+console.error(...uiLib.ERR, 'Error message', error);
 ```
+
+---
+
+## Troubleshooting
+
+### Library Not Found
+
+**Problem:** `uiLib is not defined` or `Cannot read property 'Toast' of undefined`
+
+**Solutions:**
+1. **Check form libraries:** Ensure `err403_/ui-lib.min.js` is added to form's library list
+2. **Check library order:** Library should be first in the list (loads before your scripts)
+3. **Wait for load:** Use `if (typeof uiLib !== 'undefined')` check
+4. **Iframe context:** Library auto-detects parent, but check console for errors
+
+```javascript
+// Safe usage pattern
+function onFormLoad(executionContext) {
+  if (typeof uiLib === 'undefined') {
+    console.error('UI Library not loaded. Check form libraries.');
+    return;
+  }
+  
+  const health = uiLib.init(executionContext);
+  console.log('Library health:', health);
+}
+```
+
+### CSS Not Loading
+
+**Problem:** Components appear unstyled or have incorrect layout
+
+**Solutions:**
+1. **Check health state:** `health.cssLoaded` should be `true`
+2. **Verify web resources:** Ensure `err403_/ui-lib.styles.css` is deployed
+3. **Check browser console:** Look for 404 errors for CSS file
+4. **Clear browser cache:** Hard refresh (Ctrl+Shift+R)
+
+```javascript
+const health = uiLib.init(executionContext);
+if (!health.cssLoaded) {
+  console.error('CSS failed to load. Check web resources.');
+}
+```
+
+### Modal Not Showing
+
+**Problem:** Modal doesn't appear when calling `modal.show()`
+
+**Solutions:**
+1. **Check z-index:** Other elements might be covering it
+2. **Verify modal creation:** Check for JavaScript errors in console
+3. **Check field configuration:** Invalid field configs can prevent rendering
+4. **Test simple modal first:** Try `uiLib.Modal.alert('Test', 'Message')`
+
+```javascript
+// Test with simple alert first
+try {
+  uiLib.Modal.alert('Test', 'If you see this, modals work').then(() => {
+    console.log('Modal dismissed');
+  });
+} catch (error) {
+  console.error('Modal error:', error);
+}
+```
+
+### Toast Not Appearing
+
+**Problem:** Toast notifications don't show
+
+**Solutions:**
+1. **Check initialization:** Call `uiLib.init()` before using Toast
+2. **Verify duration:** Too short duration might make it disappear quickly
+3. **Check z-index:** Toast should appear at top-right
+4. **Test basic toast:** `uiLib.Toast.success({ message: 'Test' })`
+
+### Iframe Issues
+
+**Problem:** Library works in main form but not in embedded web resource
+
+**Solutions:**
+1. **Check auto-detection:** Library should auto-assign to iframe
+2. **Manual detection:** Use `uiLib.findInstance()` if auto-detection fails
+3. **Cross-origin:** If web resource is external URL, library won't be accessible
+4. **Wait for parent:** Iframe might load before parent library
+
+```javascript
+// In embedded web resource
+function initIframe() {
+  // Wait a bit for parent to load library
+  setTimeout(() => {
+    if (typeof uiLib !== 'undefined') {
+      console.log('Library available in iframe');
+      uiLib.Toast.success({ message: 'Iframe initialized' });
+    } else {
+      console.error('Library not found in parent window');
+    }
+  }, 500);
+}
+
+window.addEventListener('DOMContentLoaded', initIframe);
+```
+
+### TypeScript Errors
+
+**Problem:** TypeScript complains about `uiLib` not existing
+
+**Solutions:**
+1. **Add type reference:** Include `/// <reference path="ui-lib.types.d.ts" />`
+2. **Global declaration:** Declare `uiLib` in your types
+3. **Use @ts-ignore:** Add `// @ts-ignore` above the line (not recommended)
+
+```typescript
+// In your .d.ts file or at top of script
+declare const uiLib: typeof import('./ui-lib.types');
+
+// Or use window explicitly
+(window as any).uiLib.Toast.success({ message: 'Works!' });
+```
+
+### Performance Issues
+
+**Problem:** Form loads slowly after adding library
+
+**Solutions:**
+1. **Check library size:** ~280KB gzipped is normal
+2. **Verify caching:** Browser should cache the library
+3. **Limit Toast usage:** Don't show toasts in loops
+4. **Defer heavy operations:** Don't create complex modals in OnLoad
+
+```javascript
+// Good: Lazy-load heavy modal
+function onButtonClick() {
+  // Modal created only when needed
+  const modal = new uiLib.Modal({ ...largeConfig });
+  modal.show();
+}
+
+// Bad: Creating modal in OnLoad (even if not shown)
+function onFormLoad(executionContext) {
+  const modal = new uiLib.Modal({ ...largeConfig }); // Avoid this
+}
+```
+
+### Getting Help
+
+1. **Enable debug logging:**
+```javascript
+const health = uiLib.init(executionContext);
+console.log('Library health:', health);
+console.log('Version:', health.version);
+console.log('CSS loaded:', health.cssLoaded);
+```
+
+2. **Check browser console:** Press F12, look for errors
+3. **Verify web resources:** Check that all files are deployed
+4. **Test in isolation:** Create a simple test form with just the library
 
 ---
 

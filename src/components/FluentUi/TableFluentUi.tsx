@@ -70,33 +70,27 @@ const useStyles = makeStyles({
     minWidth: '100%',
     backgroundColor: tokens.colorNeutralBackground1,
     '& .fui-DataGridHeader': {
-      backgroundColor: '#f3f2f1',
-      borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+      backgroundColor: 'transparent',
+      borderBottom: `2px solid ${tokens.colorNeutralStroke2}`,
     },
     '& .fui-DataGridHeaderCell': {
-      backgroundColor: '#f3f2f1',
+      backgroundColor: 'transparent',
       fontWeight: 600,
       fontSize: '12px',
       color: '#323130',
-      padding: '4px 8px',
-      borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
+      padding: '8px 12px',
+      borderRight: 'none',
       textTransform: 'none',
       letterSpacing: 'normal',
-      '&:last-child': {
-        borderRight: 'none',
-      },
       '&:hover': {
-        backgroundColor: '#edebe9',
+        backgroundColor: '#f3f2f1',
       },
     },
     '& .fui-DataGridCell': {
-      padding: '4px 8px',
+      padding: '8px 12px',
       fontSize: '14px',
       color: '#323130',
-      borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
-      '&:last-child': {
-        borderRight: 'none',
-      },
+      borderRight: 'none',
     },
     '& .fui-DataGridRow': {
       borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
@@ -347,47 +341,54 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                 Z to A
               </MenuItem>
               <MenuDivider />
-              <MenuItem icon={<GroupList20Regular />} disabled>
-                Group by
+              <MenuItem icon={<GroupList20Regular />}>
+                Group by this column
               </MenuItem>
               <MenuDivider />
-              <MenuItem icon={<Filter20Regular />}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px 0' }}>
-                  <span>Filter by</span>
-                  <Input
-                    className={styles.filterInput}
-                    placeholder="Enter filter value..."
-                    value={filterInputs[columnId] || ''}
-                    onChange={(e) => setFilterInputs(prev => ({ ...prev, [columnId]: e.target.value }))}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ padding: '8px 12px' }} onClick={(e) => e.stopPropagation()}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <Filter20Regular style={{ fontSize: '20px', color: '#605e5c' }} />
+                  <span style={{ fontSize: '14px', fontWeight: 600 }}>Filter by</span>
+                </div>
+                <Input
+                  className={styles.filterInput}
+                  placeholder="Enter filter value..."
+                  value={filterInputs[columnId] || ''}
+                  onChange={(e) => setFilterInputs(prev => ({ ...prev, [columnId]: e.target.value }))}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                    if (e.key === 'Enter') {
+                      handleApplyFilter(columnId);
+                      setIsOpen(false);
+                    }
+                  }}
+                />
+                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                  <Button
+                    size="small"
+                    appearance="primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleApplyFilter(columnId);
+                      setIsOpen(false);
+                    }}
+                  >
+                    Apply
+                  </Button>
+                  {hasFilter && (
                     <Button
                       size="small"
-                      appearance="primary"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleApplyFilter(columnId);
+                        handleClearFilter(columnId);
                         setIsOpen(false);
                       }}
                     >
-                      Apply
+                      Clear
                     </Button>
-                    {hasFilter && (
-                      <Button
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleClearFilter(columnId);
-                          setIsOpen(false);
-                        }}
-                      >
-                        Clear
-                      </Button>
-                    )}
-                  </div>
+                  )}
                 </div>
-              </MenuItem>
+              </div>
               <MenuDivider />
               <MenuItem icon={<ColumnTriple20Regular />} disabled>
                 Column width
@@ -448,11 +449,25 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
               columnIndex={index}
             />
           ),
-          renderCell: (item: TableRow) => (
-            <TableCellLayout>
-              {item[column.id] != null ? String(item[column.id]) : ''}
-            </TableCellLayout>
-          ),
+          renderCell: (item: TableRow) => {
+            const cellValue = item[column.id];
+            
+            // If the value is a string that looks like HTML, render it as HTML
+            if (typeof cellValue === 'string' && (cellValue.includes('<') || cellValue.includes('&'))) {
+              return (
+                <TableCellLayout>
+                  <span dangerouslySetInnerHTML={{ __html: cellValue }} />
+                </TableCellLayout>
+              );
+            }
+            
+            // Otherwise render as text
+            return (
+              <TableCellLayout>
+                {cellValue != null ? String(cellValue) : ''}
+              </TableCellLayout>
+            );
+          },
           compare: column.sortable !== false ? (a: TableRow, b: TableRow) => {
             const aVal = a[column.id];
             const bVal = b[column.id];

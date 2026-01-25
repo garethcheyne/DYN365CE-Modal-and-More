@@ -332,6 +332,12 @@ declare class Modal implements ModalInstance {
     }): void;
     clearAutoSave(): void;
     getElement(selector?: string): HTMLElement | HTMLElement[] | null;
+    /**
+     * Get button by label or index with chainable methods
+     * @param labelOrIndex - Button label (string) or index (number, 0-based)
+     * @returns Chainable button controller or null if not found
+     */
+    getButton(labelOrIndex: string | number): ButtonController | null;
     title(title: string): this;
     message(message: string): this;
     content(content: string): this;
@@ -351,6 +357,52 @@ declare class Modal implements ModalInstance {
         height?: number | string;
         size?: 'small' | 'medium' | 'large' | 'fullscreen';
     }): void;
+}
+/**
+ * Chainable button controller for manipulating modal buttons
+ */
+declare class ButtonController {
+    private button;
+    private buttonElements;
+    constructor(button: ModalButton, buttonElements: Map<ModalButton, HTMLElement>);
+    /**
+     * Set button label text
+     * @param label - New label text
+     * @returns This ButtonController for chaining
+     */
+    setLabel(label: string): this;
+    /**
+     * Enable or disable the button
+     * @param disabled - True to disable, false to enable
+     * @returns This ButtonController for chaining
+     */
+    setDisabled(disabled: boolean): this;
+    /**
+     * Show or hide the button
+     * @param visible - True to show, false to hide
+     * @returns This ButtonController for chaining
+     */
+    setVisible(visible: boolean): this;
+    /**
+     * Enable the button (convenience method)
+     * @returns This ButtonController for chaining
+     */
+    enable(): this;
+    /**
+     * Disable the button (convenience method)
+     * @returns This ButtonController for chaining
+     */
+    disable(): this;
+    /**
+     * Show the button (convenience method)
+     * @returns This ButtonController for chaining
+     */
+    show(): this;
+    /**
+     * Hide the button (convenience method)
+     * @returns This ButtonController for chaining
+     */
+    hide(): this;
 }
 
 /**
@@ -753,8 +805,9 @@ declare class Table implements FieldConfig {
 declare const d365Theme: Theme;
 
 /**
- * err403 UI Library - Main Entry Point
- * D365 CE UI Utilities Library
+ * UI Library for Dynamics 365
+ * Main Entry Point
+ * Available as: window.uiLib (primary) or window.err403 (backward compatibility)
  */
 
 /**
@@ -782,6 +835,7 @@ declare function init(executionContext?: any): HealthState;
 declare function onLoad(executionContext?: any): HealthState;
 /**
  * Find library instance in current or parent windows (iframe support)
+ * Checks both uiLib (new) and err403 (backward compatibility)
  * @returns Library instance or null if not found
  */
 declare function findInstance(): any;

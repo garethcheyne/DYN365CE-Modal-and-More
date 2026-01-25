@@ -1,6 +1,8 @@
 # Dataverse Solution Workflow
 
-This guide explains how to build and deploy the err403 UI Library solution to Dynamics 365.
+> **Note:** The library is available as `window.uiLib` (primary) or `window.err403` (backward compatible).
+
+This guide explains how to build and deploy the UI Library solution to Dynamics 365.
 
 ## Quick Start
 
