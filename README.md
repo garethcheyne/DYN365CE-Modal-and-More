@@ -955,8 +955,20 @@ function showContactsTable() {
 function refreshTableData() {
   Xrm.WebApi.retrieveMultipleRecords('contact', '?$select=fullname,emailaddress1&$top=25')
     .then(function(result) {
+      // setFieldValue will trigger table re-render with new data
       modal.setFieldValue('contactsTable', result.entities);
     });
+}
+
+// Add new rows dynamically
+function addContact() {
+  const currentData = modal.getFieldValue('contactsTable');
+  const newRow = {
+    fullname: 'New Contact',
+    emailaddress1: 'new@example.com',
+    telephone1: '555-0100'
+  };
+  modal.setFieldValue('contactsTable', [...currentData, newRow]);
 }
 ```
 
@@ -966,7 +978,7 @@ function refreshTableData() {
 - **Column visibility**: Show/hide specific columns
 - **Custom widths**: Set specific widths for columns
 - **Selection callback**: Get notified when users select rows
-- **Dynamic updates**: Update table data using `setFieldValue()`
+- **Dynamic updates**: Update table data using `setFieldValue()` - table automatically re-renders
 
 ### Example 13: Form with Tabs
 

@@ -239,6 +239,11 @@ fields: [
 // - Column visibility control
 // - Custom column widths
 // - onRowSelect callback
+// - Dynamic data updates via setFieldValue()
+
+// Update table data dynamically:
+modal.setFieldValue('productsTable', newData);
+// The table will automatically re-render with new data
 ```
 
 ### 3. Lookup (`err403.Lookup`)

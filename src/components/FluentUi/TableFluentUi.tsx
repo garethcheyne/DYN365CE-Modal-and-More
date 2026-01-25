@@ -139,7 +139,7 @@ const useStyles = makeStyles({
 export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectionChange }) => {
   const styles = useStyles();
   
-  const [data] = useState<TableRow[]>(
+  const [data, setData] = useState<TableRow[]>(
     (config.data || []).map((row, index) => ({ ...row, _index: index }))
   );
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
@@ -154,6 +154,14 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   );
   const [columnFilters, setColumnFilters] = useState<{ [key: string]: string }>({});
   const [filterInputs, setFilterInputs] = useState<{ [key: string]: string }>({});
+
+  // Update data when config.data changes (e.g., from setFieldValue)
+  useEffect(() => {
+    const newData = (config.data || []).map((row, index) => ({ ...row, _index: index }));
+    setData(newData);
+    // Clear selection when data changes
+    setSelectedRows(new Set());
+  }, [config.data]);
 
   // Update columnOrder when config.tableColumns changes
   useEffect(() => {

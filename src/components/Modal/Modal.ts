@@ -1191,10 +1191,29 @@ export class Modal implements ModalInstance {
           ${labelPosition === 'left' ? 'flex: 1;' : ''}
         `;
 
-        // Create table component
+        // Store field reference for dynamic updates
+        const tableFieldRef = field;
+
+        // Create table component with state management
         const TableWrapper = () => {
+          const [tableConfig, setTableConfig] = React.useState(tableFieldRef);
+          
+          // Expose update method to parent
+          React.useEffect(() => {
+            // Store update function in fieldValues for setFieldValue to use
+            const updateData = (newData: any[]) => {
+              tableFieldRef.data = newData;
+              setTableConfig({ ...tableFieldRef });
+            };
+            this.fieldValues.set(field.id + '_updateData', updateData);
+            
+            return () => {
+              this.fieldValues.delete(field.id + '_updateData');
+            };
+          }, []);
+
           return React.createElement(TableFluentUi, {
-            config: field,
+            config: tableConfig,
             onSelectionChange: (selectedRows: any[]) => {
               this.fieldValues.set(field.id, selectedRows);
               if (field.onRowSelect) {
@@ -1764,6 +1783,13 @@ export class Modal implements ModalInstance {
     // If it's a Table instance, use its setValue method
     if (existingValue && typeof existingValue === 'object' && 'setValue' in existingValue) {
       existingValue.setValue(value);
+      return;
+    }
+
+    // Handle table data updates
+    const updateDataFn = this.fieldValues.get(fieldId + '_updateData');
+    if (typeof updateDataFn === 'function') {
+      updateDataFn(value);
       return;
     }
 
