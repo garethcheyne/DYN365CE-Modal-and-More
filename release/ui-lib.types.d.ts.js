@@ -264,6 +264,7 @@ declare class Modal implements ModalInstance {
     private totalSteps;
     private stepPanels;
     private stepIndicator;
+    private buttonElements;
     private options;
     private isDragging;
     private dragStartX;
@@ -321,6 +322,11 @@ declare class Modal implements ModalInstance {
     setFieldValue(fieldId: string, value: any): void;
     validateCurrentStep(): boolean;
     validateAllFields(): boolean;
+    /**
+     * Update button states based on form validation
+     * Disables primary/submit buttons until all required fields are filled
+     */
+    private updateButtonStates;
     updateSideCart(_content: string | {
         imageUrl: string;
     }): void;

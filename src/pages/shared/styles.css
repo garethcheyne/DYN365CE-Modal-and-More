@@ -115,7 +115,6 @@ html, body {
 .d365-header__logo-icon {
   width: 28px;
   height: 28px;
-  background: var(--d365-brand-primary);
   border-radius: var(--d365-radius-s);
   display: flex;
   align-items: center;

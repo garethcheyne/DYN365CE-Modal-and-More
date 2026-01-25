@@ -61,6 +61,7 @@ export class Modal implements ModalInstance {
   private totalSteps: number = 1;
   private stepPanels: HTMLElement[] = [];
   private stepIndicator: HTMLElement | null = null;
+  private buttonElements: Map<ModalButton, HTMLElement> = new Map();
   private options: ModalOptions;
   private isDragging: boolean = false;
   private dragStartX: number = 0;
@@ -976,6 +977,7 @@ export class Modal implements ModalInstance {
               setSelectedLookup(selected);
               this.fieldValues.set(field.id, selected);
               this.updateFieldVisibility(field.id);
+              this.updateButtonStates();
               field.onChange?.(selected);
             }
           });
@@ -1011,6 +1013,7 @@ export class Modal implements ModalInstance {
               field.value = newChecked;
               this.fieldValues.set(field.id, newChecked);
               this.updateFieldVisibility(field.id);
+              this.updateButtonStates();
               field.onChange?.(newChecked);
             }
           });
@@ -1043,6 +1046,7 @@ export class Modal implements ModalInstance {
               field.value = newChecked;
               this.fieldValues.set(field.id, newChecked);
               this.updateFieldVisibility(field.id);
+              this.updateButtonStates();
             }
           });
         };
@@ -1080,6 +1084,7 @@ export class Modal implements ModalInstance {
               this.fieldValues.set(field.id, value);
               field.value = value;
               this.updateFieldVisibility(field.id);
+              this.updateButtonStates();
             }
           });
         };
@@ -1119,6 +1124,7 @@ export class Modal implements ModalInstance {
               this.fieldValues.set(field.id, value);
               field.value = value;
               this.updateFieldVisibility(field.id);
+              this.updateButtonStates();
             }
           });
         };
@@ -1162,6 +1168,7 @@ export class Modal implements ModalInstance {
               field.value = date;
               this.fieldValues.set(field.id, date);
               this.updateFieldVisibility(field.id);
+              this.updateButtonStates();
             }
           });
         };
@@ -1239,6 +1246,7 @@ export class Modal implements ModalInstance {
                   field.value = data.value;
                   this.fieldValues.set(field.id, data.value);
                   this.updateFieldVisibility(field.id);
+                  this.updateButtonStates();
                 },
                 style: { flex: 1 }
               }),
@@ -1287,6 +1295,7 @@ export class Modal implements ModalInstance {
               this.fieldValues.set(field.id, value);
               field.value = value;
               this.updateFieldVisibility(field.id);
+              this.updateButtonStates();
             }
           });
         };
@@ -1415,9 +1424,13 @@ export class Modal implements ModalInstance {
     if (this.options.buttons && this.options.buttons.length > 0) {
       this.options.buttons.forEach((btn) => {
         const button = this.createButton(btn);
+        this.buttonElements.set(btn, button);
         this.footer!.appendChild(button);
       });
     }
+
+    // Initial button state check
+    this.updateButtonStates();
 
     this.modal!.appendChild(this.footer);
   }
@@ -1776,11 +1789,64 @@ export class Modal implements ModalInstance {
   }
 
   validateCurrentStep(): boolean {
-    return true;
+    if (this.options.progress?.steps) {
+      return this.validateStep(this.currentStep - 1);
+    }
+    return this.validateAllFields();
   }
 
   validateAllFields(): boolean {
+    if (!this.options.fields || this.options.fields.length === 0) return true;
+
+    // Check all required fields
+    for (const field of this.options.fields) {
+      // Skip if field is not visible
+      const isVisible = this.fieldVisibilityMap.get(field.id);
+      if (isVisible === false) continue;
+
+      // Check base required property
+      let isRequired = field.required || false;
+      
+      // Check conditional required (requiredWhen)
+      if (field.requiredWhen) {
+        const conditionallyRequired = this.evaluateVisibilityCondition(field.requiredWhen);
+        isRequired = isRequired || conditionallyRequired;
+      }
+
+      if (isRequired) {
+        const value = this.getFieldValue(field.id);
+        // Empty values: null, undefined, empty string, empty array
+        if (value === null || value === undefined || value === '' || 
+            (Array.isArray(value) && value.length === 0)) {
+          return false;
+        }
+      }
+    }
+
     return true;
+  }
+
+  /**
+   * Update button states based on form validation
+   * Disables primary/submit buttons until all required fields are filled
+   */
+  private updateButtonStates(): void {
+    if (!this.options.buttons || this.options.buttons.length === 0) return;
+
+    const isValid = this.validateCurrentStep();
+
+    this.options.buttons.forEach((btn) => {
+      const buttonElement = this.buttonElements.get(btn);
+      if (!buttonElement) return;
+
+      // Only disable primary buttons (submit buttons)
+      if (btn.setFocus) {
+        const fluentButton = buttonElement.querySelector('button');
+        if (fluentButton) {
+          fluentButton.disabled = !isValid;
+        }
+      }
+    });
   }
 
   updateSideCart(_content: string | { imageUrl: string }): void {
