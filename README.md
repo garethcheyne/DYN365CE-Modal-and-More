@@ -2,7 +2,7 @@
 
 <p align="center" style="margin: 30px 0;">
   <img src="./assets/brand.svg"
-       onerror="this.onerror=null; this.src='WebResources/err403_/brand.svg';"
+       onerror="this.onerror=null; this.src='/WebResources/err403_/brand.svg';"
        alt="UI Library for Dynamics 365"
        width="400">
 </p>
