@@ -147,7 +147,7 @@ interface FieldConfig {
         };
     };
     entityName?: string;
-    lookupColumns?: Array<string | {
+    columns?: Array<string | {
         attribute: string;
         label?: string;
         visible?: boolean;
@@ -168,8 +168,9 @@ interface FieldConfig {
     tooltip?: string;
     validation?: ValidationConfig;
     visibleWhen?: VisibilityCondition;
+    requiredWhen?: RequiredCondition;
     onChange?: (value: any) => void;
-    columns?: TableColumn[];
+    tableColumns?: TableColumn[];
     data?: any[];
     selectionMode?: 'none' | 'single' | 'multiple';
     onRowSelect?: (selectedRows: any[]) => void;
@@ -189,6 +190,7 @@ interface VisibilityCondition {
     operator?: 'equals' | 'notEquals' | 'contains' | 'greaterThan' | 'lessThan' | 'truthy' | 'falsy';
     value?: any;
 }
+type RequiredCondition = VisibilityCondition;
 interface AddressResult {
     formattedAddress: string;
     street?: string;
@@ -257,6 +259,7 @@ declare class Modal implements ModalInstance {
     private resolvePromise;
     private fieldValues;
     private fieldVisibilityMap;
+    private fieldRequiredMap;
     private currentStep;
     private totalSteps;
     private stepPanels;
@@ -718,7 +721,7 @@ declare class Table implements FieldConfig {
     id: string;
     label?: string;
     type: string;
-    columns?: Array<{
+    tableColumns?: Array<{
         id: string;
         header: string;
         visible?: boolean;

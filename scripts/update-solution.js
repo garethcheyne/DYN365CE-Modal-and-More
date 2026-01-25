@@ -20,6 +20,10 @@ const WEB_RESOURCES = {
   'ui-lib.types.d.ts.js': 'err403_ui-libtypesdts65EFD173-CBC0-F011-BBD3-000D3ACBC2CC',
   'ui-lib.styles.css': 'err403_ui-libstylescssB3919FB9-CCC0-F011-BBD3-000D3ACBC2CC',
 
+  // Brand assets
+  'logo.svg': 'err403_logosvgE1F2A3B4-0DF7-F011-BBD3-000D3ACBC2CC',
+  'brand.svg': 'err403_brandsvgF2E3B4C5-0DF7-F011-BBD3-000D3ACBC2CC',
+
   // HTML pages (new single page approach)
   'about.html': 'err403_abouthtmlC4BBB1CB-0CF7-F011-8406-00224810270E',
   'README.md.html': 'err403_READMEmd060D1286-CBC0-F011-BBD3-000D3ACBC2CC',

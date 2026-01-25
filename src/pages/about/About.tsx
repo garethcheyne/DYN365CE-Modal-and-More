@@ -24,7 +24,12 @@ export const About: React.FC = () => {
       {/* Header */}
       <header className="d365-header">
         <div className="d365-header__logo">
-          <div className="d365-header__logo-icon">UI</div>
+          <img 
+            src="/WebResources/err403_/logo.svg" 
+            alt="err403 Logo" 
+            className="d365-header__logo-icon"
+            style={{ width: '32px', height: '32px', marginRight: '8px' }}
+          />
           <span>err403 UI Library</span>
           {PACKAGE_VERSION && <span className="d365-version">v{PACKAGE_VERSION}</span>}
         </div>

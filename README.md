@@ -1,5 +1,7 @@
 # err403 UI Library for Dynamics 365
 
+![err403 UI Library](./assets/brand.svg)
+
 **Free and open source** professional-grade UI components that seamlessly integrate with Dynamics 365, giving your forms, ribbons, and custom pages the same polished look and feel as native D365 interfaces.
 
 > **Disclaimer:** This is a free, open-source project provided "as-is" without any warranty or support. Use at your own risk. The authors and contributors take no responsibility for any issues, data loss, or problems that may arise from using this library. You are free to fork, modify, and distribute this project under the terms of the license.
