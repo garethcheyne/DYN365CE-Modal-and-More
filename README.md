@@ -1,7 +1,10 @@
 # UI Library for Dynamics 365
 
 <p align="center" style="margin: 30px 0;">
-  <img src="./assets/brand.svg" alt="UI Library for Dynamics 365" width="400">
+  <img src="./assets/brand.svg"
+       onerror="this.onerror=null; this.src='WebResources/err403_/brand.svg';"
+       alt="UI Library for Dynamics 365"
+       width="400">
 </p>
 
 **Free and open source** professional-grade UI components that seamlessly integrate with Dynamics 365, giving your forms, ribbons, and custom pages the same polished look and feel as native D365 interfaces.
