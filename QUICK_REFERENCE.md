@@ -392,10 +392,15 @@ wizard.previousStep();
 wizard.goToStep(2);
 
 // Button manipulation (chainable methods)
-modal.getButton('Submit').setLabel('Processing...').disable();
-modal.getButton('Submit').setLabel('Save').enable();
-modal.getButton('Cancel').hide();
-modal.getButton(0).show(); // by index
+// Use IDs for reliable identification
+modal.getButton('submitBtn').setLabel('Processing...').disable();
+modal.getButton('submitBtn').setLabel('Save').enable();
+modal.getButton('cancelBtn').hide();
+
+// Auto-generated IDs (lowercase label, spaces removed)
+modal.getButton('save').disable();      // Label: 'Save' → ID: 'save'
+modal.getButton('submitform').hide();   // Label: 'Submit Form' → ID: 'submitform'
+modal.getButton(0).show();              // by index (less reliable)
 
 // Available chainable methods:
 // .setLabel(text) - Change button text
@@ -416,18 +421,20 @@ modal.setLoading(false);
 const modal = new uiLib.Modal({
   fields: [...],
   buttons: [
-    new uiLib.ModalButton('Cancel', () => {}),
-    new uiLib.ModalButton('Save', async () => {
-      modal.getButton('Save').setLabel('Saving...').disable();
+    new uiLib.ModalButton('Cancel', () => {}),  // Auto-ID: 'cancel'
+    new uiLib.ModalButton('Save', async () => {  // Auto-ID: 'save'
+      // Use auto-generated ID - survives label changes
+      modal.getButton('save').setLabel('Saving...').disable();
       
       try {
         await saveData();
         return true; // Close modal
       } catch (error) {
-        modal.getButton('Save').setLabel('Save').enable();
+        modal.getButton('save').setLabel('Save').enable();
         return false; // Keep open
       }
     }, true)
+    // Or provide explicit ID: new uiLib.ModalButton('Save', ..., 'saveBtn')
   ]
 });
 ```

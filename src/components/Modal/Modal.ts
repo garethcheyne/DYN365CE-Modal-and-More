@@ -1893,19 +1893,24 @@ export class Modal implements ModalInstance {
   }
 
   /**
-   * Get button by label or index with chainable methods
-   * @param labelOrIndex - Button label (string) or index (number, 0-based)
+   * Get button by id, label, or index with chainable methods
+   * @param idLabelOrIndex - Button id (string), label (string), or index (number, 0-based)
    * @returns Chainable button controller or null if not found
    */
-  getButton(labelOrIndex: string | number): ButtonController | null {
+  getButton(idLabelOrIndex: string | number): ButtonController | null {
     if (!this.options.buttons || this.options.buttons.length === 0) return null;
 
     let button: ModalButton | undefined;
 
-    if (typeof labelOrIndex === 'number') {
-      button = this.options.buttons[labelOrIndex];
+    if (typeof idLabelOrIndex === 'number') {
+      // Index-based lookup
+      button = this.options.buttons[idLabelOrIndex];
     } else {
-      button = this.options.buttons.find(btn => btn.label === labelOrIndex);
+      // String: try ID first, then label
+      button = this.options.buttons.find(btn => btn.id === idLabelOrIndex);
+      if (!button) {
+        button = this.options.buttons.find(btn => btn.label === idLabelOrIndex);
+      }
     }
 
     if (!button) return null;

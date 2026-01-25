@@ -1603,12 +1603,20 @@ modal.previousStep();
 modal.goToStep(2);
 
 // Button manipulation (chainable)
-modal.getButton('Submit').setLabel('Processing...').setDisabled(true);
-modal.getButton('Submit').setLabel('Save').enable(); // enable() is shorthand for setDisabled(false)
-modal.getButton('Cancel').hide(); // hide() is shorthand for setVisible(false)
-modal.getButton('Cancel').show(); // show() is shorthand for setVisible(true)
+// IMPORTANT: Use IDs for reliable button identification
+modal.getButton('submitBtn').setLabel('Processing...').disable();
+modal.getButton('submitBtn').setLabel('Save').enable();
+modal.getButton('cancelBtn').hide();
+modal.getButton('cancelBtn').show();
 
-// By index (0-based)
+// Auto-generated IDs (lowercase label with spaces removed)
+modal.getButton('save').setLabel('Saving...');  // Button label: 'Save'
+modal.getButton('submitform').disable();  // Button label: 'Submit Form'
+
+// By label (can break if label changes)
+modal.getButton('Submit').setLabel('New Label');
+
+// By index (0-based, less readable)
 modal.getButton(0).setLabel('New Label').disable().hide();
 
 // Available methods (all chainable):
@@ -1633,10 +1641,11 @@ const modal = new uiLib.Modal({
     { id: 'name', label: 'Name', type: 'text', required: true }
   ],
   buttons: [
-    new uiLib.ModalButton('Cancel', () => {}),
+    new uiLib.ModalButton('Cancel', () => {}, false, false, false, 'cancelBtn'),
     new uiLib.ModalButton('Save', async () => {
       // Disable save button and show loading (chainable!)
-      modal.getButton('Save')
+      // Using ID - reliable even if label changes
+      modal.getButton('saveBtn')
         .setLabel('Saving...')
         .disable();
       
@@ -1646,13 +1655,13 @@ const modal = new uiLib.Modal({
         return true; // Close modal
       } catch (error) {
         uiLib.Toast.error({ message: 'Failed to save' });
-        // Re-enable button (chainable!)
-        modal.getButton('Save')
+        // Re-enable button (ID still works even though label changed)
+        modal.getButton('saveBtn')
           .setLabel('Save')
           .enable();
         return false; // Keep modal open
       }
-    }, true)
+    }, true, false, false, 'saveBtn')
   ]
 });
 modal.show();

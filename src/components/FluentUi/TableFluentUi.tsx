@@ -99,6 +99,13 @@ const useStyles = makeStyles({
       },
     },
   },
+  truncatedCell: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    maxWidth: '100%',
+    display: 'block',
+  },
   emptyState: {
     padding: tokens.spacingVerticalXXL,
     textAlign: 'center',
@@ -456,7 +463,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
             if (typeof cellValue === 'string' && (cellValue.includes('<') || cellValue.includes('&'))) {
               return (
                 <TableCellLayout>
-                  <span dangerouslySetInnerHTML={{ __html: cellValue }} />
+                  <span className={styles.truncatedCell} dangerouslySetInnerHTML={{ __html: cellValue }} />
                 </TableCellLayout>
               );
             }
@@ -464,7 +471,9 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
             // Otherwise render as text
             return (
               <TableCellLayout>
-                {cellValue != null ? String(cellValue) : ''}
+                <span className={styles.truncatedCell} title={cellValue != null ? String(cellValue) : ''}>
+                  {cellValue != null ? String(cellValue) : ''}
+                </span>
               </TableCellLayout>
             );
           },

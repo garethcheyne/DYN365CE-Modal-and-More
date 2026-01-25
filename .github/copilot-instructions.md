@@ -684,21 +684,29 @@ const status = modal.getFieldValue('status');
 ### Dynamic Button Updates
 The library provides a chainable API for manipulating buttons after a modal is created. All button methods return `this` for fluent chaining.
 
+**IMPORTANT: Always use button IDs** for reliable identification. Labels can change (e.g., "Submit" → "Saving..."), breaking lookups.
+
 ```javascript
 const modal = new uiLib.Modal({
   title: 'Process Data',
   fields: [...],
   buttons: [
-    new uiLib.ModalButton('Cancel', () => true),
-    new uiLib.ModalButton('Submit', function() {
+    new uiLib.ModalButton('Cancel', () => true),  // Auto-ID: 'cancel'
+    new uiLib.ModalButton('Submit', function() {  // Auto-ID: 'submit'
       // Process...
     }, true)
+    // Or provide explicit ID as 6th parameter:
+    // new uiLib.ModalButton('Submit', callback, true, false, false, 'submitBtn')
   ]
 });
 modal.show();
 
-// Get a button by label or index (0-based)
-const submitBtn = modal.getButton('Submit');  // or modal.getButton(1)
+// Get a button by ID (recommended), label, or index (0-based)
+const submitBtn = modal.getButton('submit');  // Auto-generated ID
+// or modal.getButton('submitBtn')  // Explicit ID if provided
+// or modal.getButton('Submit')     // Label (unreliable if label changes)
+// or modal.getButton(1)            // Index (less readable)
+
 if (submitBtn) {
   // All methods are chainable
   submitBtn.setLabel('Processing...').disable();
@@ -717,6 +725,29 @@ if (submitBtn) {
 - `show()` - Shorthand for `setVisible(true)`
 - `hide()` - Shorthand for `setVisible(false)`
 
+**Button Identification (Priority Order):**
+1. **By ID (Strongly Recommended)**: `modal.getButton('submitBtn')` - Most reliable, survives label changes
+2. **By Label**: `modal.getButton('Submit')` - Works but breaks if label changes
+3. **By Index**: `modal.getButton(1)` - Works but less readable and fragile if button order changes
+
+**Auto-Generated IDs:**
+If no ID is provided, the button ID is auto-generated from the label (lowercase, spaces removed):
+- Label: "Save" → ID: "save"
+- Label: "Submit Form" → ID: "submitform"
+- Label: "Cancel" → ID: "cancel"
+
+**ModalButton Constructor:**
+```javascript
+new uiLib.ModalButton(
+  label: string,           // Button text
+  callback: function,      // Click handler
+  setFocus: boolean,       // Auto-focus this button
+  preventClose: boolean,   // Keep modal open on click
+  isDestructive: boolean,  // Red warning style
+  id?: string              // Optional unique identifier (RECOMMENDED)
+)
+```
+
 **Practical Example (Async Operation):**
 ```javascript
 const modal = new uiLib.Modal({
@@ -725,16 +756,16 @@ const modal = new uiLib.Modal({
     { id: 'name', label: 'Name', type: 'text', required: true }
   ],
   buttons: [
-    new uiLib.ModalButton('Cancel', () => true),
-    new uiLib.ModalButton('Save', async function() {
+    new uiLib.ModalButton('Cancel', () => true),  // Auto-ID: 'cancel'
+    new uiLib.ModalButton('Save', async function() {  // Auto-ID: 'save'
       const name = modal.getFieldValue('name');
       if (!name) {
         uiLib.Toast.error({ message: 'Name is required' });
         return false;
       }
       
-      // Update button during async operation
-      modal.getButton('Save')
+      // Update button during async operation (using auto-generated ID)
+      modal.getButton('save')
         .setLabel('Saving...')
         .disable();
       
@@ -745,8 +776,8 @@ const modal = new uiLib.Modal({
       } catch (error) {
         uiLib.Toast.error({ message: 'Save failed: ' + error.message });
         
-        // Restore button on error
-        modal.getButton('Save')
+        // Restore button on error (ID still works even though label changed)
+        modal.getButton('save')
           .setLabel('Save')
           .enable();
         
@@ -762,25 +793,25 @@ const modal = new uiLib.Modal({
 const wizard = new uiLib.Modal({
   progress: { enabled: true, currentStep: 1, steps: [...] },
   buttons: [
-    new uiLib.ModalButton('Previous', () => { wizard.previousStep(); return false; }),
-    new uiLib.ModalButton('Next', () => { wizard.nextStep(); return false; }),
-    new uiLib.ModalButton('Finish', () => { submitForm(); }, true)
+    new uiLib.ModalButton('Previous', () => { wizard.previousStep(); return false; }),  // Auto-ID: 'previous'
+    new uiLib.ModalButton('Next', () => { wizard.nextStep(); return false; }),  // Auto-ID: 'next'
+    new uiLib.ModalButton('Finish', () => { submitForm(); }, true)  // Auto-ID: 'finish'
   ]
 });
 wizard.show();
 
-// Manage button visibility based on step
-wizard.getButton('Previous').hide();  // Hide on first step
+// Manage button visibility based on step (using auto-generated IDs)
+wizard.getButton('previous').hide();  // Hide on first step
 
 // Later in nextStep/previousStep handlers
 if (currentStep === 1) {
-  wizard.getButton('Previous').hide();
-  wizard.getButton('Next').show();
-  wizard.getButton('Finish').hide();
+  wizard.getButton('previous').hide();
+  wizard.getButton('next').show();
+  wizard.getButton('finish').hide();
 } else if (currentStep === lastStep) {
-  wizard.getButton('Previous').show();
-  wizard.getButton('Next').hide();
-  wizard.getButton('Finish').show();
+  wizard.getButton('previous').show();
+  wizard.getButton('next').hide();
+  wizard.getButton('finish').show();
 }
 ```
 

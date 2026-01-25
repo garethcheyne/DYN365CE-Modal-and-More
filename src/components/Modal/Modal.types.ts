@@ -172,6 +172,7 @@ export interface AddressResult {
 }
 
 export class ModalButton {
+    id: string;
     label: string;
     callback: () => void | false | Promise<void | false>;
     setFocus: boolean;
@@ -183,8 +184,10 @@ export class ModalButton {
         callback: () => void | false | Promise<void | false>,
         setFocus: boolean = false,
         preventClose: boolean = false,
-        isDestructive: boolean = false
+        isDestructive: boolean = false,
+        id?: string
     ) {
+        this.id = id || label.toLowerCase().replace(/\s+/g, '');
         this.label = label;
         this.callback = callback;
         this.setFocus = setFocus;

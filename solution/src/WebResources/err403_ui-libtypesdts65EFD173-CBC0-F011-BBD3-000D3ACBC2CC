@@ -202,12 +202,13 @@ interface AddressResult {
     longitude?: number;
 }
 declare class ModalButton {
+    id: string;
     label: string;
     callback: () => void | false | Promise<void | false>;
     setFocus: boolean;
     preventClose: boolean;
     isDestructive: boolean;
-    constructor(label: string, callback: () => void | false | Promise<void | false>, setFocus?: boolean, preventClose?: boolean, isDestructive?: boolean);
+    constructor(label: string, callback: () => void | false | Promise<void | false>, setFocus?: boolean, preventClose?: boolean, isDestructive?: boolean, id?: string);
 }
 interface ModalResponse {
     button: ModalButton;
@@ -333,11 +334,11 @@ declare class Modal implements ModalInstance {
     clearAutoSave(): void;
     getElement(selector?: string): HTMLElement | HTMLElement[] | null;
     /**
-     * Get button by label or index with chainable methods
-     * @param labelOrIndex - Button label (string) or index (number, 0-based)
+     * Get button by id, label, or index with chainable methods
+     * @param idLabelOrIndex - Button id (string), label (string), or index (number, 0-based)
      * @returns Chainable button controller or null if not found
      */
-    getButton(labelOrIndex: string | number): ButtonController | null;
+    getButton(idLabelOrIndex: string | number): ButtonController | null;
     title(title: string): this;
     message(message: string): this;
     content(content: string): this;
