@@ -131,6 +131,7 @@ export interface FieldConfig {
     tooltip?: string;
     validation?: ValidationConfig;
     visibleWhen?: VisibilityCondition;
+    requiredWhen?: RequiredCondition;
     onChange?: (value: any) => void;
     // Table-specific properties
     tableColumns?: TableColumn[];
@@ -156,6 +157,8 @@ export interface VisibilityCondition {
     operator?: 'equals' | 'notEquals' | 'contains' | 'greaterThan' | 'lessThan' | 'truthy' | 'falsy';
     value?: any;
 }
+
+export type RequiredCondition = VisibilityCondition;
 
 export interface AddressResult {
     formattedAddress: string;

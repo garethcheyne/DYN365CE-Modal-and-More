@@ -168,6 +168,7 @@ interface FieldConfig {
     tooltip?: string;
     validation?: ValidationConfig;
     visibleWhen?: VisibilityCondition;
+    requiredWhen?: RequiredCondition;
     onChange?: (value: any) => void;
     tableColumns?: TableColumn[];
     data?: any[];
@@ -189,6 +190,7 @@ interface VisibilityCondition {
     operator?: 'equals' | 'notEquals' | 'contains' | 'greaterThan' | 'lessThan' | 'truthy' | 'falsy';
     value?: any;
 }
+type RequiredCondition = VisibilityCondition;
 interface AddressResult {
     formattedAddress: string;
     street?: string;
@@ -257,6 +259,7 @@ declare class Modal implements ModalInstance {
     private resolvePromise;
     private fieldValues;
     private fieldVisibilityMap;
+    private fieldRequiredMap;
     private currentStep;
     private totalSteps;
     private stepPanels;

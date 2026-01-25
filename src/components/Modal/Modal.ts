@@ -56,6 +56,7 @@ export class Modal implements ModalInstance {
   private resolvePromise: ((value: ModalResponse) => void) | null = null;
   private fieldValues: Map<string, any> = new Map();
   private fieldVisibilityMap: Map<string, boolean> = new Map();
+  private fieldRequiredMap: Map<string, boolean> = new Map();
   private currentStep: number = 1;
   private totalSteps: number = 1;
   private stepPanels: HTMLElement[] = [];
@@ -934,6 +935,17 @@ export class Modal implements ModalInstance {
       this.fieldVisibilityMap.set(field.id, true);
     }
 
+    // Set initial required state based on requiredWhen condition
+    if (field.requiredWhen) {
+      const isRequired = this.evaluateVisibilityCondition(field.requiredWhen);
+      this.fieldRequiredMap.set(field.id, isRequired);
+      if (isRequired) {
+        field.required = true;
+      }
+    } else {
+      this.fieldRequiredMap.set(field.id, field.required || false);
+    }
+
     const labelPosition = field.labelPosition || 'left';
 
     // Note: For Fluent UI field components (Input, Dropdown, Switch, etc.),
@@ -1330,6 +1342,27 @@ export class Modal implements ModalInstance {
           }
         }
       }
+
+      // Check requiredWhen conditions
+      if (field.requiredWhen && field.requiredWhen.field === changedFieldId) {
+        const shouldBeRequired = this.evaluateVisibilityCondition(field.requiredWhen);
+        const currentlyRequired = this.fieldRequiredMap.get(field.id);
+
+        if (shouldBeRequired !== currentlyRequired) {
+          this.fieldRequiredMap.set(field.id, shouldBeRequired);
+          const fieldEl = this.body?.querySelector(`[data-field-id="${field.id}"]`) as HTMLElement;
+          if (fieldEl) {
+            const label = fieldEl.querySelector('.err403-field-label, label[for]');
+            if (label) {
+              if (shouldBeRequired) {
+                label.classList.add('required');
+              } else {
+                label.classList.remove('required');
+              }
+            }
+          }
+        }
+      }
     });
     
     // Update step indicator if we're in a wizard (validation status may have changed)
@@ -1668,7 +1701,16 @@ export class Modal implements ModalInstance {
 
     // Check all required fields in this step
     for (const field of step.fields) {
-      if (field.required) {
+      // Check base required property
+      let isRequired = field.required || false;
+      
+      // Check conditional required (requiredWhen)
+      if (field.requiredWhen) {
+        const conditionallyRequired = this.evaluateVisibilityCondition(field.requiredWhen);
+        isRequired = isRequired || conditionallyRequired;
+      }
+
+      if (isRequired) {
         const value = this.getFieldValue(field.id);
         // Empty values: null, undefined, empty string, empty array
         if (value === null || value === undefined || value === '' || 

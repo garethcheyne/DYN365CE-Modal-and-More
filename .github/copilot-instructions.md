@@ -44,14 +44,21 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
   placeholder: 'Enter...',    // Hint text
   orientation: 'horizontal',  // Layout (default) or 'vertical'
   
-  // NEW: Conditional visibility
+  // Conditional visibility
   visibleWhen: {
     field: 'otherFieldId',    // Field to watch
     operator: 'equals',       // equals | notEquals | contains | greaterThan | lessThan | truthy | falsy
     value: 'someValue'        // Comparison value
   },
   
-  // NEW: D365 Option Set auto-fetch
+  // Conditional required (NEW!)
+  requiredWhen: {
+    field: 'otherFieldId',    // Field to watch
+    operator: 'truthy',       // Same operators as visibleWhen
+    value: 'someValue'        // Optional value (not needed for truthy/falsy)
+  },
+  
+  // D365 Option Set auto-fetch
   optionSet: {
     entityName: 'account',       // D365 entity name
     attributeName: 'industrycode', // Attribute name
@@ -128,6 +135,26 @@ fields: [
     visibleWhen: { field: 'allowMarketing', operator: 'truthy' }},
   { id: 'sms', label: 'SMS', type: 'tel',
     visibleWhen: { field: 'allowMarketing', operator: 'truthy' }}
+]
+```
+
+**Conditional Required Example (NEW!):**
+```javascript
+fields: [
+  { id: 'preferredContactMethod', label: 'Contact Method', type: 'select',
+    options: ['Email', 'Phone', 'Mail'], required: true },
+  
+  // Email required only if preferred method is Email
+  { id: 'email', label: 'Email', type: 'email',
+    requiredWhen: { field: 'preferredContactMethod', operator: 'equals', value: 'Email' }},
+  
+  // Phone required only if preferred method is Phone
+  { id: 'phone', label: 'Phone', type: 'tel',
+    requiredWhen: { field: 'preferredContactMethod', operator: 'equals', value: 'Phone' }},
+  
+  // Address required only if preferred method is Mail
+  { id: 'address', label: 'Address', type: 'text',
+    requiredWhen: { field: 'preferredContactMethod', operator: 'equals', value: 'Mail' }}
 ]
 ```
 
