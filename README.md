@@ -901,7 +901,7 @@ function showContactsTable() {
           new err403.Table({
             id: 'contactsTable',
             label: 'Contacts',
-            columns: [
+            tableColumns: [
               { id: 'fullname', header: 'Full Name', visible: true, sortable: true, width: '200px' },
               { id: 'emailaddress1', header: 'Email', visible: true, sortable: true, width: '250px' },
               { id: 'telephone1', header: 'Phone', visible: true, sortable: false, width: '150px' },
@@ -1439,14 +1439,14 @@ new err403.Modal({
 - 'date' - Fluent UI DatePicker
 - 'select' - with options: ['Option 1', 'Option 2'] or [{ label, value }]
   - displayMode: 'dropdown' (default) or 'badges' for clickable badge buttons
-- 'lookup' - Inline D365-style dropdown lookup (columns displayed in order specified)
+- 'lookup' - Inline D365-style dropdown lookup (lookupColumns displayed in order specified)
   - entityName: D365 entity name
-  - columns: Array of columns - strings or objects with {attribute, label, visible}
+  - lookupColumns: Array of columns - strings or objects with {attribute, label, visible}
     - String format: ['name', 'accountnumber'] - uses attribute name as label
     - Object format: [{attribute: 'name', label: 'Account Name'}, ...] - uses custom label
     - First column is primary display, second is subtitle
   - filters: OData filter string or FetchXML fragment
-  - Note: Same 'columns' parameter used for both inline lookup fields and Modal Dialog Lookups
+  - Note: Use lookupColumns for inline lookup fields, columns for Modal Dialog Lookups
 - 'checkbox' - Boolean checkbox (D365 native style)
 - 'switch' - Boolean toggle switch (modern style)
 - 'range' - Slider with min, max, step (use extraAttributes)
@@ -1497,11 +1497,11 @@ new err403.Modal({
   label: 'Account', 
   type: 'lookup',
   entityName: 'account',
-  columns: [
+  lookupColumns: [
     { attribute: 'name', label: 'Account Name' },     // Custom label
     { attribute: 'accountnumber', label: 'Number' }   // Custom label
   ],
-  // Or simple strings: columns: ['name', 'accountnumber'],
+  // Or simple strings: lookupColumns: ['name', 'accountnumber'],
   filters: "statecode eq 0",  // Optional OData or FetchXML filter
   placeholder: 'Search accounts...',
   required: true
@@ -1518,7 +1518,7 @@ new err403.Modal({
   }
 }
 
-// Example: Table field
+// Example: Table field using Table class
 new err403.Table({ 
   id: 'productsTable', 
   tableColumns: [
@@ -1532,6 +1532,23 @@ new err403.Table({
   selectionMode: 'multiple',
   onRowSelect: (selectedRows) => { console.log(selectedRows); }
 })
+
+// Example: Table field using inline config (simpler)
+{ 
+  id: 'productsTable',
+  type: 'table',
+  label: 'Products',
+  tableColumns: [
+    { id: 'name', header: 'Product Name', visible: true, sortable: true, width: '250px' },
+    { id: 'price', header: 'Price', visible: true, sortable: true, width: '100px' }
+  ],
+  data: [
+    { id: 1, name: 'Product A', price: 100 },
+    { id: 2, name: 'Product B', price: 200 }
+  ],
+  selectionMode: 'multiple',
+  onRowSelect: (selectedRows) => { console.log(selectedRows); }
+}
 ```
 
 **Button helper:**

@@ -3,7 +3,7 @@
  * Replaces vanilla Table.ts with React-based Fluent UI components
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   DataGrid,
   DataGridBody,
@@ -41,6 +41,7 @@ interface TableColumnDefinition<T> {
   columnId: TableColumnId;
   renderHeaderCell: () => React.ReactNode;
   renderCell: (item: T) => React.ReactNode;
+  compare?: (a: T, b: T) => number;
 }
 function createTableColumn<T>(def: TableColumnDefinition<T>): TableColumnDefinition<T> {
   return def;
@@ -153,6 +154,12 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   );
   const [columnFilters, setColumnFilters] = useState<{ [key: string]: string }>({});
   const [filterInputs, setFilterInputs] = useState<{ [key: string]: string }>({});
+
+  // Update columnOrder when config.tableColumns changes
+  useEffect(() => {
+    const newOrder = (config.tableColumns || []).filter(col => col.visible !== false).map(col => col.id);
+    setColumnOrder(newOrder);
+  }, [config.tableColumns]);
 
   // Column menu handlers
   const handleSortAscending = useCallback((columnId: string) => {
@@ -412,6 +419,11 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     // Data columns
     const visibleColumns = (config.tableColumns || []).filter(col => col.visible !== false);
     
+    // Debug: Log column configuration
+    if (visibleColumns.length === 0) {
+      console.warn('TableFluentUi: No visible columns found. tableColumns:', config.tableColumns);
+    }
+    
     // Sort columns by columnOrder
     const orderedColumns = columnOrder
       .map(colId => visibleColumns.find(col => col.id === colId))
@@ -433,6 +445,23 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
               {item[column.id] != null ? String(item[column.id]) : ''}
             </TableCellLayout>
           ),
+          compare: column.sortable !== false ? (a: TableRow, b: TableRow) => {
+            const aVal = a[column.id];
+            const bVal = b[column.id];
+            
+            // Handle null/undefined
+            if (aVal == null && bVal == null) return 0;
+            if (aVal == null) return -1;
+            if (bVal == null) return 1;
+            
+            // String comparison
+            if (typeof aVal === 'string' && typeof bVal === 'string') {
+              return aVal.localeCompare(bVal);
+            }
+            
+            // Number comparison
+            return Number(aVal) - Number(bVal);
+          } : undefined,
         })
       );
     });

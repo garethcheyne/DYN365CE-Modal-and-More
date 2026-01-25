@@ -968,7 +968,7 @@ export class Modal implements ModalInstance {
             tooltip: field.tooltip,
             orientation: field.orientation || 'horizontal',
             entityName: field.entityName || 'account',
-            columns: field.columns || ['name'],
+            lookupColumns: field.lookupColumns || ['name'],
             filters: field.filters || '',
             value: selectedLookup,
             disabled: field.disabled,

@@ -74,13 +74,17 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
 - `textarea` - Multi-line text (use `rows` property)
 - `date` - Date picker
 - `select` - Dropdown (use `options` array)
-- `lookup` - Inline D365-style dropdown lookup (entityName, columns, filters)
-  - `columns`: Array of columns (strings or {attribute, label, visible}) - shown in order specified
-  - Note: Use `columns` for both inline lookup fields and Modal Dialog Lookups for consistency
+- `lookup` - Inline D365-style dropdown lookup (entityName, lookupColumns, filters)
+  - `lookupColumns`: Array of columns (strings or {attribute, label, visible}) - shown in order specified
+  - Note: Use `lookupColumns` for inline lookups, `columns` for Modal Dialog Lookups
 - `checkbox` - Boolean checkbox (D365 native style)
 - `switch` - Boolean toggle switch (modern style)
 - `range` - Slider (use `extraAttributes: { min, max, step }`)
-- `table` - Data grid (use Table class)
+- `table` - Data grid with sortable columns, selection, and filtering
+  - Use `tableColumns` property (array of {id, header, visible, sortable, width})
+  - Use `data` property (array of row objects)
+  - Use `selectionMode` property ('none', 'single', 'multiple')
+  - Use `onRowSelect` callback for selection changes
 - `addressLookup` - Address autocomplete with Google/Azure Maps
 - `custom` - Custom HTML (use `render()` function)
 
@@ -189,6 +193,54 @@ fields: [
 // - Handles both local and global option sets
 ```
 
+**Table Field Example:**
+```javascript
+// Using Table class
+fields: [
+  new err403.Table({
+    id: 'productsTable',
+    label: 'Products',
+    tableColumns: [
+      { id: 'product', header: 'Product Name', visible: true, sortable: true, width: '250px' },
+      { id: 'category', header: 'Category', visible: true, sortable: true, width: '180px' },
+      { id: 'price', header: 'Price ($)', visible: true, sortable: true, width: '120px' },
+      { id: 'stock', header: 'In Stock', visible: true, sortable: true, width: '100px' }
+    ],
+    data: [
+      { id: 1, product: 'Surface Laptop 5', category: 'Hardware', price: 1299, stock: 45 },
+      { id: 2, product: 'Office 365 E3', category: 'Software', price: 20, stock: 999 }
+    ],
+    selectionMode: 'multiple',
+    onRowSelect: (selectedRows) => { console.log(selectedRows); }
+  })
+]
+
+// Using inline field config (simpler)
+fields: [
+  {
+    id: 'productsTable',
+    type: 'table',
+    label: 'Products',
+    tableColumns: [
+      { id: 'product', header: 'Product Name', visible: true, sortable: true, width: '250px' },
+      { id: 'price', header: 'Price ($)', visible: true, sortable: true }
+    ],
+    data: [
+      { id: 1, product: 'Product A', price: 100 },
+      { id: 2, product: 'Product B', price: 200 }
+    ],
+    selectionMode: 'single'
+  }
+]
+
+// Table features:
+// - Sortable columns (click headers)
+// - Row selection (none, single, multiple)
+// - Column visibility control
+// - Custom column widths
+// - onRowSelect callback
+```
+
 ### 3. Lookup (`err403.Lookup`)
 Advanced record selection with search, filter, sort, and multi-select.
 
@@ -203,7 +255,7 @@ new err403.Modal({
       label: 'Account',
       type: 'lookup',
       entityName: 'account',
-      columns: ['name', 'accountnumber'],
+      lookupColumns: ['name', 'accountnumber'],
       filters: "statecode eq 0",  // Optional OData filter
       placeholder: 'Search accounts...',
       required: true

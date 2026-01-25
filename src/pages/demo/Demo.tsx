@@ -257,7 +257,7 @@ export const Demo: React.FC = () => {
           label: 'Account (with expand)', 
           type: 'lookup', 
           entityName: 'account', 
-          columns: [
+          lookupColumns: [
             'name',                                        // Always visible
             { attribute: 'accountnumber', visible: true }, // Always visible
             { attribute: 'telephone1', label: 'Phone', visible: false },      // Shown on expand
@@ -271,7 +271,7 @@ export const Demo: React.FC = () => {
           label: 'Contact (simple)',
           type: 'lookup',
           entityName: 'contact',
-          columns: [
+          lookupColumns: [
             'fullname',
             { attribute: 'emailaddress1', visible: true }
           ],
@@ -573,7 +573,7 @@ export const Demo: React.FC = () => {
             fields: [
               new err403.Table({
                 id: 'productTable',
-                columns: [
+                tableColumns: [
                   { id: 'product', header: 'Product Name', visible: true, sortable: true, width: '250px' },
                   { id: 'category', header: 'Category', visible: true, sortable: true, width: '180px' },
                   { id: 'price', header: 'Price ($)', visible: true, sortable: true, width: '120px' },

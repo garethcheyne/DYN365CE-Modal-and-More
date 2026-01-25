@@ -147,7 +147,7 @@ interface FieldConfig {
         };
     };
     entityName?: string;
-    columns?: Array<string | {
+    lookupColumns?: Array<string | {
         attribute: string;
         label?: string;
         visible?: boolean;
