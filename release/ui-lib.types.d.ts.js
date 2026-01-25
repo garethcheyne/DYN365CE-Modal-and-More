@@ -84,6 +84,8 @@ interface StepConfig {
     label?: string;
     name?: string;
     description?: string;
+    message?: string;
+    content?: string;
     completed?: boolean;
     fields?: FieldConfig[];
     validate?: () => boolean;
@@ -146,6 +148,16 @@ interface FieldConfig {
             longitude?: string;
         };
     };
+    fileUpload?: {
+        accept?: string;
+        maxFiles?: number;
+        maxSize?: number;
+        multiple?: boolean;
+        showFileList?: boolean;
+        onFilesSelected?: (files: File[]) => void;
+        dragDropText?: string;
+        browseText?: string;
+    };
     entityName?: string;
     lookupColumns?: Array<string | {
         attribute: string;
@@ -201,6 +213,14 @@ interface AddressResult {
     latitude?: number;
     longitude?: number;
 }
+interface ModalButtonConfig {
+    label: string;
+    callback: () => void | false | Promise<void | false>;
+    setFocus?: boolean;
+    preventClose?: boolean;
+    isDestructive?: boolean;
+    id?: string;
+}
 declare class ModalButton {
     id: string;
     label: string;
@@ -208,7 +228,10 @@ declare class ModalButton {
     setFocus: boolean;
     preventClose: boolean;
     isDestructive: boolean;
-    constructor(label: string, callback: () => void | false | Promise<void | false>, setFocus?: boolean, preventClose?: boolean, isDestructive?: boolean, id?: string);
+    constructor(labelOrConfig: string | ModalButtonConfig, callback?: () => void | false | Promise<void | false>, setFocus?: boolean, preventClose?: boolean, isDestructive?: boolean, id?: string);
+    private isButtonConfig;
+    private validateLabel;
+    private validateCallback;
 }
 interface ModalResponse {
     button: ModalButton;
@@ -793,6 +816,29 @@ declare class Table implements FieldConfig {
     divider?: boolean;
     constructor(config: FieldConfig);
 }
+/**
+ * File upload field helper (for file uploads with drag-and-drop)
+ */
+declare class File$1 implements FieldConfig {
+    id: string;
+    label?: string;
+    type: string;
+    value?: any;
+    required?: boolean;
+    disabled?: boolean;
+    fileUpload?: {
+        accept?: string;
+        maxFiles?: number;
+        maxSize?: number;
+        multiple?: boolean;
+        showFileList?: boolean;
+        onFilesSelected?: (files: globalThis.File[]) => void;
+        dragDropText?: string;
+        browseText?: string;
+    };
+    divider?: boolean;
+    constructor(config: FieldConfig);
+}
 
 /**
  * FluentProvider wrapper for D365 CE UI Library
@@ -841,7 +887,7 @@ declare function onLoad(executionContext?: any): HealthState;
  */
 declare function findInstance(): any;
 
-export { BUG, ModalButton as Button, Custom, DateRange, ERR, Group, Input, Logger, Lookup$1 as Lookup, Lookup as LookupField, Modal, ModalButton, ModalHelpers_d as ModalHelpers, MultiLine, OptionSet, TRACE, Table, Toast, WAR, d365Theme, findInstance, init, onLoad, theme };
+export { BUG, ModalButton as Button, Custom, DateRange, ERR, File$1 as File, Group, Input, Logger, Lookup$1 as Lookup, Lookup as LookupField, Modal, ModalButton, ModalHelpers_d as ModalHelpers, MultiLine, OptionSet, TRACE, Table, Toast, WAR, d365Theme, findInstance, init, onLoad, theme };
 export type { HealthState };
 
 /**

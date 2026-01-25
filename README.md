@@ -9,7 +9,7 @@
 
 **Free and open source** professional-grade UI components that seamlessly integrate with Dynamics 365, giving your forms, ribbons, and custom pages the same polished look and feel as native D365 interfaces.
 
-> **Note:** Available as `window.uiLib` (primary) or `window.err403` (backward compatibility). Both names work identically.
+> **Note:** Available as `window.uiLib` (recommended) or `window.err403` (backward compatibility). Both names work identically - use whichever you prefer.
 
 > **Disclaimer:** This is a free, open-source project provided "as-is" without any warranty or support. Use at your own risk. The authors and contributors take no responsibility for any issues, data loss, or problems that may arise from using this library. You are free to fork, modify, and distribute this project under the terms of the license.
 
@@ -93,41 +93,41 @@ uiLib.Toast.success({ title: 'Done!', message: 'Record saved' });
 
 ### Quick Start (3 Steps)
 
-**Step 1:** Download the solution package from the [releases](releases/) folder:
+**Step 1: Download Solution**
 
-- `err403UILibrary_1_0_0.zip`
+Download the solution package from the [releases](releases/) folder:
+- `err403UILibrary_1_0_0.zip` (managed solution)
 
-**Step 2:** Import into your Dynamics 365 environment:
+**Step 2: Import Solution**
 
+Import into your Dynamics 365 environment:
 1. Navigate to **Settings → Solutions**
 2. Click **Import**
-3. Select the downloaded zip file
+3. Select the downloaded ZIP file
 4. Complete the import wizard
+5. Wait for import to complete
 
-**Step 3:** Reference the library in your form scripts or web resources:
+**Step 3: Add to Form**
+
+Add as a form library (one-time setup per form):
+1. Open your form in form designer
+2. Click **Form Properties**
+3. Go to **Events** tab → **Form Libraries**
+4. Click **Add** and select `err403_/ui-lib.min.js`
+5. **Move it to the top** of the library list
+6. Save and publish
+
+**That's it!** Now use it in any form script:
 
 ```javascript
-// The library is now available globally as uiLib
-uiLib.Toast.success({ message: 'Library loaded!' });
-
-// Backward compatible: err403 still works
-uiLib.Toast.success({ message: 'Also works!' });
+// In your form OnLoad event
+function onLoad(executionContext) {
+  const health = uiLib.init(executionContext);
+  if (!health.loaded) return;
+  
+  uiLib.Toast.success({ message: 'Library ready!' });
+}
 ```
-
-**That's it!** The library is installed as web resource `err403_/ui-lib.min.js` and ready to use.
-
-### D365 Form Library Setup
-
-**Adding to Form Libraries:**
-
-1. Open your form in the form designer
-2. Click **Form Properties**
-3. Go to **Events** tab → **Form Libraries** section
-4. Click **Add** and select `err403_/ui-lib.min.js`
-5. Move it to the top of the library list (loads first)
-6. Click **OK** and publish the form
-
-**Important:** The library must be referenced as a form library. It will then be available to all scripts on the form, regardless of which iframe they run in.
 
 ### Common D365 Integration Scenarios
 
@@ -432,12 +432,14 @@ function createContact() {
 
 ### Example 5: Multi-Step Wizard
 
-Guide users through a complex process:
+Guide users through a complex process with modal-level and step-level messaging:
 
 ```javascript
 function runAccountSetupWizard() {
   var modal = uiLib.Modal.open({
     title: 'Account Setup Wizard',
+    message: 'Complete all steps to create your account. This message stays visible throughout the wizard.',
+    content: '<div style="padding: 8px; background: #f3f2f1; border-radius: 4px;"><strong>Tip:</strong> All fields marked with * are required.</div>',
     size: 'large',
     progress: {
       enabled: true,
@@ -450,6 +452,8 @@ function runAccountSetupWizard() {
           label: 'Basic Info',
           name: 'Basic Information',
           description: 'Enter account details',
+          message: 'Step 1: Enter the basic account information below.',
+          content: '<small>This information will be used to identify the account in the system.</small>',
           fields: [
             new uiLib.Input({
               id: 'accountname',
@@ -478,6 +482,8 @@ function runAccountSetupWizard() {
           label: 'Address',
           name: 'Address Information',
           description: 'Enter business address',
+          message: 'Step 2: Provide the primary business address.',
+          content: '<small>This address will be used for official correspondence.</small>',
           fields: [
             new uiLib.Input({
               id: 'address1_line1',
@@ -506,6 +512,8 @@ function runAccountSetupWizard() {
           label: 'Review',
           name: 'Review & Submit',
           description: 'Review your information',
+          message: 'Step 3: Review your information before submitting.',
+          content: '<small>You can go back to previous steps to make changes if needed.</small>',
           fields: [
             new uiLib.MultiLine({
               id: 'description',
@@ -542,6 +550,32 @@ function runAccountSetupWizard() {
   });
 }
 ```
+
+**Understanding Modal vs Step Messaging:**
+
+When creating wizards, you have two levels of messaging:
+
+| Level | Properties | Location | Behavior | Use Case |
+|-------|-----------|----------|----------|----------|
+| **Modal** | `message`, `content` | Above step indicator | Stays visible for all steps | Overall instructions, wizard purpose, general help |
+| **Step** | `message`, `content` | Below step indicator | Changes per step | Step-specific guidance, field explanations, tips |
+
+**Visual Layout:**
+```
+┌─────────────────────────────────┐
+│ Wizard Title                    │
+│ Modal Message (stays visible)   │ ← Parent level
+│ Modal Content (stays visible)   │
+├─────────────────────────────────┤
+│ ● ─── ○ ─── ○                  │ ← Step Indicator
+├─────────────────────────────────┤
+│ Step Message (changes per step) │ ← Step level
+│ Step Content (changes per step) │
+│ [Form Fields for this step]     │
+└─────────────────────────────────┘
+```
+
+This two-level approach provides clear context at both the wizard and individual step levels, improving user experience.
 
 ### Example 6: Conditional Field Visibility
 
@@ -614,8 +648,8 @@ function createAccountWithConditionalFields() {
       }
     ],
     buttons: [
-      new uiLib.ModalButton('Cancel', () => {}),
-      new uiLib.ModalButton('Save', () => {
+      new uiLib.Button('Cancel', () => {}),
+      new uiLib.Button('Save', () => {
         const data = modal.getFieldValues();
         console.log('Account data:', data);
         uiLib.Toast.success({ title: 'Saved', message: 'Account created successfully' });
@@ -726,8 +760,8 @@ function createFlexibleContactForm() {
       }
     ],
     buttons: [
-      new uiLib.ModalButton('Cancel', () => {}),
-      new uiLib.ModalButton('Save', () => {
+      new uiLib.Button('Cancel', () => {}),
+      new uiLib.Button('Save', () => {
         const data = modal.getFieldValues();
         console.log('Contact data:', data);
         uiLib.Toast.success({ title: 'Saved', message: 'Contact created successfully' });
@@ -801,8 +835,8 @@ function createLeadForm() {
       }
     ],
     buttons: [
-      new uiLib.ModalButton('Cancel', () => { /* close */ }),
-      new uiLib.ModalButton('Create Lead', function() {
+      new uiLib.Button('Cancel', () => { /* close */ }),
+      new uiLib.Button('Create Lead', function() {
         const data = modal.getAllFieldValues();
         
         Xrm.WebApi.createRecord('lead', {
@@ -882,7 +916,7 @@ function createContactWithAddress() {
       { id: 'address1_longitude', label: 'Longitude', type: 'number' }
     ],
     buttons: [
-      new uiLib.ModalButton('Create Contact', function() {
+      new uiLib.Button('Create Contact', function() {
         const data = modal.getFieldValues();
         
         // The businessAddress field contains the full address object:
@@ -1604,7 +1638,7 @@ const modal = new uiLib.Modal({
   message: 'Optional message',
   size: 'small' | 'medium' | 'large' | 'fullscreen' | { width: 800, height: 600 },
   fields: [ /* array of field config objects */ ],
-  buttons: [ /* array of ModalButton objects */ ],
+  buttons: [ /* array of Button objects */ ],
   draggable: true, // optional - make modal draggable
   allowDismiss: true, // click outside to close
   progress: { // optional - for wizards
@@ -1641,20 +1675,20 @@ modal.previousStep();
 modal.goToStep(2);
 
 // Button manipulation (chainable)
-// IMPORTANT: Use IDs for reliable button identification
+// IMPORTANT: Always provide explicit button IDs (6th parameter) for reliable identification
 modal.getButton('submitBtn').setLabel('Processing...').disable();
 modal.getButton('submitBtn').setLabel('Save').enable();
 modal.getButton('cancelBtn').hide();
 modal.getButton('cancelBtn').show();
 
-// Auto-generated IDs (lowercase label with spaces removed)
-modal.getButton('save').setLabel('Saving...');  // Button label: 'Save'
-modal.getButton('submitform').disable();  // Button label: 'Submit Form'
+// Three ways to reference buttons:
+// 1. By explicit ID (RECOMMENDED) - reliable, survives label changes
+modal.getButton('saveBtn').setLabel('Saving...');
 
-// By label (can break if label changes)
+// 2. By label (works but breaks if label changes)
 modal.getButton('Submit').setLabel('New Label');
 
-// By index (0-based, less readable)
+// 3. By index (works but less readable)
 modal.getButton(0).setLabel('New Label').disable().hide();
 
 // Available methods (all chainable):
@@ -1680,8 +1714,8 @@ const modal = new uiLib.Modal({
     { id: 'name', label: 'Name', type: 'text', required: true }
   ],
   buttons: [
-    new uiLib.ModalButton('Cancel', () => {}, false, false, false, 'cancelBtn'),
-    new uiLib.ModalButton('Save', async () => {
+    new uiLib.Button('Cancel', () => {}, false, false, false, 'cancelBtn'),
+    new uiLib.Button('Save', async () => {
       // Disable save button and show loading (chainable!)
       // Using ID - reliable even if label changes
       modal.getButton('saveBtn')
@@ -1719,6 +1753,8 @@ The library automatically validates wizard steps and provides visual feedback:
 **Automatic Validation:**
 
 - Steps are validated automatically when field values change
+- **Hidden fields are skipped** - fields with `visibleWhen: false` are not validated
+- **Conditional requirements are respected** - `requiredWhen` conditions are evaluated dynamically
 - Required fields are checked: empty values (null, undefined, '', empty arrays) trigger red indicator
 - Step indicators update in real-time as users fill in or clear required fields
 - No manual validation code needed - the library handles it automatically
@@ -1812,6 +1848,15 @@ new uiLib.Modal({
 - 'range' - Slider with min, max, step (use extraAttributes)
 - 'table' - Embedded data grid (use Table class)
 - 'addressLookup' - Address autocomplete with Google/Azure Maps
+- 'file' - File upload with drag-and-drop hot zone (use fileUpload configuration)
+  - accept: File type filter (e.g., '.pdf,.doc,.docx', 'image/*')
+  - maxFiles: Maximum number of files
+  - maxSize: Maximum file size in bytes (e.g., 5242880 for 5MB)
+  - multiple: Allow multiple file selection (default: true)
+  - showFileList: Show list of selected files (default: true)
+  - dragDropText: Custom drag-drop zone text
+  - browseText: Custom browse button text
+  - onFilesSelected: Callback when files are selected
 - 'custom' - Custom HTML with render() function
 
 // Example: Dropdown with badge display mode
@@ -1889,6 +1934,45 @@ new uiLib.Table({
     { id: 1, name: 'Product A', price: 100 },
     { id: 2, name: 'Product B', price: 200 }
   ],
+  selectionMode: 'multiple'
+})
+
+// Example: File upload with drag-and-drop
+{ 
+  id: 'attachments', 
+  label: 'Upload Documents', 
+  type: 'file',
+  required: true,
+  fileUpload: {
+    accept: '.pdf,.doc,.docx,.xls,.xlsx',  // File type filter
+    maxFiles: 10,                          // Max 10 files
+    maxSize: 10485760,                     // 10MB per file
+    multiple: true,                        // Allow multiple files
+    showFileList: true,                    // Show selected files
+    dragDropText: 'Drag and drop files here',
+    browseText: 'or click to browse',
+    onFilesSelected: (files) => {
+      console.log('Files selected:', files);
+      // files is an array of File objects
+      files.forEach(file => {
+        console.log(`${file.name} - ${file.size} bytes`);
+      });
+    }
+  }
+}
+
+// Example: Image upload only
+{ 
+  id: 'productImages', 
+  label: 'Product Photos', 
+  type: 'file',
+  fileUpload: {
+    accept: 'image/*',                     // Images only
+    maxFiles: 5,
+    maxSize: 5242880,                      // 5MB per file
+    dragDropText: 'Drop product images here'
+  }
+}
   selectionMode: 'multiple',
   onRowSelect: (selectedRows) => { console.log(selectedRows); }
 })
@@ -1913,18 +1997,47 @@ new uiLib.Table({
 
 **Button helper:**
 
+The Button class supports **two styles**:
+
+**1. Object-style (Recommended - Self-documenting):**
 ```javascript
-new uiLib.ModalButton(
+new uiLib.Button({
+  label: 'Save Record',           // Required - button text
+  callback: () => {               // Required - click handler
+    // Return false to keep modal open
+    // Return true or nothing to close modal
+  },
+  setFocus: true,                 // Optional - makes this the primary (blue) button
+  preventClose: false,            // Optional - if true, button won't auto-close modal
+  isDestructive: false,           // Optional - if true, button appears red (danger style)
+  id: 'saveBtn'                   // Optional but RECOMMENDED - unique identifier for getButton()
+})
+
+// Minimal version:
+new uiLib.Button({
+  label: 'Cancel',
+  callback: () => {},
+  id: 'cancelBtn'
+})
+```
+
+**2. Positional parameters (Traditional - Backward compatible):**
+```javascript
+new uiLib.Button(
   'Label',
   () => {
     // Callback function
     // Return false to keep modal open
     // Return true or nothing to close modal
   },
-  true,  // setFocus - makes this the primary (blue) button
-  false  // preventClose - if true, button won't close modal automatically
+  true,   // setFocus - makes this the primary (blue) button
+  false,  // preventClose - if true, button won't auto-close modal
+  false,  // isDestructive - if true, button appears red (danger style)
+  'btnId' // id (OPTIONAL BUT RECOMMENDED) - unique identifier for getButton()
 )
 ```
+
+**Best Practice:** Always provide explicit button IDs for maintainable code. Button references remain reliable even when labels change dynamically (e.g., "Submit" → "Saving...").
 
 **Static methods:**
 

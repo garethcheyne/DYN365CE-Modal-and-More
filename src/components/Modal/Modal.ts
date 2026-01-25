@@ -36,6 +36,7 @@ import {
   DropdownFluentUi,
   AddressLookupFluentUi,
   LookupFluentUi,
+  FileUploadFluentUi,
   Slider,
   Field,
   mountFluentComponent,
@@ -566,6 +567,28 @@ export class Modal implements ModalInstance {
         flex-direction: column;
       `;
 
+      // Add modal message if provided (ABOVE step indicator)
+      if (this.options.message) {
+        const messageEl = doc.createElement('p');
+        messageEl.textContent = this.options.message;
+        messageEl.style.cssText = `
+          margin: 0 0 ${theme.spacing.m} 0;
+          color: ${theme.colors.modal.textSecondary};
+          font-size: ${theme.typography.fontSize.body};
+        `;
+        this.body.appendChild(messageEl);
+      }
+
+      // Add modal content if provided (ABOVE step indicator)
+      if (this.options.content) {
+        const contentEl = doc.createElement('div');
+        contentEl.innerHTML = this.options.content;
+        contentEl.style.cssText = `
+          margin-bottom: ${theme.spacing.m};
+        `;
+        this.body.appendChild(contentEl);
+      }
+
       // Create step indicator
       this.stepIndicator = this.createStepIndicator();
       this.body.appendChild(this.stepIndicator);
@@ -581,6 +604,28 @@ export class Modal implements ModalInstance {
           flex: 1;
           padding-top: ${theme.spacing.m};
         `;
+
+        // Add step-specific message if provided
+        if (step.message) {
+          const stepMessageEl = doc.createElement('p');
+          stepMessageEl.textContent = step.message;
+          stepMessageEl.style.cssText = `
+            margin: 0 0 ${theme.spacing.m} 0;
+            color: ${theme.colors.modal.textSecondary};
+            font-size: ${theme.typography.fontSize.body};
+          `;
+          panel.appendChild(stepMessageEl);
+        }
+
+        // Add step-specific content if provided
+        if (step.content) {
+          const stepContentEl = doc.createElement('div');
+          stepContentEl.innerHTML = step.content;
+          stepContentEl.style.cssText = `
+            margin-bottom: ${theme.spacing.m};
+          `;
+          panel.appendChild(stepContentEl);
+        }
 
         if (step.fields) {
           for (const field of step.fields) {
@@ -667,11 +712,12 @@ export class Modal implements ModalInstance {
     container.style.cssText = `
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start;
       gap: 8px;
-      padding-bottom: 16px;
+      padding-top: 20px;
+      padding-bottom: 24px;
       border-bottom: 1px solid #e1dfdd;
-      margin-bottom: 16px;
+      margin-bottom: 24px;
     `;
 
     this.options.progress!.steps!.forEach((step, index) => {
@@ -741,7 +787,8 @@ export class Modal implements ModalInstance {
           flex: 1;
           height: 2px;
           background: ${connectorColor};
-          margin-top: -24px;
+          margin-top: 16px;
+          align-self: flex-start;
         `;
         container.appendChild(connector);
       }
@@ -993,6 +1040,48 @@ export class Modal implements ModalInstance {
       case 'addressLookup':
         // Address lookup with Google Maps or Azure Maps
         return await this.createAddressLookupField(field);
+      case 'file':
+        // File upload with drag-and-drop
+        const fileUploadWrapper = doc.createElement('div');
+        fileUploadWrapper.setAttribute('data-field-id', field.id);
+
+        const FileUploadWrapper = () => {
+          const [selectedFiles, setSelectedFiles] = React.useState<File[]>(field.value || []);
+
+          return React.createElement(FileUploadFluentUi, {
+            id: field.id,
+            label: field.label,
+            accept: field.fileUpload?.accept,
+            maxFiles: field.fileUpload?.maxFiles,
+            maxSize: field.fileUpload?.maxSize,
+            multiple: field.fileUpload?.multiple !== false,
+            showFileList: field.fileUpload?.showFileList !== false,
+            dragDropText: field.fileUpload?.dragDropText,
+            browseText: field.fileUpload?.browseText,
+            required: field.required,
+            disabled: field.disabled,
+            tooltip: field.tooltip,
+            orientation: field.orientation || 'vertical',
+            value: selectedFiles,
+            onChange: (files: File[]) => {
+              setSelectedFiles(files);
+              this.fieldValues.set(field.id, files);
+              field.value = files;
+              this.updateFieldVisibility(field.id);
+              this.updateButtonStates();
+              field.onChange?.(files);
+            },
+            onFilesSelected: field.fileUpload?.onFilesSelected
+          });
+        };
+
+        mountFluentComponent(fileUploadWrapper, React.createElement(FileUploadWrapper), defaultTheme);
+        container.appendChild(fileUploadWrapper);
+
+        // Store initial value
+        this.fieldValues.set(field.id, field.value || []);
+
+        return container;
       case 'checkbox':
         // Use Fluent UI Checkbox component for boolean fields (D365 style)
         const checkboxWrapper = doc.createElement('div');
@@ -1733,13 +1822,21 @@ export class Modal implements ModalInstance {
 
     // Check all required fields in this step
     for (const field of step.fields) {
-      // Check base required property
-      let isRequired = field.required || false;
+      // Skip hidden fields - if visibleWhen is false, don't validate
+      if (field.visibleWhen) {
+        const isVisible = this.evaluateVisibilityCondition(field.visibleWhen);
+        if (!isVisible) continue; // Skip this field
+      }
+
+      // Determine if field is required
+      let isRequired = false;
       
-      // Check conditional required (requiredWhen)
+      // If requiredWhen is specified, use that condition
       if (field.requiredWhen) {
-        const conditionallyRequired = this.evaluateVisibilityCondition(field.requiredWhen);
-        isRequired = isRequired || conditionallyRequired;
+        isRequired = this.evaluateVisibilityCondition(field.requiredWhen);
+      } else {
+        // Otherwise use the static required property
+        isRequired = field.required || false;
       }
 
       if (isRequired) {

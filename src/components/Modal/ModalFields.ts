@@ -201,3 +201,36 @@ export class Table implements FieldConfig {
     this.divider = config.divider;
   }
 }
+
+/**
+ * File upload field helper (for file uploads with drag-and-drop)
+ */
+export class File implements FieldConfig {
+  id: string;
+  label?: string;
+  type: string = 'file';
+  value?: any;
+  required?: boolean;
+  disabled?: boolean;
+  fileUpload?: {
+    accept?: string;
+    maxFiles?: number;
+    maxSize?: number;
+    multiple?: boolean;
+    showFileList?: boolean;
+    onFilesSelected?: (files: globalThis.File[]) => void;
+    dragDropText?: string;
+    browseText?: string;
+  };
+  divider?: boolean;
+
+  constructor(config: FieldConfig) {
+    this.id = config.id;
+    this.label = config.label;
+    this.value = config.value;
+    this.required = config.required;
+    this.disabled = config.disabled;
+    this.fileUpload = config.fileUpload || {};
+    this.divider = config.divider;
+  }
+}

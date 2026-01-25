@@ -18,7 +18,7 @@ const WEB_RESOURCES = {
   // Core library files
   'ui-lib.min.js': 'err403_ui-libminjs7A3C73EA-4CBF-F011-BBD3-000D3ACBC2CC',
   'ui-lib.types.d.ts.js': 'err403_ui-libtypesdts65EFD173-CBC0-F011-BBD3-000D3ACBC2CC',
-  'ui-lib.styles.css': 'err403_ui-libstylescssB3919FB9-CCC0-F011-BBD3-000D3ACBC2CC',
+  'ui-lib.styles.css': 'uiLib_ui-libstylescssB3919FB9-CCC0-F011-BBD3-000D3ACBC2CC',
 
   // Brand assets
   'logo.svg': 'err403_logosvg86296E30-83F9-F011-8406-00224810270E',

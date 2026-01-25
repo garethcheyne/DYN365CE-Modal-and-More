@@ -207,6 +207,40 @@ modal.setFieldValue('productsTable', styledData);
   }}
 ```
 
+### File Upload
+```javascript
+// Document upload with validation
+{ id: 'attachments', type: 'file', label: 'Upload Documents',
+  required: true,
+  fileUpload: {
+    accept: '.pdf,.doc,.docx,.xls,.xlsx',  // File type filter
+    maxFiles: 10,                          // Max files allowed
+    maxSize: 10485760,                     // 10MB per file
+    multiple: true,                        // Allow multiple
+    showFileList: true,                    // Show selected files
+    dragDropText: 'Drag and drop files here',
+    browseText: 'or click to browse',
+    onFilesSelected: (files) => {
+      console.log('Selected:', files.map(f => f.name));
+    }
+  }}
+
+// Image upload only
+{ id: 'photos', type: 'file', label: 'Product Photos',
+  fileUpload: {
+    accept: 'image/*',
+    maxFiles: 5,
+    maxSize: 5242880  // 5MB
+  }}
+
+// Get uploaded files
+const files = modal.getFieldValue('attachments');
+files.forEach(file => {
+  console.log(`${file.name} - ${file.size} bytes`);
+  // Upload file using FormData, XHR, fetch, etc.
+});
+```
+
 ### Custom HTML
 ```javascript
 { id: 'custom', type: 'custom', label: 'Custom Content',

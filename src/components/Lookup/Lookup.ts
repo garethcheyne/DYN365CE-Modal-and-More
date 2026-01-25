@@ -173,7 +173,7 @@ async function fetchRecords(
     filteredData = allMockData.filter(record => {
       return searchFields.some(field => {
         const value = record[field];
-        if (value === null || value === undefined) return false;
+        if (value == null) return false;
         return String(value).toLowerCase().includes(lowerSearch);
       });
     });

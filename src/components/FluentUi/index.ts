@@ -24,6 +24,7 @@ export { InputFluentUi } from './InputFluentUi';
 export { DropdownFluentUi } from './DropdownFluentUi';
 export { AddressLookupFluentUi } from './AddressLookupFluentUi';
 export { LookupFluentUi } from './LookupFluentUi';
+export { FileUploadFluentUi } from './FileUploadFluentUi';
 
 // Components (organized by category)
 export * from './Button';

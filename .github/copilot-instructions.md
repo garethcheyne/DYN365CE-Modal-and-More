@@ -1,11 +1,13 @@
 # AI Agent Guide: UI Library for Dynamics 365
 
 ## Overview
+
 This is a professional UI component library for Microsoft Dynamics 365 CE. It provides Toast notifications, Modal dialogs, Lookups, and Tables with native Fluent UI v9 styling through a simple vanilla JavaScript API.
 
 **Namespace:** Available as `window.uiLib` (primary) or `window.err403` (backward compatibility)
 
 ## Architecture
+
 - **User-facing API**: Vanilla JavaScript/TypeScript - simple and intuitive
 - **Internal implementation**: React 18 + Fluent UI v9 (bundled, invisible to users)
 - **Build system**: Vite + TypeScript + Rollup
@@ -14,14 +16,18 @@ This is a professional UI component library for Microsoft Dynamics 365 CE. It pr
 ## Dynamics 365 Integration
 
 ### Form Library Setup
+
 The library must be added to D365 forms as a form library:
+
 1. Form Properties → Events → Form Libraries
 2. Add `err403_/ui-lib.min.js`
 3. Place at top of library list
 4. Available to all scripts on the form
 
 ### Iframe Architecture
+
 D365 uses multiple iframes. The library handles this automatically:
+
 - **Form library**: Loaded once in top window
 - **Form scripts**: Run in child iframes, auto-assigned from parent
 - **Web resources**: Custom iframes, also auto-assigned
@@ -30,62 +36,73 @@ D365 uses multiple iframes. The library handles this automatically:
 ### Common Integration Patterns
 
 **Form OnLoad:**
+
 ```javascript
 function onFormLoad(executionContext) {
   const health = uiLib.init(executionContext);
   if (!health.loaded) return;
-  
+
   const formContext = executionContext.getFormContext();
   // Use library with form context
 }
 ```
 
 **Field OnChange:**
+
 ```javascript
 function onFieldChange(executionContext) {
   const formContext = executionContext.getFormContext();
-  const value = formContext.getAttribute('fieldname').getValue();
-  
+  const value = formContext.getAttribute("fieldname").getValue();
+
   uiLib.Toast.info({ message: `Value changed to: ${value}` });
 }
 ```
 
 **Ribbon Commands:**
+
 ```javascript
 function onRibbonClick() {
   // No executionContext in ribbon
-  uiLib.Modal.confirm('Action', 'Perform action?').then(confirmed => {
+  uiLib.Modal.confirm("Action", "Perform action?").then((confirmed) => {
     if (confirmed) performAction();
   });
 }
 ```
 
 **Web Resource Iframe:**
+
 ```javascript
 // Custom HTML page embedded in form
-if (typeof uiLib !== 'undefined') {
+if (typeof uiLib !== "undefined") {
   // Auto-assigned from parent window
-  uiLib.Toast.success({ message: 'Web resource loaded' });
+  uiLib.Toast.success({ message: "Web resource loaded" });
 }
 ```
 
 ## Key Components
 
 ### 1. Toast Notifications (`uiLib.Toast`)
+
 Simple notification system matching D365's native toast style.
 
 ```javascript
 // Success, error, warning, info toasts
-uiLib.Toast.success({ title: 'Saved!', message: 'Record updated', sound: true });
-uiLib.Toast.error({ title: 'Error', message: 'Failed to save' });
-uiLib.Toast.warn({ title: 'Warning', message: 'Check fields' });
-uiLib.Toast.info({ title: 'Info', message: 'Processing...' });
+uiLib.Toast.success({
+  title: "Saved!",
+  message: "Record updated",
+  sound: true,
+});
+uiLib.Toast.error({ title: "Error", message: "Failed to save" });
+uiLib.Toast.warn({ title: "Warning", message: "Check fields" });
+uiLib.Toast.info({ title: "Info", message: "Processing..." });
 ```
 
 ### 2. Modal Dialogs (`uiLib.Modal`)
+
 Professional modal system with forms, wizards, tabs, and conditional visibility.
 
 **Features:**
+
 - Alert, confirm, and complex form dialogs
 - Wizard with visual step indicators (circles, checkmarks, connectors)
 - Conditional field visibility using `visibleWhen` property
@@ -93,6 +110,7 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
 - Tabs, validation, draggable, dismissible
 
 **Field Configuration Pattern:**
+
 ```javascript
 {
   id: 'fieldId',              // Required - unique identifier
@@ -103,21 +121,21 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
   disabled: false,            // State
   placeholder: 'Enter...',    // Hint text
   orientation: 'horizontal',  // Layout (default) or 'vertical'
-  
+
   // Conditional visibility
   visibleWhen: {
     field: 'otherFieldId',    // Field to watch
     operator: 'equals',       // equals | notEquals | contains | greaterThan | lessThan | truthy | falsy
     value: 'someValue'        // Comparison value
   },
-  
+
   // Conditional required (NEW!)
   requiredWhen: {
     field: 'otherFieldId',    // Field to watch
     operator: 'truthy',       // Same operators as visibleWhen
     value: 'someValue'        // Optional value (not needed for truthy/falsy)
   },
-  
+
   // D365 Option Set auto-fetch
   optionSet: {
     entityName: 'account',       // D365 entity name
@@ -129,6 +147,7 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
 ```
 
 **Available Field Types:**
+
 - `text`, `email`, `tel`, `password`, `url`, `search` - Text inputs
 - `number` - Number input
 - `textarea` - Multi-line text (use `rows` property)
@@ -146,31 +165,83 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
   - Use `selectionMode` property ('none', 'single', 'multiple')
   - Use `onRowSelect` callback for selection changes
 - `addressLookup` - Address autocomplete with Google/Azure Maps
+- `file` - File upload with drag-and-drop hot zone (use `fileUpload` configuration)
 - `custom` - Custom HTML (use `render()` function)
 
 **Wizard Pattern:**
+
 ```javascript
 new uiLib.Modal({
   title: 'Setup Wizard',
+  message: 'Parent modal message - appears ABOVE step indicator, stays visible for all steps',
+  content: '<div>Parent modal HTML content - appears ABOVE step indicator</div>',
   progress: {
     enabled: true,
     currentStep: 1,
     allowStepNavigation: true,
     steps: [
-      { id: 'step1', label: 'Account Info', fields: [...] },
-      { id: 'step2', label: 'Preferences', fields: [...] },
-      { id: 'step3', label: 'Review', fields: [...] }
+      {
+        id: 'step1',
+        label: 'Account Info',
+        message: 'Step 1 message - appears BELOW step indicator, changes per step',
+        content: '<small>Step 1 HTML content - appears BELOW step indicator</small>',
+        fields: [...]
+      },
+      {
+        id: 'step2',
+        label: 'Preferences',
+        message: 'Step 2 instructions...',
+        content: '<small>Step 2 help text...</small>',
+        fields: [...]
+      },
+      {
+        id: 'step3',
+        label: 'Review',
+        message: 'Step 3 review message...',
+        fields: [...]
+      }
     ]
   },
   buttons: [
-    new uiLib.ModalButton('Previous', () => { modal.previousStep(); return false; }),
-    new uiLib.ModalButton('Next', () => { modal.nextStep(); return false; }),
-    new uiLib.ModalButton('Finish', () => { /* submit */ }, true)
+    new uiLib.Button('Previous', () => { modal.previousStep(); return false; }),
+    new uiLib.Button('Next', () => { modal.nextStep(); return false; }),
+    new uiLib.Button('Finish', () => { /* submit */ }, true)
   ]
 });
 ```
 
+**Modal vs Step Message/Content:**
+
+- **Modal Level** (`message` and `content` on Modal):
+  - Appears ABOVE the step indicator
+  - Stays visible throughout all wizard steps
+  - Use for overall instructions that apply to the entire wizard
+  - Example: "Complete all 3 steps to create your account"
+
+- **Step Level** (`message` and `content` on each step):
+  - Appears BELOW the step indicator
+  - Changes as you navigate between steps
+  - Use for step-specific instructions or help text
+  - Example: "Step 1: Enter your basic information below"
+
+**Visual Layout:**
+
+```
+┌────────────────────────────┐
+│ Modal Title                │
+│ Modal Message (parent)     │ ← Stays visible
+│ Modal Content (parent)     │ ← Stays visible
+├────────────────────────────┤
+│ ● ─── ○ ─── ○             │ ← Step Indicator
+├────────────────────────────┤
+│ Step Message (per-step)    │ ← Changes per step
+│ Step Content (per-step)    │ ← Changes per step
+│ [Form Fields]              │
+└────────────────────────────┘
+```
+
 **Wizard Step Indicators:**
+
 - **Blue circle with number** = current step
 - **Green circle with checkmark** = completed steps with all required fields filled
 - **Red circle with exclamation (!)** = completed steps with missing required fields
@@ -178,73 +249,128 @@ new uiLib.Modal({
 - **Connector lines** match the step color (blue/green/red/gray)
 
 **Automatic Validation:**
+
 - Steps are validated automatically when fields change
+- **Hidden fields are skipped** - fields with `visibleWhen: false` are not validated
+- **Conditional requirements are respected** - `requiredWhen` conditions are evaluated dynamically
 - Required fields are checked: empty values (null, undefined, '', empty arrays) trigger red indicator
 - Step indicators update in real-time as users fill in or clear required fields
 - No manual validation code needed - library handles it automatically
 
 **Conditional Visibility Example:**
+
 ```javascript
 fields: [
-  { id: 'accountType', label: 'Account Type', type: 'select', 
-    options: ['Business', 'Individual'] },
-  
+  {
+    id: "accountType",
+    label: "Account Type",
+    type: "select",
+    options: ["Business", "Individual"],
+  },
+
   // Only show when accountType is 'Business'
-  { id: 'companyName', label: 'Company Name', type: 'text',
-    visibleWhen: { field: 'accountType', operator: 'equals', value: 'Business' }},
-  
+  {
+    id: "companyName",
+    label: "Company Name",
+    type: "text",
+    visibleWhen: {
+      field: "accountType",
+      operator: "equals",
+      value: "Business",
+    },
+  },
+
   // Marketing preferences
-  { id: 'allowMarketing', label: 'Allow Marketing', type: 'switch' },
-  { id: 'email', label: 'Email', type: 'email',
-    visibleWhen: { field: 'allowMarketing', operator: 'truthy' }},
-  { id: 'sms', label: 'SMS', type: 'tel',
-    visibleWhen: { field: 'allowMarketing', operator: 'truthy' }}
-]
+  { id: "allowMarketing", label: "Allow Marketing", type: "switch" },
+  {
+    id: "email",
+    label: "Email",
+    type: "email",
+    visibleWhen: { field: "allowMarketing", operator: "truthy" },
+  },
+  {
+    id: "sms",
+    label: "SMS",
+    type: "tel",
+    visibleWhen: { field: "allowMarketing", operator: "truthy" },
+  },
+];
 ```
 
 **Conditional Required Example (NEW!):**
+
 ```javascript
 fields: [
-  { id: 'preferredContactMethod', label: 'Contact Method', type: 'select',
-    options: ['Email', 'Phone', 'Mail'], required: true },
-  
+  {
+    id: "preferredContactMethod",
+    label: "Contact Method",
+    type: "select",
+    options: ["Email", "Phone", "Mail"],
+    required: true,
+  },
+
   // Email required only if preferred method is Email
-  { id: 'email', label: 'Email', type: 'email',
-    requiredWhen: { field: 'preferredContactMethod', operator: 'equals', value: 'Email' }},
-  
+  {
+    id: "email",
+    label: "Email",
+    type: "email",
+    requiredWhen: {
+      field: "preferredContactMethod",
+      operator: "equals",
+      value: "Email",
+    },
+  },
+
   // Phone required only if preferred method is Phone
-  { id: 'phone', label: 'Phone', type: 'tel',
-    requiredWhen: { field: 'preferredContactMethod', operator: 'equals', value: 'Phone' }},
-  
+  {
+    id: "phone",
+    label: "Phone",
+    type: "tel",
+    requiredWhen: {
+      field: "preferredContactMethod",
+      operator: "equals",
+      value: "Phone",
+    },
+  },
+
   // Address required only if preferred method is Mail
-  { id: 'address', label: 'Address', type: 'text',
-    requiredWhen: { field: 'preferredContactMethod', operator: 'equals', value: 'Mail' }}
-]
+  {
+    id: "address",
+    label: "Address",
+    type: "text",
+    requiredWhen: {
+      field: "preferredContactMethod",
+      operator: "equals",
+      value: "Mail",
+    },
+  },
+];
 ```
 
 **D365 Option Set Auto-Fetch Example:**
+
 ```javascript
 fields: [
   {
-    id: 'industrycode',
-    type: 'select',
+    id: "industrycode",
+    type: "select",
     optionSet: {
-      entityName: 'account',
-      attributeName: 'industrycode',
+      entityName: "account",
+      attributeName: "industrycode",
       includeNull: true,
-      sortByLabel: true
-    }
+      sortByLabel: true,
+    },
   },
   {
-    id: 'leadsourcecode',
-    type: 'select',
+    id: "leadsourcecode",
+    type: "select",
     optionSet: {
-      entityName: 'lead',
-      attributeName: 'leadsourcecode',
-      includeNull: true
-    }
-  }
-]
+      entityName: "lead",
+      attributeName: "leadsourcecode",
+      includeNull: true,
+    },
+  },
+];
 
 // Library automatically:
 // - Fetches option set metadata from D365 Web API
@@ -253,45 +379,140 @@ fields: [
 // - Handles both local and global option sets
 ```
 
+**File Upload Example:**
+
+```javascript
+// Document upload with validation
+fields: [
+  {
+    id: "attachments",
+    label: "Upload Documents",
+    type: "file",
+    required: true,
+    fileUpload: {
+      accept: ".pdf,.doc,.docx,.xls,.xlsx", // File type filter
+      maxFiles: 10, // Maximum number of files
+      maxSize: 10485760, // 10MB per file
+      multiple: true, // Allow multiple files
+      showFileList: true, // Show selected files
+      dragDropText: "Drag and drop files here",
+      browseText: "or click to browse",
+      onFilesSelected: (files) => {
+        console.log(
+          "Files selected:",
+          files.map((f) => f.name),
+        );
+      },
+    },
+  },
+];
+
+// Image upload only
+fields: [
+  {
+    id: "productImages",
+    label: "Product Photos",
+    type: "file",
+    fileUpload: {
+      accept: "image/*", // Images only
+      maxFiles: 5,
+      maxSize: 5242880, // 5MB per file
+    },
+  },
+];
+
+// Get uploaded files
+const files = modal.getFieldValue("attachments");
+files.forEach((file) => {
+  console.log(`${file.name} - ${file.size} bytes`);
+  // Upload to D365 using FormData, XHR, fetch, etc.
+});
+```
+
 **Table Field Example:**
+
 ```javascript
 // Using Table class
 fields: [
   new uiLib.Table({
-    id: 'productsTable',
-    label: 'Products',
+    id: "productsTable",
+    label: "Products",
     tableColumns: [
-      { id: 'product', header: 'Product Name', visible: true, sortable: true, width: '250px' },
-      { id: 'category', header: 'Category', visible: true, sortable: true, width: '180px' },
-      { id: 'price', header: 'Price ($)', visible: true, sortable: true, width: '120px' },
-      { id: 'stock', header: 'In Stock', visible: true, sortable: true, width: '100px' }
+      {
+        id: "product",
+        header: "Product Name",
+        visible: true,
+        sortable: true,
+        width: "250px",
+      },
+      {
+        id: "category",
+        header: "Category",
+        visible: true,
+        sortable: true,
+        width: "180px",
+      },
+      {
+        id: "price",
+        header: "Price ($)",
+        visible: true,
+        sortable: true,
+        width: "120px",
+      },
+      {
+        id: "stock",
+        header: "In Stock",
+        visible: true,
+        sortable: true,
+        width: "100px",
+      },
     ],
     data: [
-      { id: 1, product: 'Surface Laptop 5', category: 'Hardware', price: 1299, stock: 45 },
-      { id: 2, product: 'Office 365 E3', category: 'Software', price: 20, stock: 999 }
+      {
+        id: 1,
+        product: "Surface Laptop 5",
+        category: "Hardware",
+        price: 1299,
+        stock: 45,
+      },
+      {
+        id: 2,
+        product: "Office 365 E3",
+        category: "Software",
+        price: 20,
+        stock: 999,
+      },
     ],
-    selectionMode: 'multiple',
-    onRowSelect: (selectedRows) => { console.log(selectedRows); }
-  })
-]
+    selectionMode: "multiple",
+    onRowSelect: (selectedRows) => {
+      console.log(selectedRows);
+    },
+  }),
+];
 
 // Using inline field config (simpler)
 fields: [
   {
-    id: 'productsTable',
-    type: 'table',
-    label: 'Products',
+    id: "productsTable",
+    type: "table",
+    label: "Products",
     tableColumns: [
-      { id: 'product', header: 'Product Name', visible: true, sortable: true, width: '250px' },
-      { id: 'price', header: 'Price ($)', visible: true, sortable: true }
+      {
+        id: "product",
+        header: "Product Name",
+        visible: true,
+        sortable: true,
+        width: "250px",
+      },
+      { id: "price", header: "Price ($)", visible: true, sortable: true },
     ],
     data: [
-      { id: 1, product: 'Product A', price: 100 },
-      { id: 2, product: 'Product B', price: 200 }
+      { id: 1, product: "Product A", price: 100 },
+      { id: 2, product: "Product B", price: 200 },
     ],
-    selectionMode: 'single'
-  }
-]
+    selectionMode: "single",
+  },
+];
 
 // Table features:
 // - Sortable columns (click headers)
@@ -303,48 +524,50 @@ fields: [
 // - HTML rendering in cells (automatically detects and renders HTML)
 
 // Update table data dynamically:
-modal.setFieldValue('productsTable', newData);
+modal.setFieldValue("productsTable", newData);
 // The table will automatically re-render with new data
 
 // Example with HTML rendering in cells:
 const styledData = [
-  { 
-    id: 1, 
-    product: 'Product A', 
+  {
+    id: 1,
+    product: "Product A",
     price: '<span style="color: #388e3c; font-weight: 600;">↓ $99.00</span>',
-    status: '<span style="color: #1976d2;">Active</span>'
+    status: '<span style="color: #1976d2;">Active</span>',
   },
-  { 
-    id: 2, 
-    product: 'Product B', 
+  {
+    id: 2,
+    product: "Product B",
     price: '<span style="color: #d32f2f; font-weight: 600;">↑ $205.00</span>',
-    status: '<span style="color: #f57c00;">Pending</span>'
-  }
+    status: '<span style="color: #f57c00;">Pending</span>',
+  },
 ];
-modal.setFieldValue('productsTable', styledData);
+modal.setFieldValue("productsTable", styledData);
 // HTML in cells will be rendered with styling - perfect for colored values, icons, badges
 ```
 
 ### 3. Lookup (`uiLib.Lookup`)
+
 Advanced record selection with search, filter, sort, and multi-select.
 
 **Two Lookup Options:**
 
 1. **Inline Dropdown Lookup** (NEW - D365 Native Style) - Use as a field type in modals:
+
 ```javascript
 new uiLib.Modal({
   fields: [
     {
-      id: 'accountLookup',
-      label: 'Account',
-      type: 'lookup',
-      entityName: 'account',
-      lookupColumns: ['name', 'accountnumber'],
-      filters: "statecode eq 0",  // Optional OData filter
-      placeholder: 'Search accounts...',
-      required: true
-    }
-  ]
+      id: "accountLookup",
+      label: "Account",
+      type: "lookup",
+      entityName: "account",
+      lookupColumns: ["name", "accountnumber"],
+      filters: "statecode eq 0", // Optional OData filter
+      placeholder: "Search accounts...",
+      required: true,
+    },
+  ],
 });
 // - Inline dropdown appears below the field
 // - Search as you type
@@ -353,38 +576,57 @@ new uiLib.Modal({
 ```
 
 2. **Modal Dialog Lookup** (Advanced) - Full-screen modal with table:
+
 ```javascript
 new uiLib.Lookup({
-  entityName: 'account',
+  entityName: "account",
   multiple: true,
-  columns: ['name', 'telephone1', 'emailaddress1'],  // Same 'columns' parameter
+  columns: ["name", "telephone1", "emailaddress1"], // Same 'columns' parameter
   filters: "statecode eq 0",
-  onSelect: (records) => { /* handle selection */ }
+  onSelect: (records) => {
+    /* handle selection */
+  },
 }).show();
 ```
 
 ### 4. Table (`uiLib.Table`)
+
 Data grid component with sorting, selection, and D365 integration.
 
 ```javascript
 new uiLib.Table({
-  id: 'productsTable',
+  id: "productsTable",
   tableColumns: [
-    { id: 'name', header: 'Product', visible: true, sortable: true, width: '200px' },
-    { id: 'price', header: 'Price', visible: true, sortable: true, width: '100px' }
+    {
+      id: "name",
+      header: "Product",
+      visible: true,
+      sortable: true,
+      width: "200px",
+    },
+    {
+      id: "price",
+      header: "Price",
+      visible: true,
+      sortable: true,
+      width: "100px",
+    },
   ],
   data: [
-    { id: 1, name: 'Product A', price: 100 },
-    { id: 2, name: 'Product B', price: 200 }
+    { id: 1, name: "Product A", price: 100 },
+    { id: 2, name: "Product B", price: 200 },
   ],
-  selectionMode: 'multiple',
-  onRowSelect: (rows) => { console.log(rows); }
-})
+  selectionMode: "multiple",
+  onRowSelect: (rows) => {
+    console.log(rows);
+  },
+});
 ```
 
 ## File Structure
 
 ### Source Code (`src/`)
+
 - `components/Modal/Modal.ts` - Core modal implementation with conditional visibility
 - `components/Modal/Modal.types.ts` - TypeScript interfaces (FieldConfig, VisibilityCondition, etc.)
 - `components/Toast/Toast.ts` - Toast notification system
@@ -394,12 +636,14 @@ new uiLib.Table({
 - `index.ts` - Main entry point, global API, and init() function
 
 ### Build Outputs (`build/` and `release/`)
+
 - `ui-lib.min.js` - Minified bundle (~741KB, ~208KB gzipped)
 - `ui-lib.types.d.ts` - TypeScript definitions
 - `demo.html` - Interactive demo with code examples
 - `tests.html` - Test suite
 
 ### Solution Package (`solution/`)
+
 - D365 CE solution with web resources
 - Scripts to update and package solution
 - Managed/unmanaged solution support
@@ -407,33 +651,35 @@ new uiLib.Table({
 ## Initialization and Health Checking
 
 ### Library Initialization
+
 The library provides an `init()` function that returns a health state object:
 
 ```javascript
 // In D365 form OnLoad event
 function onFormLoad(executionContext) {
   const health = uiLib.init(executionContext);
-  
+
   // Health state object:
   // {
   //   loaded: true,           // Library initialization completed
   //   cssLoaded: true,        // CSS file found and loaded
-  //   inWindow: true,         // Available as window.err403
+  //   inWindow: true,         // Available as window.uiLib (and window.err403 for compatibility)
   //   version: "2026.01.24.01", // Current version
   //   timestamp: "2026-01-24T...", // Initialization time
-  //   instance: err403        // Reference to library instance
+  //   instance: uiLib         // Reference to library instance
   // }
-  
+
   if (!health.cssLoaded) {
-    console.warn('UI library CSS not loaded');
+    console.warn("UI library CSS not loaded");
   }
 }
 ```
 
 **Health State Properties:**
+
 - `loaded`: Boolean - library initialization completed successfully
 - `cssLoaded`: Boolean - CSS stylesheet was found and loaded
-- `inWindow`: Boolean - library is available as `window.err403`
+- `inWindow`: Boolean - library is available as `window.uiLib` (and `window.err403` for backward compatibility)
 - `version`: String - current library version
 - `timestamp`: String - ISO timestamp of when initialization occurred
 - `instance`: Object - reference to the library instance
@@ -444,17 +690,19 @@ The library automatically detects and handles Dynamics 365's iframe architecture
 
 ```javascript
 // BEFORE: Complex parent window detection (NO LONGER NEEDED)
-const err403Instance = (typeof err403 !== 'undefined' && err403) ||
-    (typeof window.top?.err403 !== 'undefined' && window.top.err403) ||
-    (typeof window.parent?.err403 !== 'undefined' && window.parent.err403);
+const libraryInstance =
+  (typeof uiLib !== "undefined" && uiLib) ||
+  (typeof window.top?.uiLib !== "undefined" && window.top.uiLib) ||
+  (typeof window.parent?.uiLib !== "undefined" && window.parent.uiLib);
 
 // AFTER: Simple check - library handles parent window detection automatically
-if (typeof err403 !== 'undefined' && typeof err403.init === 'function') {
+if (typeof uiLib !== "undefined" && typeof uiLib.init === "function") {
   const health = uiLib.init();
 }
 ```
 
 **Auto-Detection Features:**
+
 - Checks if library is already loaded in parent windows (window.top, window.parent)
 - Automatically assigns parent instance to current iframe window
 - Prevents duplicate loading across iframe boundaries
@@ -462,15 +710,17 @@ if (typeof err403 !== 'undefined' && typeof err403.init === 'function') {
 
 **Multiple Iframes (Common in D365 Forms):**
 When different form scripts are running in separate iframes (e.g., Account form in iframe 1, Contact form in iframe 2), each script can use the library seamlessly because:
+
 1. Library is loaded once in the parent window (main page)
 2. Each iframe's script checks for parent instance automatically
-3. Auto-detection assigns parent instance to each iframe's `window.err403`
+3. Auto-detection assigns parent instance to each iframe's `window.uiLib` (and `window.err403`)
 4. No coordination needed between scripts in different iframes
 
 **Manual Parent Window Detection (Optional):**
+
 ```javascript
 // Use findInstance() if you need explicit parent window checking
-const libraryInstance = err403.findInstance();
+const libraryInstance = uiLib.findInstance();
 if (libraryInstance) {
   // Library found in current or parent window
   const health = libraryInstance.init();
@@ -480,6 +730,7 @@ if (libraryInstance) {
 ## Development Workflow
 
 ### Build Commands
+
 ```bash
 npm install              # Install dependencies
 npm run dev              # Start dev server (http://localhost:5177)
@@ -491,12 +742,14 @@ npm run deploy           # Deploy to D365 environment
 ```
 
 ### Solution Management
+
 ```bash
 npm run update-solution  # Copy files to solution/src/WebResources
 npm run pack-solution    # Create solution ZIP file
 ```
 
 ### Testing
+
 - `npm run demo` - Interactive demo page
 - `npm run test` - Test suite page
 - Demo URL: http://localhost:5177/pages/demo.html
@@ -504,7 +757,9 @@ npm run pack-solution    # Create solution ZIP file
 ## Key Implementation Details
 
 ### Conditional Visibility System
+
 Located in `src/components/Modal/Modal.ts`:
+
 - `fieldVisibilityMap: Map<string, boolean>` - tracks visibility state
 - `evaluateVisibilityCondition(condition)` - evaluates rules
 - `updateFieldVisibility(changedFieldId)` - updates DOM when dependencies change
@@ -512,7 +767,9 @@ Located in `src/components/Modal/Modal.ts`:
 - Works in both regular modals and wizard steps
 
 ### Wizard Step Indicators
+
 Visual indicators with circles, checkmarks, exclamation marks, and connector lines:
+
 - **Blue circle with number** = current step
 - **Green circle with checkmark (✓)** = completed steps with all required fields filled
 - **Red circle with exclamation (!)** = completed steps with missing required fields
@@ -520,13 +777,16 @@ Visual indicators with circles, checkmarks, exclamation marks, and connector lin
 - **Connector lines** = color-coded to match step state (blue, green, red, or gray)
 
 **Validation Logic:**
+
 - `validateStep(stepIndex)` checks all required fields in a step
 - Empty values trigger validation errors: `null`, `undefined`, `''`, or empty arrays `[]`
 - Indicators update automatically when field values change
 - `updateStepIndicator()` recalculates colors based on validation status
 
 ### Fluent UI Integration
+
 React components wrap Fluent UI v9 components:
+
 - `CheckboxFluentUi.tsx` - Switch component
 - `DatePickerFluentUi.tsx` - DatePicker
 - `DropdownFluentUi.tsx` - Dropdown
@@ -537,6 +797,7 @@ React components wrap Fluent UI v9 components:
 ## When Making Changes
 
 ### Adding New Field Types
+
 1. Add type to `FieldConfig['type']` in `Modal.types.ts`
 2. Add case to `createField()` in `Modal.ts`
 3. Create React wrapper in `components/FluentUi/` if needed
@@ -544,6 +805,7 @@ React components wrap Fluent UI v9 components:
 5. Add to demo page with code example
 
 ### Adding New Modal Features
+
 1. Update `ModalOptions` interface in `Modal.types.ts`
 2. Implement in `Modal.ts` class
 3. Update TypeScript definitions (`rollup.dts.config.js`)
@@ -551,6 +813,7 @@ React components wrap Fluent UI v9 components:
 5. Add demo with code viewer
 
 ### Updating Documentation
+
 1. **README.md** - User-facing documentation with examples
 2. **Demo page** - Interactive examples with copy-paste code
 3. **This file** - AI agent guide with architecture details
@@ -558,65 +821,71 @@ React components wrap Fluent UI v9 components:
 ## Common Patterns
 
 ### Form Validation
+
 ```javascript
 const modal = new uiLib.Modal({
   fields: [
-    { id: 'email', label: 'Email', type: 'email', required: true },
-    { id: 'phone', label: 'Phone', type: 'tel', required: true }
+    { id: "email", label: "Email", type: "email", required: true },
+    { id: "phone", label: "Phone", type: "tel", required: true },
   ],
   buttons: [
-    new uiLib.ModalButton('Submit', function() {
-      const email = modal.getFieldValue('email');
-      const phone = modal.getFieldValue('phone');
-      
-      if (!email || !phone) {
-        uiLib.Toast.error({ message: 'Please fill required fields' });
-        return false; // Keep modal open
-      }
-      
-      // Process data...
-      return true; // Close modal
-    }, true)
-  ]
+    new uiLib.Button(
+      "Submit",
+      function () {
+        const email = modal.getFieldValue("email");
+        const phone = modal.getFieldValue("phone");
+
+        if (!email || !phone) {
+          uiLib.Toast.error({ message: "Please fill required fields" });
+          return false; // Keep modal open
+        }
+
+        // Process data...
+        return true; // Close modal
+      },
+      true,
+    ),
+  ],
 });
 ```
 
 ### Address Lookup with Auto-Population
+
 ```javascript
 const modal = new uiLib.Modal({
   fields: [
-    { 
-      id: 'address', 
-      label: 'Search Address', 
-      type: 'addressLookup',
+    {
+      id: "address",
+      label: "Search Address",
+      type: "addressLookup",
       addressLookup: {
-        provider: 'google', // or 'azure'
-        apiKey: 'YOUR_API_KEY',
-        placeholder: 'Start typing...',
-        componentRestrictions: { country: ['nz', 'au'] }, // Optional: restrict to countries
+        provider: "google", // or 'azure'
+        apiKey: "YOUR_API_KEY",
+        placeholder: "Start typing...",
+        componentRestrictions: { country: ["nz", "au"] }, // Optional: restrict to countries
         fields: {
-          street: 'street',
-          city: 'city',
-          state: 'state',
-          postalCode: 'zip',
-          country: 'country',
-          latitude: 'lat',
-          longitude: 'lng'
+          street: "street",
+          city: "city",
+          state: "state",
+          postalCode: "zip",
+          country: "country",
+          latitude: "lat",
+          longitude: "lng",
         },
         onSelect: (address) => {
-          console.log('Selected:', address.formattedAddress);
-          // address object contains: formattedAddress, street, city, state, 
+          console.log("Selected:", address.formattedAddress);
+          // address object contains: formattedAddress, street, city, state,
           // postalCode, country, latitude, longitude
-        }
-      }
+        },
+      },
     },
     // These fields will be auto-populated (optional)
-    { id: 'street', label: 'Street', type: 'text' },
-    { id: 'city', label: 'City', type: 'text' },
-    { id: 'state', label: 'State', type: 'text' },
-    { id: 'zip', label: 'Postal Code', type: 'text' },
-    { id: 'country', label: 'Country', type: 'text' }
-  ]
+    { id: "street", label: "Street", type: "text" },
+    { id: "city", label: "City", type: "text" },
+    { id: "state", label: "State", type: "text" },
+    { id: "zip", label: "Postal Code", type: "text" },
+    { id: "country", label: "Country", type: "text" },
+  ],
 });
 
 // The library automatically:
@@ -628,20 +897,21 @@ const modal = new uiLib.Modal({
 ```
 
 ### Displaying Styled JSON in Modals
+
 The demo page includes a helper function for syntax-highlighted JSON output:
 
 ```javascript
 // Helper function (from Demo.tsx)
 const formatJsonWithStyle = (obj: any): string => {
   const json = JSON.stringify(obj, null, 2);
-  
+
   const highlighted = json
     .replace(/"([^"]+)":/g, '<span style="color: #0078d4; font-weight: bold;">"$1"</span>:') // Property names (blue)
     .replace(/: "([^"]*)"/g, ': <span style="color: #107c10;">"$1"</span>') // String values (green)
     .replace(/: (-?\d+\.?\d*)/g, ': <span style="color: #ca5010;">$1</span>') // Numbers (orange)
     .replace(/: (true|false)/g, ': <span style="color: #8764b8;">$1</span>') // Booleans (purple)
     .replace(/: null/g, ': <span style="color: #605e5c;">null</span>'); // Null (gray)
-  
+
   return `<pre style="background: #f3f2f1; padding: 20px; border-radius: 6px; overflow: auto; max-height: 500px; text-align: left; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.6; border: 1px solid #e1dfdd;">${highlighted}</pre>`;
 };
 
@@ -652,23 +922,25 @@ uiLib.ModalHelpers.alert('Form Data', formatJsonWithStyle(data));
 **Note:** The `uiLib.ModalHelpers.alert()` function uses `content` property (innerHTML) instead of `message` (textContent), allowing HTML rendering for styled JSON output.
 
 ### Multi-Step Wizard with Validation
+
 ```javascript
 const wizard = new uiLib.Modal({
   progress: { enabled: true, currentStep: 1, steps: [...] },
   buttons: [
-    new uiLib.ModalButton('Previous', () => { wizard.previousStep(); return false; }),
-    new uiLib.ModalButton('Next', () => { 
+    new uiLib.Button('Previous', () => { wizard.previousStep(); return false; }),
+    new uiLib.Button('Next', () => {
       if (validateCurrentStep()) {
-        wizard.nextStep(); 
+        wizard.nextStep();
       }
-      return false; 
+      return false;
     }),
-    new uiLib.ModalButton('Finish', () => { submitForm(); }, true)
+    new uiLib.Button('Finish', () => { submitForm(); }, true)
   ]
 });
 ```
 
 ### Dynamic Field Updates
+
 ```javascript
 const modal = new uiLib.Modal({ fields: [...] });
 modal.show();
@@ -682,6 +954,7 @@ const status = modal.getFieldValue('status');
 ```
 
 ### Dynamic Button Updates
+
 The library provides a chainable API for manipulating buttons after a modal is created. All button methods return `this` for fluent chaining.
 
 **IMPORTANT: Always use button IDs** for reliable identification. Labels can change (e.g., "Submit" → "Saving..."), breaking lookups.
@@ -691,32 +964,30 @@ const modal = new uiLib.Modal({
   title: 'Process Data',
   fields: [...],
   buttons: [
-    new uiLib.ModalButton('Cancel', () => true),  // Auto-ID: 'cancel'
-    new uiLib.ModalButton('Submit', function() {  // Auto-ID: 'submit'
+    new uiLib.Button('Cancel', () => true, false, false, false, 'cancelBtn'),
+    new uiLib.Button('Submit', function() {
       // Process...
-    }, true)
-    // Or provide explicit ID as 6th parameter:
-    // new uiLib.ModalButton('Submit', callback, true, false, false, 'submitBtn')
+    }, true, false, false, 'submitBtn')
   ]
 });
 modal.show();
 
 // Get a button by ID (recommended), label, or index (0-based)
-const submitBtn = modal.getButton('submit');  // Auto-generated ID
-// or modal.getButton('submitBtn')  // Explicit ID if provided
+const submitBtn = modal.getButton('submitBtn');  // Explicit ID (BEST)
 // or modal.getButton('Submit')     // Label (unreliable if label changes)
 // or modal.getButton(1)            // Index (less readable)
 
 if (submitBtn) {
   // All methods are chainable
   submitBtn.setLabel('Processing...').disable();
-  
+
   // After async operation
   submitBtn.setLabel('Submit').enable();
 }
 ```
 
 **Available Button Methods (All Chainable):**
+
 - `setLabel(text: string)` - Change button text
 - `setDisabled(disabled: boolean)` - Enable/disable button
 - `setVisible(visible: boolean)` - Show/hide button
@@ -726,129 +997,184 @@ if (submitBtn) {
 - `hide()` - Shorthand for `setVisible(false)`
 
 **Button Identification (Priority Order):**
+
 1. **By ID (Strongly Recommended)**: `modal.getButton('submitBtn')` - Most reliable, survives label changes
 2. **By Label**: `modal.getButton('Submit')` - Works but breaks if label changes
 3. **By Index**: `modal.getButton(1)` - Works but less readable and fragile if button order changes
 
-**Auto-Generated IDs:**
-If no ID is provided, the button ID is auto-generated from the label (lowercase, spaces removed):
-- Label: "Save" → ID: "save"
-- Label: "Submit Form" → ID: "submitform"
-- Label: "Cancel" → ID: "cancel"
+**Best Practice: Always Provide Explicit IDs**
 
-**ModalButton Constructor:**
+While the library can auto-generate IDs from labels (e.g., "Submit" → "submit"), **always provide explicit IDs** as the 6th parameter. This makes your code:
+
+- **Self-documenting** - Other developers understand the code without knowing auto-generation rules
+- **Maintainable** - Code remains readable even if someone unfamiliar with the library reviews it
+- **Explicit** - No hidden magic or assumptions about how IDs are created
+
 ```javascript
-new uiLib.ModalButton(
+// ❌ BAD: Relies on auto-generation (other devs need to know the library internals)
+new uiLib.Button("Submit", callback, true);
+modal.getButton("submit"); // Where did 'submit' come from?
+
+// ✅ GOOD: Explicit ID makes code self-documenting
+new uiLib.Button("Submit", callback, true, false, false, "submitBtn");
+modal.getButton("submitBtn"); // Clear and obvious
+```
+
+**Button Constructor:**
+
+The Button class supports **two styles** for maximum flexibility:
+
+**1. Object-style (Recommended - Self-documenting):**
+
+```javascript
+new uiLib.Button({
+  label: "Save Record", // Required - button text
+  callback: () => {
+    /* ... */
+  }, // Required - click handler
+  setFocus: true, // Optional - makes this the primary (blue) button
+  preventClose: false, // Optional - if true, button won't close modal automatically
+  isDestructive: false, // Optional - if true, button appears red (warning style)
+  id: "saveBtn", // Optional but STRONGLY RECOMMENDED - unique identifier
+});
+
+// Minimal version (only required properties):
+new uiLib.Button({
+  label: "Cancel",
+  callback: () => {},
+  id: "cancelBtn",
+});
+```
+
+**2. Positional parameters (Traditional - Backward compatible):**
+
+```javascript
+new uiLib.Button(
   label: string,           // Button text
   callback: function,      // Click handler
-  setFocus: boolean,       // Auto-focus this button
+  setFocus: boolean,       // Auto-focus this button (makes it blue/primary)
   preventClose: boolean,   // Keep modal open on click
-  isDestructive: boolean,  // Red warning style
+  isDestructive: boolean,  // Red danger style
   id?: string              // Optional unique identifier (RECOMMENDED)
 )
 ```
 
+**Best Practice:** Always provide explicit button IDs for maintainable code. Button references remain reliable even when labels change dynamically (e.g., "Submit" → "Saving...").
+
 **Practical Example (Async Operation):**
+
 ```javascript
 const modal = new uiLib.Modal({
-  title: 'Save Record',
-  fields: [
-    { id: 'name', label: 'Name', type: 'text', required: true }
-  ],
+  title: "Save Record",
+  fields: [{ id: "name", label: "Name", type: "text", required: true }],
   buttons: [
-    new uiLib.ModalButton('Cancel', () => true),  // Auto-ID: 'cancel'
-    new uiLib.ModalButton('Save', async function() {  // Auto-ID: 'save'
-      const name = modal.getFieldValue('name');
-      if (!name) {
-        uiLib.Toast.error({ message: 'Name is required' });
-        return false;
-      }
-      
-      // Update button during async operation (using auto-generated ID)
-      modal.getButton('save')
-        .setLabel('Saving...')
-        .disable();
-      
-      try {
-        await saveToD365(name);
-        uiLib.Toast.success({ message: 'Saved successfully' });
-        return true; // Close modal
-      } catch (error) {
-        uiLib.Toast.error({ message: 'Save failed: ' + error.message });
-        
-        // Restore button on error (ID still works even though label changed)
-        modal.getButton('save')
-          .setLabel('Save')
-          .enable();
-        
-        return false; // Keep modal open
-      }
-    }, true)
-  ]
+    new uiLib.Button("Cancel", () => true, false, false, false, "cancelBtn"),
+    new uiLib.Button(
+      "Save",
+      async function () {
+        const name = modal.getFieldValue("name");
+        if (!name) {
+          uiLib.Toast.error({ message: "Name is required" });
+          return false;
+        }
+
+        // Update button during async operation
+        modal.getButton("saveBtn").setLabel("Saving...").disable();
+
+        try {
+          await saveToD365(name);
+          uiLib.Toast.success({ message: "Saved successfully" });
+          return true; // Close modal
+        } catch (error) {
+          uiLib.Toast.error({ message: "Save failed: " + error.message });
+
+          // Restore button on error (ID still works even though label changed)
+          modal.getButton("saveBtn").setLabel("Save").enable();
+
+          return false; // Keep modal open
+        }
+      },
+      true,
+      false,
+      false,
+      "saveBtn",
+    ),
+  ],
 });
 ```
 
 **Wizard Step Navigation Example:**
+
 ```javascript
 const wizard = new uiLib.Modal({
   progress: { enabled: true, currentStep: 1, steps: [...] },
   buttons: [
-    new uiLib.ModalButton('Previous', () => { wizard.previousStep(); return false; }),  // Auto-ID: 'previous'
-    new uiLib.ModalButton('Next', () => { wizard.nextStep(); return false; }),  // Auto-ID: 'next'
-    new uiLib.ModalButton('Finish', () => { submitForm(); }, true)  // Auto-ID: 'finish'
+    new uiLib.Button('Previous', () => { wizard.previousStep(); return false; }, false, false, false, 'prevBtn'),
+    new uiLib.Button('Next', () => { wizard.nextStep(); return false; }, false, false, false, 'nextBtn'),
+    new uiLib.Button('Finish', () => { submitForm(); }, true, false, false, 'finishBtn')
   ]
 });
 wizard.show();
 
-// Manage button visibility based on step (using auto-generated IDs)
-wizard.getButton('previous').hide();  // Hide on first step
+// Manage button visibility based on step
+wizard.getButton('prevBtn').hide();  // Hide on first step
 
 // Later in nextStep/previousStep handlers
 if (currentStep === 1) {
-  wizard.getButton('previous').hide();
-  wizard.getButton('next').show();
-  wizard.getButton('finish').hide();
+  wizard.getButton('prevBtn').hide();
+  wizard.getButton('nextBtn').show();
+  wizard.getButton('finishBtn').hide();
 } else if (currentStep === lastStep) {
-  wizard.getButton('previous').show();
-  wizard.getButton('next').hide();
-  wizard.getButton('finish').show();
+  wizard.getButton('prevBtn').show();
+  wizard.getButton('nextBtn').hide();
+  wizard.getButton('finishBtn').show();
 }
 ```
 
 ## Common Issues & Solutions
 
 ### Library Not Found in Iframe
+
 **Symptom:** `uiLib is not defined` in form script or web resource
-**Solution:** 
+**Solution:**
+
 - Library auto-detects parent window automatically
 - Check if library is added to form libraries (Form Properties → Form Libraries)
 - Ensure library is first in the list (loads before scripts)
 - Use safe check: `if (typeof uiLib !== 'undefined')`
 
 ### CSS Not Loading
+
 **Symptom:** Components appear unstyled
 **Solution:**
+
 - Check `health.cssLoaded` from `uiLib.init(executionContext)`
 - Verify `err403_/ui-lib.styles.css` web resource is deployed
 - Clear browser cache (Ctrl+Shift+R)
 
 ### Modal Won't Show
+
 **Symptom:** `modal.show()` doesn't display modal
 **Solution:**
+
 - Check for JavaScript errors in browser console
 - Verify field configurations are valid
 - Test with simple alert: `uiLib.Modal.alert('Test', 'Message')`
 
 ### Dynamic Table Updates
+
 **Symptom:** Table data doesn't update when calling `setFieldValue`
 **Solution:**
+
 - Use: `modal.setFieldValue('tableId', newDataArray)`
 - Library automatically triggers React re-render
 - Ensure data is an array of objects with unique IDs
 
 ### Conditional Visibility Not Working
+
 **Symptom:** Fields don't show/hide based on `visibleWhen`
 **Solution:**
+
 - Check `field` property matches the exact field ID being watched
 - Verify `operator` is valid: equals, notEquals, contains, greaterThan, lessThan, truthy, falsy
 - Ensure `value` type matches expected value (string, number, boolean)
@@ -867,19 +1193,22 @@ if (currentStep === 1) {
 10. **Check health state** - Use returned health object to verify CSS loaded
 
 ## Version Management
+
 - Version format: `YYYY.MM.DD.NN` (e.g., 2026.01.24.01)
 - Versions tracked in `package.json`
 - GitHub releases created via GitHub Actions
 - D365 solution version matches package version
 
 ## Deployment
+
 - **Development**: Local Vite dev server
 - **Testing**: Import solution ZIP into test environment
 - **Production**: Import solution ZIP into production environment
 - **CI/CD**: GitHub Actions builds and releases on tag push
 
 ## Support Resources
+
 - **Demo**: http://localhost:5177/pages/demo.html
-- **Tests**: http://localhost:5177/pages/tests.html  
+- **Tests**: http://localhost:5177/pages/tests.html
 - **README**: Complete examples and API reference
 - **TypeScript**: Full IntelliSense support with `.d.ts` files

@@ -19,7 +19,8 @@ import {
     Lookup as LookupField,
     Custom,
     Group,
-    Table
+    Table,
+    File
 } from './components/Modal/ModalFields';
 import { initializeFluentProvider, d365Theme, FluentProvider } from './providers/FluentProvider';
 
@@ -210,6 +211,7 @@ export {
     Custom,
     Group,
     Table,
+    File,
     // Fluent UI integration
     FluentProvider,
     d365Theme
@@ -242,6 +244,7 @@ if (typeof window !== 'undefined') {
         Custom,
         Group,
         Table,
+        File,
         // Alias Button for ModalButton
         Button: ModalButton,
         // Fluent UI integration

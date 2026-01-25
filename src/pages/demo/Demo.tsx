@@ -282,7 +282,25 @@ export const Demo: React.FC = () => {
         { id: 'rangeInput', label: 'Range Slider', type: 'range', value: 50, showValue: true, extraAttributes: { min: 0, max: 100, step: 5 } },
         { id: 'textarea', label: 'Multi-line Text', type: 'textarea', rows: 3, placeholder: 'Enter notes' },
         { id: 'optionset', label: 'Status (Dropdown)', type: 'select', options: ['Draft', 'Active', 'Inactive'], value: 'Active', displayMode: 'dropdown' },
-        { id: 'priority', label: 'Priority (Badges)', type: 'select', options: ['Low', 'Medium', 'High', 'Critical'], value: 'Medium', displayMode: 'badges' }
+        { id: 'priority', label: 'Priority (Badges)', type: 'select', options: ['Low', 'Medium', 'High', 'Critical'], value: 'Medium', displayMode: 'badges' },
+        { 
+          id: 'fileUpload', 
+          label: 'File Upload (Drag & Drop)', 
+          type: 'file',
+          fileUpload: {
+            accept: '.pdf,.doc,.docx,.xls,.xlsx,image/*',
+            maxFiles: 5,
+            maxSize: 5242880, // 5MB
+            multiple: true,
+            showFileList: true,
+            dragDropText: 'Drag and drop files here',
+            browseText: 'or browse to choose files',
+            onFilesSelected: (files) => {
+              console.log(`${files.length} file(s) selected:`, files.map(f => f.name));
+              err403.Toast.info({ title: 'Files Selected', message: `${files.length} file(s) ready to upload` });
+            }
+          }
+        }
       ],
       buttons: [
         new err403.ModalButton('Close', () => {}),
@@ -515,7 +533,83 @@ export const Demo: React.FC = () => {
     modal.show();
   };
 
-  // Comprehensive Showcase Demo with Wizard
+  // File Upload Demo with Drag & Drop
+  const showFileUploadDemo = () => {
+    const modal = new err403.Modal({
+      title: 'Upload Documents',
+      size: 'large',
+      fields: [
+        { 
+          id: 'documents', 
+          label: 'Business Documents', 
+          type: 'file',
+          required: true,
+          fileUpload: {
+            accept: '.pdf,.doc,.docx,.xls,.xlsx',
+            maxFiles: 10,
+            maxSize: 10485760, // 10MB per file
+            multiple: true,
+            showFileList: true,
+            dragDropText: 'Drag and drop documents here',
+            browseText: 'or click to browse',
+            onFilesSelected: (files) => {
+              console.log('Files selected:', files.map(f => ({ name: f.name, size: f.size })));
+              const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+              const totalMB = (totalSize / 1048576).toFixed(2);
+              err403.Toast.info({ 
+                title: 'Files Ready', 
+                message: `${files.length} file(s) selected (${totalMB} MB total)`,
+                duration: 4000
+              });
+            }
+          }
+        },
+        { 
+          id: 'images', 
+          label: 'Product Images', 
+          type: 'file',
+          fileUpload: {
+            accept: 'image/*',
+            maxFiles: 5,
+            maxSize: 5242880, // 5MB per file
+            multiple: true,
+            dragDropText: 'Drop product images here',
+            browseText: 'or select image files'
+          }
+        },
+        { id: 'description', label: 'Description', type: 'textarea', rows: 3, placeholder: 'Add a description for the uploaded files...' }
+      ],
+      buttons: [
+        new err403.ModalButton('Cancel', () => {}),
+        new err403.ModalButton('Upload', () => {
+          const documents = modal.getFieldValue('documents');
+          const images = modal.getFieldValue('images');
+          const description = modal.getFieldValue('description');
+          
+          if (!documents || documents.length === 0) {
+            err403.Toast.error({ title: 'No Documents', message: 'Please select at least one document to upload' });
+            return false;
+          }
+          
+          console.log('Uploading files:', { 
+            documents: documents.map(f => f.name),
+            images: images?.map(f => f.name) || [],
+            description 
+          });
+          
+          err403.Toast.success({ 
+            title: 'Upload Started', 
+            message: `Uploading ${documents.length + (images?.length || 0)} file(s)...`,
+            sound: true
+          });
+          
+          return true;
+        }, true)
+      ]
+    });
+    modal.show();
+  };
+
   const showComprehensiveDemo = () => {
     const productData = [
       { id: 1, product: 'Surface Laptop 5', category: 'Hardware', price: 1299, stock: 45, active: true },
@@ -526,7 +620,8 @@ export const Demo: React.FC = () => {
 
     const modal = new err403.Modal({
       title: '🧙 Wizard Demo - Multi-Step Form',
-      message: 'This wizard demonstrates step-by-step navigation with progress tracking.',
+      message: 'This is the parent modal message that appears above the step indicators. It stays visible throughout the entire wizard.',
+      content: '<div style="padding: 12px; background: #f3f2f1; border-radius: 4px; margin-bottom: 8px;"><strong>Modal Content:</strong> You can also add HTML content at the modal level. This is useful for instructions that apply to all steps.</div>',
       size: 'large',
       draggable: true,
       progress: {
@@ -539,6 +634,8 @@ export const Demo: React.FC = () => {
           {
             id: 'step1',
             label: 'Basic Info',
+            message: 'Step 1: Please provide basic company information below.',
+            content: '<small style="color: #605e5c;">All fields with asterisk (*) are required.</small>',
             fields: [
               { id: 'companyName', label: 'Company Name', type: 'text', required: true, placeholder: 'Enter company name', value: 'Contoso Ltd' },
               { id: 'industry', label: 'Industry', type: 'select', options: ['Technology', 'Manufacturing', 'Retail', 'Healthcare', 'Finance'], value: 'Technology' },
@@ -549,6 +646,8 @@ export const Demo: React.FC = () => {
           {
             id: 'step2',
             label: 'Business Details',
+            message: 'Step 2: Tell us more about your business operations.',
+            content: '<small style="color: #605e5c;">This information helps us tailor our services to your needs.</small>',
             fields: [
               { id: 'revenue', label: 'Annual Revenue', type: 'number', required: true, placeholder: 'Enter revenue (required)' },
               { id: 'employees', label: 'Number of Employees', type: 'number', required: true, value: 250 },
@@ -570,6 +669,8 @@ export const Demo: React.FC = () => {
           {
             id: 'step3',
             label: 'Product Selection',
+            message: 'Step 3: Select the products you are interested in.',
+            content: '<small style="color: #605e5c;">You can select multiple products from the table below.</small>',
             fields: [
               new err403.Table({
                 id: 'productTable',
@@ -587,6 +688,8 @@ export const Demo: React.FC = () => {
           {
             id: 'step4',
             label: 'Preferences',
+            message: 'Step 4: Configure your communication preferences and upload supporting documents.',
+            content: '<small style="color: #605e5c;">These preferences can be changed later in your account settings.</small>',
             fields: [
               { 
                 id: 'allowMarketing', 
@@ -594,6 +697,22 @@ export const Demo: React.FC = () => {
                 type: 'switch', 
                 value: true,
                 tooltip: 'Toggle to show/hide marketing preference options'
+              },
+              { 
+                id: 'attachments', 
+                label: 'Supporting Documents', 
+                type: 'file',
+                fileUpload: {
+                  accept: '.pdf,.doc,.docx',
+                  maxFiles: 3,
+                  maxSize: 10485760, // 10MB
+                  multiple: true,
+                  dragDropText: 'Drop business documents here',
+                  browseText: 'or click to browse (.pdf, .doc, .docx)',
+                  onFilesSelected: (files) => {
+                    console.log('Documents selected:', files);
+                  }
+                }
               },
               { 
                 id: 'emailNotifications', 
@@ -827,49 +946,25 @@ const addressModal = new err403.Modal({
   ]
 });
 
-// Wizard Modal with Steps
-const wizardModal = new err403.Modal({
-  title: "Setup Wizard",
-  size: "large",
-  progress: {
-    enabled: true,
-    currentStep: 1,
-    allowStepNavigation: true,
-    steps: [
-      {
-        id: 'step1',
-        label: 'Basic Info',
-        fields: [
-          { id: 'companyName', label: 'Company Name', type: 'text', required: true },
-          { id: 'industry', label: 'Industry', type: 'select', options: ['Tech', 'Retail'] }
-        ]
-      },
-      {
-        id: 'step2',
-        label: 'Contact Details',
-        fields: [
-          { id: 'email', label: 'Email', type: 'email' },
-          { id: 'phone', label: 'Phone', type: 'tel' }
-        ]
-      }
-    ]
-  },
-  buttons: [
-    new err403.ModalButton('Previous', () => { wizardModal.previousStep(); return false; }),
-    new err403.ModalButton('Next', () => { wizardModal.nextStep(); return false; }),
-    new err403.ModalButton('Finish', () => true, true)
-  ]
-});
-
-// Conditional Field Visibility
-const conditionalModal = new err403.Modal({
-  title: "Settings",
+// File Upload with Drag & Drop
+const uploadModal = new err403.Modal({
+  title: "Upload Documents",
   fields: [
-    { id: 'enableNotifications', label: 'Enable Notifications', type: 'switch', value: true },
-    { id: 'email', label: 'Email', type: 'text',
-      visibleWhen: { field: 'enableNotifications', operator: 'truthy' } },
-    { id: 'sms', label: 'SMS', type: 'text',
-      visibleWhen: { field: 'enableNotifications', operator: 'truthy' } }
+    { 
+      id: 'files', 
+      label: 'Documents', 
+      type: 'file',
+      fileUpload: {
+        accept: '.pdf,.doc,.docx',
+        maxFiles: 5,
+        maxSize: 10485760, // 10MB
+        multiple: true,
+        dragDropText: 'Drag files here',
+        onFilesSelected: (files) => {
+          console.log('Selected:', files);
+        }
+      }
+    }
   ]
 });`}
         >
@@ -884,6 +979,7 @@ const conditionalModal = new err403.Modal({
               <button className="d365-btn d365-btn--primary" onClick={showSimpleForm}>Simple Form</button>
               <button className="d365-btn d365-btn--primary" onClick={showAllFieldTypes}>All Field Types</button>
               <button className="d365-btn d365-btn--primary d365-btn--highlight" onClick={showAddressLookupForm}>📍 Address Lookup</button>
+              <button className="d365-btn d365-btn--primary d365-btn--highlight" onClick={showFileUploadDemo}>📎 File Upload</button>
             </div>
           </Section>
           <Section title="Advanced Features">

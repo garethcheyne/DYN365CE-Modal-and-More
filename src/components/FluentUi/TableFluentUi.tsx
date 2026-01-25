@@ -87,10 +87,10 @@ const useStyles = makeStyles({
       },
     },
     '& .fui-DataGridCell': {
-      padding: '8px 12px',
       fontSize: '14px',
       color: '#323130',
       borderRight: 'none',
+      overflow: 'hidden',
     },
     '& .fui-DataGridRow': {
       borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
@@ -103,8 +103,8 @@ const useStyles = makeStyles({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    maxWidth: '100%',
-    display: 'block',
+    width: '100%',
+    display: 'inline-block',
   },
   emptyState: {
     padding: tokens.spacingVerticalXXL,
@@ -428,6 +428,20 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     );
   };
 
+  // Create column sizing options from column widths
+  const columnSizingOptions = useMemo(() => {
+    const sizing: { [key: string]: { minWidth?: number; defaultWidth?: number; idealWidth?: number } } = {};
+    (config.tableColumns || []).forEach(col => {
+      if (col.width) {
+        sizing[col.id] = {
+          minWidth: 50,
+          idealWidth: parseInt(col.width) || undefined,
+        };
+      }
+    });
+    return sizing;
+  }, [config.tableColumns]);
+
   // Define columns
   const columns: TableColumnDefinition<TableRow>[] = useMemo(() => {
     const cols: TableColumnDefinition<TableRow>[] = [];
@@ -462,18 +476,16 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
             // If the value is a string that looks like HTML, render it as HTML
             if (typeof cellValue === 'string' && (cellValue.includes('<') || cellValue.includes('&'))) {
               return (
-                <TableCellLayout>
-                  <span className={styles.truncatedCell} dangerouslySetInnerHTML={{ __html: cellValue }} />
+                <TableCellLayout truncate>
+                  <div className={styles.truncatedCell} dangerouslySetInnerHTML={{ __html: cellValue }} />
                 </TableCellLayout>
               );
             }
             
             // Otherwise render as text
             return (
-              <TableCellLayout>
-                <span className={styles.truncatedCell} title={cellValue != null ? String(cellValue) : ''}>
-                  {cellValue != null ? String(cellValue) : ''}
-                </span>
+              <TableCellLayout truncate title={cellValue != null ? String(cellValue) : ''}>
+                {cellValue != null ? String(cellValue) : ''}
               </TableCellLayout>
             );
           },
@@ -520,6 +532,8 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
         items={sortedData}
         columns={columns as any}
         sortable
+        resizableColumns
+        columnSizingOptions={columnSizingOptions}
         {...(sortOptions && {
           sortState: sortOptions,
           onSortChange: (_, data) => {
