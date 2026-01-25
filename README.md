@@ -1,6 +1,6 @@
 # UI Library for Dynamics 365
 
-<p align="center">
+<p align="center" style="margin: 30px 0;">
   <img src="./assets/brand.svg" alt="UI Library for Dynamics 365" width="400">
 </p>
 
@@ -24,12 +24,15 @@ Stop wrestling with custom HTML and CSS. This library provides production-ready 
 ## What's Included
 
 ### 🍞 Toast Notifications
+
 Show success messages, warnings, and errors that appear in the top-right corner, just like D365's native notifications. Perfect for confirming actions, displaying errors, or keeping users informed.
 
 ### 🪟 Modal Dialogs
+
 Create professional forms, wizards, and confirmation dialogs with full validation, tabs, progress indicators, conditional field visibility and requirements, and custom fields. Build complex data entry experiences that feel native to D365.
 
 **Key Features:**
+
 - ✨ **Conditional Field Visibility** - Show/hide fields based on other field values
 - 🔒 **Conditional Required Fields** - Make fields required based on other field values
 - 🧙 **Visual Wizard Steps** - Step indicators with circles, checkmarks, and validation states
@@ -40,7 +43,9 @@ Create professional forms, wizards, and confirmation dialogs with full validatio
 - 🏷️ **Badge Display Mode** - Show dropdown options as clickable badges
 
 ### 🔍 Advanced Lookups
+
 Powerful record selection with two modes:
+
 - **Inline Dropdown Lookup** - Search and select records in a dropdown (D365 native style)
 - **Modal Dialog Lookup** - Full-screen lookup with table, search, filter, and multi-select
 
@@ -75,6 +80,7 @@ uiLib.Toast.success({ title: 'Done!', message: 'Record saved' });
 ```
 
 **Benefits:**
+
 - No React knowledge required
 - No build process for your code
 - Automatic D365 theme matching
@@ -85,9 +91,11 @@ uiLib.Toast.success({ title: 'Done!', message: 'Record saved' });
 ### Quick Start (3 Steps)
 
 **Step 1:** Download the solution package from the [releases](releases/) folder:
+
 - `err403UILibrary_1_0_0.zip`
 
 **Step 2:** Import into your Dynamics 365 environment:
+
 1. Navigate to **Settings → Solutions**
 2. Click **Import**
 3. Select the downloaded zip file
@@ -121,6 +129,7 @@ uiLib.Toast.success({ message: 'Also works!' });
 ### Common D365 Integration Scenarios
 
 **Scenario 1: Form OnLoad Event (Main Form)**
+
 ```javascript
 // In your form's OnLoad event handler
 function myFormOnLoad(executionContext) {
@@ -146,6 +155,7 @@ function myFormOnLoad(executionContext) {
 ```
 
 **Scenario 2: Field OnChange Event**
+
 ```javascript
 // In a field's OnChange handler
 function onIndustryChange(executionContext) {
@@ -162,6 +172,7 @@ function onIndustryChange(executionContext) {
 ```
 
 **Scenario 3: Ribbon Button Command**
+
 ```javascript
 // In a ribbon button command function
 function onCustomButtonClick() {
@@ -188,6 +199,7 @@ function onCustomButtonClick() {
 ```
 
 **Scenario 4: Web Resource in Iframe**
+
 ```javascript
 // Custom HTML web resource embedded in form iframe
 // The library auto-detects it's in an iframe and finds the parent instance
@@ -210,6 +222,7 @@ window.addEventListener('DOMContentLoaded', initCustomWebResource);
 ```
 
 **Scenario 5: Business Rule Alternative**
+
 ```javascript
 // Use instead of business rules for complex logic
 function onAccountTypeChange(executionContext) {
@@ -234,6 +247,7 @@ function onAccountTypeChange(executionContext) {
 ### Try the Demo
 
 See the library in action:
+
 - **Demo Page:** `https://[your-org].dynamics.com/WebResources/err403_/demo.html`
 - **Test Suite:** `https://[your-org].dynamics.com/WebResources/err403_/tests.html`
 
@@ -1083,6 +1097,7 @@ function showContactsTable() {
 ```
 
 **Dynamic table updates:**
+
 ```javascript
 // Update table data programmatically
 function refreshTableData() {
@@ -1106,6 +1121,7 @@ function addContact() {
 ```
 
 **Table features:**
+
 - **Sortable columns**: Click column headers to sort (supports text and numeric sorting)
 - **Row selection**: Single or multiple row selection modes
 - **Column visibility**: Show/hide specific columns
@@ -1115,6 +1131,7 @@ function addContact() {
 - **HTML rendering**: Cell values containing HTML tags are automatically rendered with styling
 
 **Example with styled HTML in cells:**
+
 ```javascript
 const dataWithStyledValues = [
   { 
@@ -1243,6 +1260,7 @@ function editAccountDetails(accountId) {
 ```
 
 **Using `setFieldValue` dynamically:**
+
 ```javascript
 // Update a field based on another field's value
 function onCityChange(executionContext) {
@@ -1328,6 +1346,7 @@ function onFormLoad(executionContext) {
 ```
 
 **Health State Properties:**
+
 - `loaded` - Library initialization completed successfully
 - `cssLoaded` - CSS stylesheet was found and loaded
 - `inWindow` - Library is available as `window.uiLib` (and `window.err403` for backward compatibility)
@@ -1340,6 +1359,7 @@ function onFormLoad(executionContext) {
 ### Iframe Support (Dynamics 365)
 
 The library automatically handles Dynamics 365's complex iframe architecture. D365 forms often have multiple iframes:
+
 - **Main form iframe** - Contains form fields and tabs
 - **Quick view forms** - Embedded iframes showing related records
 - **Web resources** - Custom HTML pages in iframes
@@ -1419,6 +1439,7 @@ if (typeof uiLib !== 'undefined') {
 ```
 
 **Simple Usage (Recommended):**
+
 ```javascript
 // ✅ Works in any iframe - library auto-detects parent instance
 function onFormLoad(executionContext) {
@@ -1432,12 +1453,14 @@ function onFormLoad(executionContext) {
 ```
 
 **What Happens Behind the Scenes:**
+
 - **Main window/parent iframe**: Library loads and exposes `window.uiLib` (and `window.err403`)
 - **Child iframe A**: Script runs → library detects parent instance → assigns to `window.uiLib`
 - **Child iframe B**: Script runs → library detects parent instance → assigns to `window.uiLib`
 - **Result**: All iframes share the same library instance
 
 **Before (Complex Parent Detection) ❌:**
+
 ```javascript
 // Old approach - NO LONGER NEEDED
 const libraryInstance = (typeof uiLib !== 'undefined' && uiLib) ||
@@ -1450,6 +1473,7 @@ if (libraryInstance) {
 ```
 
 **After (Auto-Detection) ✅:**
+
 ```javascript
 // New approach - library handles parent detection automatically
 if (typeof uiLib !== 'undefined') {
@@ -1458,6 +1482,7 @@ if (typeof uiLib !== 'undefined') {
 ```
 
 **Manual Parent Window Detection (Optional):**
+
 ```javascript
 // Use findInstance() if you need explicit control
 const libraryInstance = uiLib.findInstance();
@@ -1467,6 +1492,7 @@ if (libraryInstance) {
 ```
 
 **Key Benefits:**
+
 - ✅ Scripts in different iframes can use the library without knowing where it's loaded
 - ✅ No duplicate library instances across iframes
 - ✅ Simpler, cleaner consumer code
@@ -1479,6 +1505,7 @@ if (libraryInstance) {
 Add the library to your form's Form Libraries, then use it in event handlers:
 
 **OnLoad Event:**
+
 ```javascript
 function onFormLoad(executionContext) {
   // Initialize library and get health state
@@ -1500,6 +1527,7 @@ function onFormLoad(executionContext) {
 ```
 
 **OnChange Event:**
+
 ```javascript
 function onAccountTypeChange(executionContext) {
   var formContext = executionContext.getFormContext();
@@ -1516,6 +1544,7 @@ function onAccountTypeChange(executionContext) {
 ```
 
 **Ribbon Button:**
+
 ```javascript
 function onRibbonButtonClick() {
   var selectedRecords = Xrm.Page.getControl('grid').getGrid().getSelectedRows();
@@ -1542,6 +1571,7 @@ function onRibbonButtonClick() {
 ### Toast
 
 **Show a toast notification:**
+
 ```javascript
 uiLib.Toast.show({
   type: 'success' | 'info' | 'warn' | 'error' | 'custom',
@@ -1553,6 +1583,7 @@ uiLib.Toast.show({
 ```
 
 **Convenience methods:**
+
 ```javascript
 uiLib.Toast.success({ message: 'Success!' });
 uiLib.Toast.info({ message: 'Info message' });
@@ -1563,6 +1594,7 @@ uiLib.Toast.error({ message: 'Error occurred' });
 ### Modal
 
 **Create a modal:**
+
 ```javascript
 const modal = new uiLib.Modal({
   title: 'Title',
@@ -1587,6 +1619,7 @@ modal.show();
 ```
 
 **Modal Methods:**
+
 ```javascript
 // Get field values
 const value = modal.getFieldValue('fieldId');
@@ -1636,6 +1669,7 @@ modal.setLoading(false);
 ```
 
 **Button Manipulation Example:**
+
 ```javascript
 const modal = new uiLib.Modal({
   title: 'Save Record',
@@ -1680,12 +1714,14 @@ The library automatically validates wizard steps and provides visual feedback:
 - **Connector lines** = color-coded to match step state (blue/green/red/gray)
 
 **Automatic Validation:**
+
 - Steps are validated automatically when field values change
 - Required fields are checked: empty values (null, undefined, '', empty arrays) trigger red indicator
 - Step indicators update in real-time as users fill in or clear required fields
 - No manual validation code needed - the library handles it automatically
 
 **Example:**
+
 ```javascript
 new uiLib.Modal({
   progress: {
@@ -1714,6 +1750,7 @@ new uiLib.Modal({
 ```
 
 **Field Configuration:**
+
 ```javascript
 // All field types support:
 {
@@ -1872,6 +1909,7 @@ new uiLib.Table({
 ```
 
 **Button helper:**
+
 ```javascript
 new uiLib.ModalButton(
   'Label',
@@ -1886,12 +1924,14 @@ new uiLib.ModalButton(
 ```
 
 **Static methods:**
+
 ```javascript
 uiLib.Modal.alert('Title', 'Message').then(() => { /* closed */ });
 uiLib.Modal.confirm('Title', 'Message').then((confirmed) => { /* boolean */ });
 ```
 
 **Modal methods:**
+
 ```javascript
 modal.show();
 modal.close();
@@ -1907,6 +1947,7 @@ modal.previousStep(); // For wizards
 ### Lookup
 
 **Open a lookup:**
+
 ```javascript
 uiLib.Lookup.open({
   entity: 'account',
@@ -1926,6 +1967,7 @@ uiLib.Lookup.open({
 ### Logger
 
 **Console logging with prefixes:**
+
 ```javascript
 console.log(...uiLib.BUG, 'Debug message', data);
 console.warn(...uiLib.WAR, 'Warning message');
@@ -1941,6 +1983,7 @@ console.error(...uiLib.ERR, 'Error message', error);
 **Problem:** `uiLib is not defined` or `Cannot read property 'Toast' of undefined`
 
 **Solutions:**
+
 1. **Check form libraries:** Ensure `err403_/ui-lib.min.js` is added to form's library list
 2. **Check library order:** Library should be first in the list (loads before your scripts)
 3. **Wait for load:** Use `if (typeof uiLib !== 'undefined')` check
@@ -1964,6 +2007,7 @@ function onFormLoad(executionContext) {
 **Problem:** Components appear unstyled or have incorrect layout
 
 **Solutions:**
+
 1. **Check health state:** `health.cssLoaded` should be `true`
 2. **Verify web resources:** Ensure `err403_/ui-lib.styles.css` is deployed
 3. **Check browser console:** Look for 404 errors for CSS file
@@ -1981,6 +2025,7 @@ if (!health.cssLoaded) {
 **Problem:** Modal doesn't appear when calling `modal.show()`
 
 **Solutions:**
+
 1. **Check z-index:** Other elements might be covering it
 2. **Verify modal creation:** Check for JavaScript errors in console
 3. **Check field configuration:** Invalid field configs can prevent rendering
@@ -2002,6 +2047,7 @@ try {
 **Problem:** Toast notifications don't show
 
 **Solutions:**
+
 1. **Check initialization:** Call `uiLib.init()` before using Toast
 2. **Verify duration:** Too short duration might make it disappear quickly
 3. **Check z-index:** Toast should appear at top-right
@@ -2012,6 +2058,7 @@ try {
 **Problem:** Library works in main form but not in embedded web resource
 
 **Solutions:**
+
 1. **Check auto-detection:** Library should auto-assign to iframe
 2. **Manual detection:** Use `uiLib.findInstance()` if auto-detection fails
 3. **Cross-origin:** If web resource is external URL, library won't be accessible
@@ -2039,6 +2086,7 @@ window.addEventListener('DOMContentLoaded', initIframe);
 **Problem:** TypeScript complains about `uiLib` not existing
 
 **Solutions:**
+
 1. **Add type reference:** Include `/// <reference path="ui-lib.types.d.ts" />`
 2. **Global declaration:** Declare `uiLib` in your types
 3. **Use @ts-ignore:** Add `// @ts-ignore` above the line (not recommended)
@@ -2056,6 +2104,7 @@ declare const uiLib: typeof import('./ui-lib.types');
 **Problem:** Form loads slowly after adding library
 
 **Solutions:**
+
 1. **Check library size:** ~280KB gzipped is normal
 2. **Verify caching:** Browser should cache the library
 3. **Limit Toast usage:** Don't show toasts in loops
@@ -2078,6 +2127,7 @@ function onFormLoad(executionContext) {
 ### Getting Help
 
 1. **Enable debug logging:**
+
 ```javascript
 const health = uiLib.init(executionContext);
 console.log('Library health:', health);
@@ -2085,9 +2135,9 @@ console.log('Version:', health.version);
 console.log('CSS loaded:', health.cssLoaded);
 ```
 
-2. **Check browser console:** Press F12, look for errors
-3. **Verify web resources:** Check that all files are deployed
-4. **Test in isolation:** Create a simple test form with just the library
+1. **Check browser console:** Press F12, look for errors
+2. **Verify web resources:** Check that all files are deployed
+3. **Test in isolation:** Create a simple test form with just the library
 
 ---
 
