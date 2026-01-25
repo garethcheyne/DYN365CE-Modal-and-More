@@ -21,8 +21,8 @@ const WEB_RESOURCES = {
   'ui-lib.styles.css': 'err403_ui-libstylescssB3919FB9-CCC0-F011-BBD3-000D3ACBC2CC',
 
   // Brand assets
-  'logo.svg': 'err403_logosvgE1F2A3B4-0DF7-F011-BBD3-000D3ACBC2CC',
-  'brand.svg': 'err403_brandsvgF2E3B4C5-0DF7-F011-BBD3-000D3ACBC2CC',
+  'logo.svg': 'err403_logosvg86296E30-83F9-F011-8406-00224810270E',
+  'brand.svg': 'err403_brandsvgE3FA833E-83F9-F011-8406-00224810270E',
 
   // HTML pages (new single page approach)
   'about.html': 'err403_abouthtmlC4BBB1CB-0CF7-F011-8406-00224810270E',

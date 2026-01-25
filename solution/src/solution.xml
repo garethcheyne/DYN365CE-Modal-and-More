@@ -1,4 +1,4 @@
-<ImportExportXml version="9.2.25114.191" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.25114.191" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.25114.00191">
+<ImportExportXml version="9.2.25122.162" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.25122.162" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.25122.00162">
   <SolutionManifest>
     <UniqueName>err403UILibrary</UniqueName>
     <LocalizedNames>
@@ -7,7 +7,7 @@
     <Descriptions>
       <Description description="TypeScript UI utility library for Dynamics 365 CE with Toast notifications, Modal dialogs, and Lookup components" languagecode="1033" />
     </Descriptions>
-    <Version>2026.01.25.1312</Version>
+    <Version>2026.01.25.1323</Version>
     <Managed>0</Managed>
     <Publisher>
       <UniqueName>err403com</UniqueName>
@@ -25,9 +25,9 @@
         <Address>
           <AddressNumber>1</AddressNumber>
           <AddressTypeCode>1</AddressTypeCode>
-          <City xsi:nil="true"></City>
+          <City xsi:nil="true">Auckland</City>
           <County xsi:nil="true"></County>
-          <Country xsi:nil="true"></Country>
+          <Country xsi:nil="true">New Zealand</Country>
           <Fax xsi:nil="true"></Fax>
           <FreightTermsCode xsi:nil="true"></FreightTermsCode>
           <ImportSequenceNumber xsi:nil="true"></ImportSequenceNumber>
@@ -36,7 +36,7 @@
           <Line2 xsi:nil="true"></Line2>
           <Line3 xsi:nil="true"></Line3>
           <Longitude xsi:nil="true"></Longitude>
-          <Name xsi:nil="true"></Name>
+          <Name xsi:nil="true">err403.com</Name>
           <PostalCode xsi:nil="true"></PostalCode>
           <PostOfficeBox xsi:nil="true"></PostOfficeBox>
           <PrimaryContactName xsi:nil="true"></PrimaryContactName>
@@ -84,6 +84,8 @@
       <RootComponent type="61" schemaName="err403_/about.html" behavior="0" />
       <RootComponent type="61" schemaName="err403_/assets/page-about.js" behavior="0" />
       <RootComponent type="61" schemaName="err403_/assets/page-styles.css" behavior="0" />
+      <RootComponent type="61" schemaName="err403_/brand.svg" behavior="0" />
+      <RootComponent type="61" schemaName="err403_/logo.svg" behavior="0" />
       <RootComponent type="61" schemaName="err403_/README.md" behavior="0" />
       <RootComponent type="61" schemaName="err403_/ui-lib.min.js" behavior="0" />
       <RootComponent type="61" schemaName="err403_/ui-lib.styles.css" behavior="0" />
@@ -99,38 +101,32 @@
         <Dependent type="80" schemaName="err403_UILibraryforDynamics365" displayName="UI Library for Dynamics 365" />
       </MissingDependency>
       <MissingDependency>
-        <Required type="61" schemaName="mspp_entity_permissions.svg" displayName="mspp_entity_permissions.svg" solution="PowerPages_AppResources (1.0.2505.0)">
-          <package appName="Power Pages Core Package" version="1.0.2506.165">PowerPages_Core (1.0.2506.165)</package>
-        </Required>
-        <Dependent type="62" schemaName="err403_UILibraryforDynamics365" />
-      </MissingDependency>
-      <MissingDependency>
         <Required type="SettingDefinition" displayName="AppChannel" solution="msdyn_AppFrameworkInfraExtensions (1.0.0.15)" id.uniquename="AppChannel">
           <package appName="PowerAppsAppFramework Package" version="1.0.0.23">PowerAppsAppFramework_Anchor (1.0.0.23)</package>
         </Required>
         <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=err403_UILibraryforDynamics365,settingdefinitionid.uniquename=AppChannel" id.parentappmoduleid.uniquename="err403_UILibraryforDynamics365" id.settingdefinitionid.uniquename="AppChannel" />
       </MissingDependency>
       <MissingDependency>
-        <Required type="SettingDefinition" displayName="EnablePowerBIQuickReport" solution="SettingDefinitionsData (9.2.2508.2508132)" id.uniquename="EnablePowerBIQuickReport">
-          <package appName="AppModule" version="9.2.2508.2508132">AppModuleSolutionAnchor (9.2.2508.2508132)</package>
+        <Required type="SettingDefinition" displayName="EnablePowerBIQuickReport" solution="SettingDefinitionsData (9.2.2511.2511242)" id.uniquename="EnablePowerBIQuickReport">
+          <package appName="AppModule" version="9.2.2511.2511242">AppModuleSolutionAnchor (9.2.2511.2511242)</package>
         </Required>
         <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=err403_UILibraryforDynamics365,settingdefinitionid.uniquename=EnablePowerBIQuickReport" id.parentappmoduleid.uniquename="err403_UILibraryforDynamics365" id.settingdefinitionid.uniquename="EnablePowerBIQuickReport" />
       </MissingDependency>
       <MissingDependency>
-        <Required type="SettingDefinition" displayName="msdyn_TimelineCopilotForApps" solution="msdyn_TimelineExtended (1.25112.6.6109)" id.uniquename="msdyn_TimelineCopilotForApps">
-          <package appName="msdyn_CustomControlsExtended" version="1.25112.6.6109">msdyn_TimelineExtended (1.25112.6.6109)</package>
+        <Required type="SettingDefinition" displayName="msdyn_TimelineCopilotForApps" solution="msdyn_TimelineExtended (1.25121.6.6110)" id.uniquename="msdyn_TimelineCopilotForApps">
+          <package appName="msdyn_CustomControlsExtended" version="1.25121.6.6110">msdyn_TimelineExtended (1.25121.6.6110)</package>
         </Required>
         <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=err403_UILibraryforDynamics365,settingdefinitionid.uniquename=msdyn_TimelineCopilotForApps" id.parentappmoduleid.uniquename="err403_UILibraryforDynamics365" id.settingdefinitionid.uniquename="msdyn_TimelineCopilotForApps" />
       </MissingDependency>
       <MissingDependency>
-        <Required type="SettingDefinition" displayName="msdyn_TimelineCopilotInteractions" solution="msdyn_TimelineExtended (1.25112.6.6109)" id.uniquename="msdyn_TimelineCopilotInteractions">
-          <package appName="msdyn_CustomControlsExtended" version="1.25112.6.6109">msdyn_TimelineExtended (1.25112.6.6109)</package>
+        <Required type="SettingDefinition" displayName="msdyn_TimelineCopilotInteractions" solution="msdyn_TimelineExtended (1.25121.6.6110)" id.uniquename="msdyn_TimelineCopilotInteractions">
+          <package appName="msdyn_CustomControlsExtended" version="1.25121.6.6110">msdyn_TimelineExtended (1.25121.6.6110)</package>
         </Required>
         <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=err403_UILibraryforDynamics365,settingdefinitionid.uniquename=msdyn_TimelineCopilotInteractions" id.parentappmoduleid.uniquename="err403_UILibraryforDynamics365" id.settingdefinitionid.uniquename="msdyn_TimelineCopilotInteractions" />
       </MissingDependency>
       <MissingDependency>
-        <Required type="SettingDefinition" displayName="ServerMode" solution="SettingDefinitionsData (9.2.2508.2508132)" id.uniquename="ServerMode">
-          <package appName="AppModule" version="9.2.2508.2508132">AppModuleSolutionAnchor (9.2.2508.2508132)</package>
+        <Required type="SettingDefinition" displayName="ServerMode" solution="SettingDefinitionsData (9.2.2511.2511242)" id.uniquename="ServerMode">
+          <package appName="AppModule" version="9.2.2511.2511242">AppModuleSolutionAnchor (9.2.2511.2511242)</package>
         </Required>
         <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=err403_UILibraryforDynamics365,settingdefinitionid.uniquename=ServerMode" id.parentappmoduleid.uniquename="err403_UILibraryforDynamics365" id.settingdefinitionid.uniquename="ServerMode" />
       </MissingDependency>

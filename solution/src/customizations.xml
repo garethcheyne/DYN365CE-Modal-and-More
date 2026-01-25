@@ -1,4 +1,4 @@
-<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.25114.191" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.25114.00191">
+<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.25122.162" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.25122.00162">
   <Entities></Entities>
   <Roles></Roles>
   <Workflows></Workflows>
@@ -82,6 +82,7 @@
       <WebResourceId>{c4bbb1cb-0cf7-f011-8406-00224810270e}</WebResourceId>
       <Name>err403_/about.html</Name>
       <DisplayName>err403_/about.html</DisplayName>
+      <LanguageCode>0</LanguageCode>
       <WebResourceType>1</WebResourceType>
       <IntroducedVersion>2026.01.22.0953</IntroducedVersion>
       <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
@@ -104,6 +105,32 @@
       <IsHidden>0</IsHidden>
       <FileName>/WebResources/err403_assetspage-aboutjs3AE8C14D-0DF7-F011-8406-00224810270E</FileName>
     </WebResource>
+    <WebResource>
+      <WebResourceId>{86296e30-83f9-f011-8406-00224810270e}</WebResourceId>
+      <Name>err403_/logo.svg</Name>
+      <DisplayName>err403_/logo.svg</DisplayName>
+      <WebResourceType>11</WebResourceType>
+      <IntroducedVersion>2026.01.25.1313</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/err403_logosvg86296E30-83F9-F011-8406-00224810270E</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{e3fa833e-83f9-f011-8406-00224810270e}</WebResourceId>
+      <Name>err403_/brand.svg</Name>
+      <DisplayName>err403_/brand.svg</DisplayName>
+      <WebResourceType>11</WebResourceType>
+      <IntroducedVersion>2026.01.25.1313</IntroducedVersion>
+      <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+      <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/err403_brandsvgE3FA833E-83F9-F011-8406-00224810270E</FileName>
+    </WebResource>
   </WebResources>
   <CustomControls />
   <AppModuleSiteMaps>
@@ -122,7 +149,7 @@
             <Titles>
               <Title LCID="1033" Title="Modal and More" />
             </Titles>
-            <SubArea Id="subarea_1b644ab4" ResourceId="SitemapDesigner.NewSubArea" VectorIcon="/WebResources/mspp_entity_permissions.svg" Icon="/WebResources/mspp_entity_permissions.svg" Url="$webresource:err403_/about.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+            <SubArea Id="subarea_1b644ab4" ResourceId="SitemapDesigner.NewSubArea" VectorIcon="/WebResources/err403_/logo.svg" Icon="/WebResources/err403_/logo.svg" Url="$webresource:err403_/about.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
               <Titles>
                 <Title LCID="1033" Title="About" />
               </Titles>
