@@ -12,13 +12,21 @@ import type { ModalOptions } from './Modal.types';
 export function alert(
   title: string,
   message: string,
+  type?: 'success' | 'info' | 'warning' | 'error',
   options?: Partial<ModalOptions>
 ): Promise<void> {
+  // Map type to icon
+  let icon: 'SUCCESS' | 'INFO' | 'WARNING' | 'ERROR' = 'INFO';
+  if (type === 'success') icon = 'SUCCESS';
+  else if (type === 'warning') icon = 'WARNING';
+  else if (type === 'error') icon = 'ERROR';
+  else if (type === 'info') icon = 'INFO';
+
   return new Promise((resolve) => {
     new Modal({
       title,
       content: message, // Use content instead of message to allow HTML
-      icon: options?.icon || 'INFO',
+      icon: options?.icon || icon,
       size: 'medium',
       ...options,
       buttons: [
@@ -34,13 +42,21 @@ export function alert(
 export function confirm(
   title: string,
   message: string,
+  type?: 'success' | 'info' | 'warning' | 'error',
   options?: Partial<ModalOptions>
 ): Promise<boolean> {
+  // Map type to icon
+  let icon: 'SUCCESS' | 'INFO' | 'WARNING' | 'ERROR' | 'QUESTION' = 'QUESTION';
+  if (type === 'success') icon = 'SUCCESS';
+  else if (type === 'warning') icon = 'WARNING';
+  else if (type === 'error') icon = 'ERROR';
+  else if (type === 'info') icon = 'INFO';
+
   return new Promise((resolve) => {
     new Modal({
       title,
       message,
-      icon: options?.icon || 'QUESTION',
+      icon: options?.icon || icon,
       size: 'small',
       ...options,
       buttons: [

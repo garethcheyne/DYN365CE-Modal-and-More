@@ -289,6 +289,7 @@ declare class Modal implements ModalInstance {
     private fieldValues;
     private fieldVisibilityMap;
     private fieldRequiredMap;
+    private fieldValidationErrors;
     private currentStep;
     private totalSteps;
     private stepPanels;
@@ -445,11 +446,11 @@ declare class ButtonController {
 /**
  * Show a simple alert dialog
  */
-declare function alert(title: string, message: string, options?: Partial<ModalOptions>): Promise<void>;
+declare function alert(title: string, message: string, type?: 'success' | 'info' | 'warning' | 'error', options?: Partial<ModalOptions>): Promise<void>;
 /**
  * Show a confirmation dialog
  */
-declare function confirm(title: string, message: string, options?: Partial<ModalOptions>): Promise<boolean>;
+declare function confirm(title: string, message: string, type?: 'success' | 'info' | 'warning' | 'error', options?: Partial<ModalOptions>): Promise<boolean>;
 /**
  * Show a prompt dialog
  */

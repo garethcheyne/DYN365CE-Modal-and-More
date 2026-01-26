@@ -58,6 +58,7 @@ export class Modal implements ModalInstance {
   private fieldValues: Map<string, any> = new Map();
   private fieldVisibilityMap: Map<string, boolean> = new Map();
   private fieldRequiredMap: Map<string, boolean> = new Map();
+  private fieldValidationErrors: Map<string, string> = new Map(); // Track validation errors
   private currentStep: number = 1;
   private totalSteps: number = 1;
   private stepPanels: HTMLElement[] = [];
@@ -308,6 +309,12 @@ export class Modal implements ModalInstance {
     await this.createBody();
     this.modal.appendChild(this.body!);
     this.createFooter();
+
+    // Update button states after React components mount
+    // Use requestAnimationFrame to ensure DOM is updated
+    requestAnimationFrame(() => {
+      this.updateButtonStates();
+    });
 
     // If sideCart is enabled, create a wrapper for modal + sideCart
     if (this.options.sideCart?.enabled) {
@@ -1163,11 +1170,36 @@ export class Modal implements ModalInstance {
 
         const TextareaWrapper = () => {
           const [textValue, setTextValue] = React.useState(field.value || '');
+          const [validationState, setValidationState] = React.useState<'error' | 'none'>('none');
+          const [validationMessage, setValidationMessage] = React.useState<string>('');
+          const [touched, setTouched] = React.useState(false);
 
           // Store setter for external updates
           React.useEffect(() => {
             this.fieldSetters.set(field.id, setTextValue);
             return () => { this.fieldSetters.delete(field.id); };
+          }, []);
+
+          const validateField = (value: any, showError: boolean = true) => {
+            const isRequired = this.fieldRequiredMap.get(field.id) || false;
+            const isEmpty = !value || value === '' || (Array.isArray(value) && value.length === 0);
+            
+            if (isRequired && isEmpty) {
+              this.fieldValidationErrors.set(field.id, 'Required field is empty');
+              if (showError && touched) {
+                setValidationState('error');
+                setValidationMessage('This field is required');
+              }
+            } else {
+              this.fieldValidationErrors.delete(field.id);
+              setValidationState('none');
+              setValidationMessage('');
+            }
+          };
+
+          // Validate on mount (without showing error)
+          React.useEffect(() => {
+            validateField(textValue, false);
           }, []);
 
           return React.createElement(InputFluentUi, {
@@ -1183,12 +1215,22 @@ export class Modal implements ModalInstance {
             tooltip: field.tooltip,
             appearance: 'filled-darker' as const,
             orientation: field.orientation || 'horizontal',
+            validationState: validationState,
+            validationMessage: validationMessage,
             onChange: (value: string | number) => {
+              setTouched(true);
               setTextValue(value);
               this.fieldValues.set(field.id, value);
               field.value = value;
+              validateField(value, true);
               this.updateFieldVisibility(field.id);
               this.updateButtonStates();
+            },
+            onFocus: () => {
+              setTouched(true);
+            },
+            onBlur: () => {
+              validateField(textValue, true);
             }
           });
         };
@@ -1405,11 +1447,36 @@ export class Modal implements ModalInstance {
         // Create input component with underline appearance
         const InputWrapper = () => {
           const [inputValue, setInputValue] = React.useState(field.value || '');
+          const [validationState, setValidationState] = React.useState<'error' | 'none'>('none');
+          const [validationMessage, setValidationMessage] = React.useState<string>('');
+          const [touched, setTouched] = React.useState(false);
 
           // Store setter for external updates
           React.useEffect(() => {
             this.fieldSetters.set(field.id, setInputValue);
             return () => { this.fieldSetters.delete(field.id); };
+          }, []);
+
+          const validateField = (value: any, showError: boolean = true) => {
+            const isRequired = this.fieldRequiredMap.get(field.id) || false;
+            const isEmpty = !value || value === '' || (Array.isArray(value) && value.length === 0);
+            
+            if (isRequired && isEmpty) {
+              this.fieldValidationErrors.set(field.id, 'Required field is empty');
+              if (showError && touched) {
+                setValidationState('error');
+                setValidationMessage('This field is required');
+              }
+            } else {
+              this.fieldValidationErrors.delete(field.id);
+              setValidationState('none');
+              setValidationMessage('');
+            }
+          };
+
+          // Validate on mount (without showing error)
+          React.useEffect(() => {
+            validateField(inputValue, false);
           }, []);
 
           return React.createElement(InputFluentUi, {
@@ -1425,12 +1492,22 @@ export class Modal implements ModalInstance {
             tooltip: field.tooltip,
             appearance: 'filled-darker' as const,
             orientation: field.orientation || 'horizontal',
+            validationState: validationState,
+            validationMessage: validationMessage,
             onChange: (value: string | number) => {
+              setTouched(true);
               setInputValue(value);
               this.fieldValues.set(field.id, value);
               field.value = value;
+              validateField(value, true);
               this.updateFieldVisibility(field.id);
               this.updateButtonStates();
+            },
+            onFocus: () => {
+              setTouched(true);
+            },
+            onBlur: () => {
+              validateField(inputValue, true);
             }
           });
         };
@@ -1593,16 +1670,24 @@ export class Modal implements ModalInstance {
         // For wizard: validate current step OR all steps based on button config
         if (btn.validateAllSteps) {
           // Validate ALL steps for buttons like "Finish"
-          isValid = this.options.progress.steps.every((_, index) => this.validateStep(index));
+          isValid = this.options.progress.steps.every((_, index) => {
+            const stepValid = this.validateStep(index);
+            console.log(`[updateButtonStates] Step ${index + 1} validation:`, stepValid);
+            return stepValid;
+          });
+          console.log(`[updateButtonStates] ${btn.label} button validation result (all steps):`, isValid);
         } else {
           // Validate only current step for buttons like "Next"
           isValid = this.validateStep(this.currentStep - 1);
+          console.log(`[updateButtonStates] ${btn.label} button validation result (current step):`, isValid);
         }
       } else if (this.options.fields) {
         // For regular modal: validate all fields
         isValid = this.validateAllFields();
+        console.log(`[updateButtonStates] ${btn.label} button validation result (all fields):`, isValid);
       }
 
+      console.log(`[updateButtonStates] Setting ${btn.label} button disabled state to:`, !isValid);
       fluentButton.disabled = !isValid;
     });
   }
@@ -1931,12 +2016,17 @@ export class Modal implements ModalInstance {
     const step = this.options.progress.steps[stepIndex];
     if (!step?.fields) return true;
 
+    console.log(`[validateStep] Validating step ${stepIndex + 1} with ${step.fields.length} fields`);
+
     // Check all required fields in this step
     for (const field of step.fields) {
       // Skip hidden fields - if visibleWhen is false, don't validate
       if (field.visibleWhen) {
         const isVisible = this.evaluateVisibilityCondition(field.visibleWhen);
-        if (!isVisible) continue; // Skip this field
+        if (!isVisible) {
+          console.log(`[validateStep] Skipping hidden field: ${field.id}`);
+          continue; // Skip this field
+        }
       }
 
       // Determine if field is required
@@ -1952,14 +2042,17 @@ export class Modal implements ModalInstance {
 
       if (isRequired) {
         const value = this.getFieldValue(field.id);
+        console.log(`[validateStep] Required field ${field.id} value:`, value);
         // Empty values: null, undefined, empty string, empty array
         if (value === null || value === undefined || value === '' || 
             (Array.isArray(value) && value.length === 0)) {
+          console.log(`[validateStep] ❌ Field ${field.id} is required but empty`);
           return false;
         }
       }
     }
 
+    console.log(`[validateStep] ✅ Step ${stepIndex + 1} is valid`);
     return true;
   }
 

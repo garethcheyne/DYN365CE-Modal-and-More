@@ -20,6 +20,8 @@ interface InputFluentUiProps {
     tooltip?: string;
     appearance?: 'outline' | 'underline' | 'filled-darker' | 'filled-lighter';
     orientation?: 'horizontal' | 'vertical';
+    validationState?: 'error' | 'warning' | 'success' | 'none';
+    validationMessage?: string;
     onChange?: (value: string | number) => void;
     onBlur?: () => void;
     onFocus?: () => void;
@@ -38,6 +40,8 @@ export const InputFluentUi: React.FC<InputFluentUiProps> = ({
     tooltip,
     appearance = 'filled-darker',
     orientation = 'horizontal',
+    validationState,
+    validationMessage,
     onChange,
     onBlur,
     onFocus,
@@ -105,6 +109,8 @@ export const InputFluentUi: React.FC<InputFluentUiProps> = ({
             required={required}
             hint={tooltip}
             orientation={effectiveOrientation}
+            validationState={validationState}
+            validationMessage={validationMessage}
             style={{ marginBottom: '8px' }}
         >
             {fieldContent}

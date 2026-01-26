@@ -6,13 +6,13 @@ import { Layout } from '../shared/Layout';
 import * as err403Module from '../../index';
 
 // Use the module exports directly (works in both dev and production)
-const err403 = err403Module;
+const uiLib = err403Module;
 declare const PACKAGE_VERSION: string;
 
 // Helper function to format JSON with syntax highlighting
 const formatJsonWithStyle = (obj: any): string => {
   const json = JSON.stringify(obj, null, 2);
-  
+
   // Apply syntax highlighting (no HTML escaping needed since we control the input)
   const highlighted = json
     .replace(/"([^"]+)":/g, '<span style="color: #0078d4; font-weight: bold;">"$1"</span>:') // Property names (blue)
@@ -20,7 +20,7 @@ const formatJsonWithStyle = (obj: any): string => {
     .replace(/: (-?\d+\.?\d*)/g, ': <span style="color: #ca5010;">$1</span>') // Numbers (orange)
     .replace(/: (true|false)/g, ': <span style="color: #8764b8;">$1</span>') // Booleans (purple)
     .replace(/: null/g, ': <span style="color: #605e5c;">null</span>'); // Null (gray)
-  
+
   return `<pre style="background: #f3f2f1; padding: 20px; border-radius: 6px; overflow: auto; max-height: 500px; text-align: left; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.6; border: 1px solid #e1dfdd;">${highlighted}</pre>`;
 };
 
@@ -158,7 +158,7 @@ const Section: React.FC<SectionProps> = ({ title, children }) => (
 export const Demo: React.FC = () => {
   // Toast handlers
   const showSuccessToast = () => {
-    err403.Toast.success({
+    uiLib.Toast.success({
       title: 'Account Saved',
       message: 'The account has been updated successfully.',
       duration: 5000
@@ -166,7 +166,7 @@ export const Demo: React.FC = () => {
   };
 
   const showErrorToast = () => {
-    err403.Toast.error({
+    uiLib.Toast.error({
       title: 'Operation Failed',
       message: 'Unable to save the record. Please try again.',
       duration: 6000
@@ -174,7 +174,7 @@ export const Demo: React.FC = () => {
   };
 
   const showWarnToast = () => {
-    err403.Toast.warn({
+    uiLib.Toast.warn({
       title: 'Warning',
       message: 'Some fields are missing. Please review your input.',
       duration: 5000
@@ -182,7 +182,7 @@ export const Demo: React.FC = () => {
   };
 
   const showInfoToast = () => {
-    err403.Toast.info({
+    uiLib.Toast.info({
       title: 'Information',
       message: 'System maintenance scheduled for tonight at 10 PM.',
       duration: 7000
@@ -190,7 +190,7 @@ export const Demo: React.FC = () => {
   };
 
   const showToastWithSound = () => {
-    err403.Toast.success({
+    uiLib.Toast.success({
       title: 'Payment Received',
       message: '$500 payment processed successfully.',
       duration: 5000,
@@ -199,45 +199,90 @@ export const Demo: React.FC = () => {
   };
 
   // Logger handlers
-  const logTrace = () => console.debug(...err403.TRACE, 'Debug message', { userId: 123 });
-  const logWarning = () => console.debug(...err403.WAR, 'Warning message');
-  const logError = () => console.error(...err403.ERR, 'Error message', new Error('Sample'));
+  const logTrace = () => console.debug(...uiLib.TRACE, 'Debug message', { userId: 123 });
+  const logWarning = () => console.debug(...uiLib.WAR, 'Warning message');
+  const logError = () => console.error(...uiLib.ERR, 'Error message', new Error('Sample'));
 
   // Modal handlers
-  const showAlertModal = () => {
-    err403.ModalHelpers.alert('Success', 'Your changes have been saved successfully.');
+  const showAlertSuccess = () => {
+    uiLib.ModalHelpers.alert('Success', 'Your changes have been saved successfully.', 'success');
+  };
+
+  const showAlertInfo = () => {
+    uiLib.ModalHelpers.alert('Information', 'This is an informational message.', 'info');
+  };
+
+  const showAlertWarning = () => {
+    uiLib.ModalHelpers.alert('Warning', 'Please review your data before proceeding.', 'warning');
+  };
+
+  const showAlertError = () => {
+    uiLib.ModalHelpers.alert('Error', 'Failed to save the record. Please try again.', 'error');
+  };
+
+  const showConfirmSuccess = async () => {
+    const confirmed = await uiLib.ModalHelpers.confirm(
+      'Save Changes?',
+      'Do you want to save your changes?',
+      'success'
+    );
+    if (confirmed) {
+      uiLib.Toast.success({ title: 'Saved', message: 'Changes saved successfully.' });
+    }
+  };
+
+  const showConfirmWarning = async () => {
+    const confirmed = await uiLib.ModalHelpers.confirm(
+      'Delete Record?',
+      'Are you sure you want to delete this record? This action cannot be undone.',
+      'warning'
+    );
+    if (confirmed) {
+      uiLib.Toast.info({ title: 'Deleted', message: 'Record deleted.' });
+    }
+  };
+
+  const showConfirmError = async () => {
+    const confirmed = await uiLib.ModalHelpers.confirm(
+      'Force Close?',
+      'This will force close the application and you may lose unsaved data.',
+      'error'
+    );
+    if (confirmed) {
+      uiLib.Toast.error({ title: 'Forced Close', message: 'Application closed.' });
+    }
   };
 
   const showConfirmModal = async () => {
-    const confirmed = await err403.ModalHelpers.confirm(
+    const confirmed = await uiLib.ModalHelpers.confirm(
       'Delete Record?',
       'Are you sure you want to delete this record? This action cannot be undone.'
     );
     if (confirmed) {
-      err403.Toast.success({ title: 'Confirmed', message: 'Record deleted.' });
+      uiLib.Toast.success({ title: 'Confirmed', message: 'Record deleted.' });
     } else {
-      err403.Toast.info({ title: 'Cancelled', message: 'Action cancelled.' });
+      uiLib.Toast.info({ title: 'Cancelled', message: 'Action cancelled.' });
     }
   };
 
   const showSimpleForm = () => {
-    const modal = new err403.Modal({
+    const modal = new uiLib.Modal({
       title: 'Create Contact',
       message: 'Enter the contact details below.',
       fields: [
-        new err403.Input({ id: 'firstname', label: 'First Name', type: 'text', required: true, placeholder: 'Enter first name' }),
-        new err403.Input({ id: 'lastname', label: 'Last Name', type: 'text', required: true, placeholder: 'Enter last name' }),
-        new err403.Input({ id: 'email', label: 'Email', type: 'text', placeholder: 'example@company.com' })
+        { id: 'firstname', label: 'First Name', type: 'text', required: true, placeholder: 'Enter first name' },
+        { id: 'lastname', label: 'Last Name', type: 'text', required: true, placeholder: 'Enter last name' },
+        { id: 'email', label: 'Email', type: 'email', placeholder: 'example@company.com' }
       ],
       buttons: [
-        new err403.Button('Cancel', () => {}),
-        new err403.Button('Create', () => {
+        new uiLib.Button('Cancel', () => { }),
+        new uiLib.Button('Create', () => {
           const data = modal.getFieldValues();
-          err403.ModalHelpers.alert(
+          uiLib.ModalHelpers.alert(
             'Form Data Submitted',
             formatJsonWithStyle(data)
           );
-          err403.Toast.success({ title: 'Contact Created', message: `${data.firstname} ${data.lastname} has been created.` });
+          uiLib.Toast.success({ title: 'Contact Created', message: `${data.firstname} ${data.lastname} has been created.` });
         }, true)
       ]
     });
@@ -245,18 +290,18 @@ export const Demo: React.FC = () => {
   };
 
   const showAllFieldTypes = () => {
-    const modal = new err403.Modal({
+    const modal = new uiLib.Modal({
       title: 'All Field Types Demo',
       size: 'large',
       fields: [
         { id: 'textInput', label: 'Text Input', type: 'text', placeholder: 'Enter text' },
         { id: 'numberInput', label: 'Number Input', type: 'number', value: 42 },
         { id: 'dateInput', label: 'Date', type: 'date' },
-        { 
-          id: 'accountLookup', 
-          label: 'Account (with expand)', 
-          type: 'lookup', 
-          entityName: 'account', 
+        {
+          id: 'accountLookup',
+          label: 'Account (with expand)',
+          type: 'lookup',
+          entityName: 'account',
           lookupColumns: [
             'name',                                        // Always visible
             { attribute: 'accountnumber', visible: true }, // Always visible
@@ -264,10 +309,10 @@ export const Demo: React.FC = () => {
             { attribute: 'emailaddress1', label: 'Email', visible: false },   // Shown on expand
             { attribute: 'address1_city', label: 'City', visible: false }     // Shown on expand
           ],
-          placeholder: 'Search accounts...' 
+          placeholder: 'Search accounts...'
         },
-        { 
-          id: 'contactLookup', 
+        {
+          id: 'contactLookup',
           label: 'Contact (simple)',
           type: 'lookup',
           entityName: 'contact',
@@ -283,9 +328,9 @@ export const Demo: React.FC = () => {
         { id: 'textarea', label: 'Multi-line Text', type: 'textarea', rows: 3, placeholder: 'Enter notes' },
         { id: 'optionset', label: 'Status (Dropdown)', type: 'select', options: ['Draft', 'Active', 'Inactive'], value: 'Active', displayMode: 'dropdown' },
         { id: 'priority', label: 'Priority (Badges)', type: 'select', options: ['Low', 'Medium', 'High', 'Critical'], value: 'Medium', displayMode: 'badges' },
-        { 
-          id: 'fileUpload', 
-          label: 'File Upload (Drag & Drop)', 
+        {
+          id: 'fileUpload',
+          label: 'File Upload (Drag & Drop)',
           type: 'file',
           fileUpload: {
             accept: '.pdf,.doc,.docx,.xls,.xlsx,image/*',
@@ -296,22 +341,22 @@ export const Demo: React.FC = () => {
             dragDropText: 'Drag and drop files here',
             browseText: 'or browse to choose files',
             onFilesSelected: (files) => {
-              console.debug(...err403.UILIB, `${files.length} file(s) selected:`, files.map(f => f.name));
-              err403.Toast.info({ title: 'Files Selected', message: `${files.length} file(s) ready to upload` });
+              console.debug(...uiLib.UILIB, `${files.length} file(s) selected:`, files.map(f => f.name));
+              uiLib.Toast.info({ title: 'Files Selected', message: `${files.length} file(s) ready to upload` });
             }
           }
         }
       ],
       buttons: [
-        new err403.ModalButton('Close', () => {}),
-        new err403.ModalButton('Submit', () => {
+        new uiLib.Button('Close', () => { }),
+        new uiLib.Button('Submit', () => {
           const data = modal.getFieldValues();
-          console.debug(...err403.UILIB, 'Form data:', data);
-          err403.ModalHelpers.alert(
+          console.debug(...uiLib.UILIB, 'Form data:', data);
+          uiLib.ModalHelpers.alert(
             'Form Data Submitted',
             formatJsonWithStyle(data)
           );
-          err403.Toast.success({ title: 'Data Captured', message: 'All field values captured!' });
+          uiLib.Toast.success({ title: 'Data Captured', message: 'All field values captured!' });
         }, true)
       ]
     });
@@ -319,18 +364,18 @@ export const Demo: React.FC = () => {
   };
 
   const showAddressLookupForm = () => {
-    const modal = new err403.Modal({
+    const modal = new uiLib.Modal({
       title: 'Create Contact with Address',
       size: 'large',
       fields: [
-        new err403.Input({ id: 'firstname', label: 'First Name', type: 'text', required: true, placeholder: 'Enter first name' }),
-        new err403.Input({ id: 'lastname', label: 'Last Name', type: 'text', required: true, placeholder: 'Enter last name' }),
-        new err403.Input({ id: 'email', label: 'Email', type: 'text', placeholder: 'example@company.com' }),
-        
+        { id: 'firstname', label: 'First Name', type: 'text', required: true, placeholder: 'Enter first name' },
+        { id: 'lastname', label: 'Last Name', type: 'text', required: true, placeholder: 'Enter last name' },
+        { id: 'email', label: 'Email', type: 'email', placeholder: 'example@company.com' },
+
         // Address lookup field - using field config object
-        { 
-          id: 'addressLookup', 
-          label: 'Search Address', 
+        {
+          id: 'addressLookup',
+          label: 'Search Address',
           type: 'addressLookup',
           addressLookup: {
             provider: 'google',
@@ -347,8 +392,8 @@ export const Demo: React.FC = () => {
               longitude: 'address1_longitude'
             },
             onSelect: (address) => {
-              console.debug(...err403.UILIB, 'Selected address:', address);
-              err403.Toast.success({ 
+              console.debug(...uiLib.UILIB, 'Selected address:', address);
+              uiLib.Toast.success({
                 title: 'Address Selected',
                 message: `${address.formattedAddress}`,
                 duration: 5000
@@ -356,31 +401,31 @@ export const Demo: React.FC = () => {
             }
           }
         },
-        
+
         // These fields will be auto-populated
-        new err403.Input({ id: 'address1_line1', label: 'Street', type: 'text' }),
-        new err403.Input({ id: 'address1_city', label: 'City', type: 'text' }),
-        new err403.Input({ id: 'address1_stateorprovince', label: 'State/Province', type: 'text' }),
-        new err403.Input({ id: 'address1_postalcode', label: 'Postal Code', type: 'text' }),
-        new err403.Input({ id: 'address1_country', label: 'Country', type: 'text' }),
-        new err403.Input({ id: 'address1_latitude', label: 'Latitude', type: 'number' }),
-        new err403.Input({ id: 'address1_longitude', label: 'Longitude', type: 'number' })
+        { id: 'address1_line1', label: 'Street', type: 'text' },
+        { id: 'address1_city', label: 'City', type: 'text' },
+        { id: 'address1_stateorprovince', label: 'State/Province', type: 'text' },
+        { id: 'address1_postalcode', label: 'Postal Code', type: 'text' },
+        { id: 'address1_country', label: 'Country', type: 'text' },
+        { id: 'address1_latitude', label: 'Latitude', type: 'number' },
+        { id: 'address1_longitude', label: 'Longitude', type: 'number' }
       ],
       buttons: [
-        new err403.ModalButton('Cancel', () => {}),
-        new err403.ModalButton('Create Contact', () => {
+        new uiLib.Button('Cancel', () => { }),
+        new uiLib.Button('Create Contact', () => {
           const data = modal.getFieldValues();
-          console.debug(...err403.UILIB, 'Contact data with address:', data);
-          
+          console.debug(...uiLib.UILIB, 'Contact data with address:', data);
+
           // Show result modal with formatted JSON
-          err403.ModalHelpers.alert(
+          uiLib.ModalHelpers.alert(
             'Form Data Submitted',
             formatJsonWithStyle(data)
           );
-          
-          err403.Toast.success({ 
-            title: 'Contact Created', 
-            message: `${data.firstname} ${data.lastname} created with address in ${data.address1_city || 'N/A'}` 
+
+          uiLib.Toast.success({
+            title: 'Contact Created',
+            message: `${data.firstname} ${data.lastname} created with address in ${data.address1_city || 'N/A'}`
           });
           return true;
         }, true)
@@ -390,35 +435,41 @@ export const Demo: React.FC = () => {
   };
 
   const showTabsModal = () => {
-    const modal = new err403.Modal({
+    const modal = new uiLib.Modal({
       title: 'Account Settings',
       size: 'large',
       fields: [{
         id: 'tabs',
         fields: [
-          { label: 'Profile', fields: [
-            { id: 'name', label: 'Name', type: 'text', value: 'John Doe' },
-            { id: 'email', label: 'Email', type: 'text', value: 'john@example.com' }
-          ]},
-          { label: 'Preferences', fields: [
-            { id: 'notifications', label: 'Email Notifications', type: 'toggle', value: true },
-            { id: 'theme', label: 'Theme', options: ['Light', 'Dark', 'Auto'], value: 'Light' }
-          ]},
-          { label: 'Security', fields: [
-            { id: '2fa', label: 'Two-Factor Auth', type: 'toggle', value: false }
-          ]}
+          {
+            label: 'Profile', fields: [
+              { id: 'name', label: 'Name', type: 'text', value: 'John Doe' },
+              { id: 'email', label: 'Email', type: 'text', value: 'john@example.com' }
+            ]
+          },
+          {
+            label: 'Preferences', fields: [
+              { id: 'notifications', label: 'Email Notifications', type: 'toggle', value: true },
+              { id: 'theme', label: 'Theme', options: ['Light', 'Dark', 'Auto'], value: 'Light' }
+            ]
+          },
+          {
+            label: 'Security', fields: [
+              { id: '2fa', label: 'Two-Factor Auth', type: 'toggle', value: false }
+            ]
+          }
         ],
         asTabs: true
       }],
       buttons: [
-        new err403.ModalButton('Cancel', () => {}),
-        new err403.ModalButton('Save', () => {
+        new uiLib.Button('Cancel', () => { }),
+        new uiLib.Button('Save', () => {
           const data = modal.getFieldValues();
-          err403.ModalHelpers.alert(
+          uiLib.ModalHelpers.alert(
             'Settings Saved',
             formatJsonWithStyle(data)
           );
-          err403.Toast.success({ title: 'Settings Saved', message: 'Your preferences have been updated.' });
+          uiLib.Toast.success({ title: 'Settings Saved', message: 'Your preferences have been updated.' });
         }, true)
       ]
     });
@@ -426,36 +477,36 @@ export const Demo: React.FC = () => {
   };
 
   const showDraggableModal = () => {
-    const modal = new err403.Modal({
+    const modal = new uiLib.Modal({
       title: 'Draggable Dialog',
       message: 'Try dragging this modal by clicking and holding the header!',
       draggable: true,
       size: 'small',
-      buttons: [new err403.ModalButton('Close', () => {}, true)]
+      buttons: [new uiLib.Button('Close', () => { }, true)]
     });
     modal.show();
   };
 
   // Lookup handlers
   const showSimpleLookup = () => {
-    err403.Lookup.open({
+    uiLib.Lookup.open({
       entity: 'account',
       columns: ['name', 'accountnumber', 'telephone1', 'address1_city'],
       title: 'Select Account',
       onSelect: (records: any[]) => {
-        err403.Toast.success({ title: 'Account Selected', message: `Selected: ${records.map((r: any) => r.name).join(', ')}` });
+        uiLib.Toast.success({ title: 'Account Selected', message: `Selected: ${records.map((r: any) => r.name).join(', ')}` });
       }
     });
   };
 
   const showMultiSelectLookup = () => {
-    err403.Lookup.open({
+    uiLib.Lookup.open({
       entity: 'contact',
       columns: ['name', 'emailaddress1', 'telephone1'],
       multiSelect: true,
       title: 'Select Contacts (Multi-Select)',
       onSelect: (records: any[]) => {
-        err403.Toast.success({ title: `${records.length} Contact(s) Selected`, message: `Selected: ${records.map((r: any) => r.name).join(', ')}` });
+        uiLib.Toast.success({ title: `${records.length} Contact(s) Selected`, message: `Selected: ${records.map((r: any) => r.name).join(', ')}` });
       }
     });
   };
@@ -475,7 +526,7 @@ export const Demo: React.FC = () => {
       { id: 10, name: 'Proseware Inc', industry: 'Technology', revenue: 6300000, employees: 210, location: 'UK' }
     ];
 
-    const modal = new err403.Modal({
+    const modal = new uiLib.Modal({
       title: 'Company Directory',
       size: 'large',
       fields: [
@@ -493,7 +544,7 @@ export const Demo: React.FC = () => {
           selectionMode: 'none'
         }
       ],
-      buttons: [new err403.ModalButton('Close', () => {}, true)]
+      buttons: [new uiLib.Button('Close', () => { }, true)]
     });
     modal.show();
   };
@@ -506,7 +557,7 @@ export const Demo: React.FC = () => {
       { id: 4, name: 'Alice Williams', email: 'alice.w@northwind.com', department: 'HR' }
     ];
 
-    const modal = new err403.Modal({
+    const modal = new uiLib.Modal({
       title: 'Select Contacts',
       size: 'large',
       fields: [
@@ -523,18 +574,18 @@ export const Demo: React.FC = () => {
         }
       ],
       buttons: [
-        new err403.ModalButton('Cancel', () => {}),
-        new err403.ModalButton('Process Selected', () => {
+        new uiLib.Button('Cancel', () => { }),
+        new uiLib.Button('Process Selected', () => {
           const selected = modal.getFieldValue('contactTable');
           if (selected.length === 0) {
-            err403.Toast.warn({ title: 'No Selection', message: 'Please select at least one contact' });
+            uiLib.Toast.warn({ title: 'No Selection', message: 'Please select at least one contact' });
             return false;
           }
-          err403.ModalHelpers.alert(
+          uiLib.ModalHelpers.alert(
             'Selected Contacts',
             formatJsonWithStyle(selected)
           );
-          err403.Toast.success({ title: 'Processing Complete', message: `Processed ${selected.length} contact(s)` });
+          uiLib.Toast.success({ title: 'Processing Complete', message: `Processed ${selected.length} contact(s)` });
           return true;
         }, true)
       ]
@@ -544,13 +595,13 @@ export const Demo: React.FC = () => {
 
   // File Upload Demo with Drag & Drop
   const showFileUploadDemo = () => {
-    const modal = new err403.Modal({
+    const modal = new uiLib.Modal({
       title: 'Upload Documents',
       size: 'large',
       fields: [
-        { 
-          id: 'documents', 
-          label: 'Business Documents', 
+        {
+          id: 'documents',
+          label: 'Business Documents',
           type: 'file',
           required: true,
           fileUpload: {
@@ -562,20 +613,20 @@ export const Demo: React.FC = () => {
             dragDropText: 'Drag and drop documents here',
             browseText: 'or click to browse',
             onFilesSelected: (files) => {
-              console.debug(...err403.UILIB, 'Files selected:', files.map(f => ({ name: f.name, size: f.size })));
+              console.debug(...uiLib.UILIB, 'Files selected:', files.map(f => ({ name: f.name, size: f.size })));
               const totalSize = files.reduce((sum, f) => sum + f.size, 0);
               const totalMB = (totalSize / 1048576).toFixed(2);
-              err403.Toast.info({ 
-                title: 'Files Ready', 
+              uiLib.Toast.info({
+                title: 'Files Ready',
                 message: `${files.length} file(s) selected (${totalMB} MB total)`,
                 duration: 4000
               });
             }
           }
         },
-        { 
-          id: 'images', 
-          label: 'Product Images', 
+        {
+          id: 'images',
+          label: 'Product Images',
           type: 'file',
           fileUpload: {
             accept: 'image/*',
@@ -589,29 +640,29 @@ export const Demo: React.FC = () => {
         { id: 'description', label: 'Description', type: 'textarea', rows: 3, placeholder: 'Add a description for the uploaded files...' }
       ],
       buttons: [
-        new err403.ModalButton('Cancel', () => {}),
-        new err403.ModalButton('Upload', () => {
+        new uiLib.Button('Cancel', () => { }),
+        new uiLib.Button('Upload', () => {
           const documents = modal.getFieldValue('documents');
           const images = modal.getFieldValue('images');
           const description = modal.getFieldValue('description');
-          
+
           if (!documents || documents.length === 0) {
-            err403.Toast.error({ title: 'No Documents', message: 'Please select at least one document to upload' });
+            uiLib.Toast.error({ title: 'No Documents', message: 'Please select at least one document to upload' });
             return false;
           }
-          
-          console.debug(...err403.UILIB, 'Uploading files:', { 
+
+          console.debug(...uiLib.UILIB, 'Uploading files:', {
             documents: documents.map(f => f.name),
             images: images?.map(f => f.name) || [],
-            description 
+            description
           });
-          
-          err403.Toast.success({ 
-            title: 'Upload Started', 
+
+          uiLib.Toast.success({
+            title: 'Upload Started',
             message: `Uploading ${documents.length + (images?.length || 0)} file(s)...`,
             sound: true
           });
-          
+
           return true;
         }, true)
       ]
@@ -627,7 +678,7 @@ export const Demo: React.FC = () => {
       { id: 4, product: 'Dynamics 365 Sales', category: 'CRM', price: 65, stock: 150, active: false }
     ];
 
-    const modal = new err403.Modal({
+    const modal = new uiLib.Modal({
       title: '🧙 Wizard Demo - Multi-Step Form',
       message: 'This is the parent modal message that appears above the step indicators. It stays visible throughout the entire wizard.',
       content: '<div style="padding: 12px; background: #f3f2f1; border-radius: 4px; margin-bottom: 8px;"><strong>Modal Content:</strong> You can also add HTML content at the modal level. This is useful for instructions that apply to all steps.</div>',
@@ -658,9 +709,9 @@ export const Demo: React.FC = () => {
             message: 'Step 2: Test lookup field with auto-population of related fields.',
             content: '<small style="color: #605e5c;">Select an account from the lookup. The fields below will auto-populate.</small>',
             fields: [
-              { 
-                id: 'accountLookup', 
-                label: 'Select Account', 
+              {
+                id: 'accountLookup',
+                label: 'Select Account',
                 type: 'lookup',
                 entityName: 'account',
                 lookupColumns: [
@@ -671,10 +722,10 @@ export const Demo: React.FC = () => {
                   { attribute: 'address1_city', label: 'City' },
                   { attribute: 'address1_stateorprovince', label: 'State' }
                 ],
-                onChange: function(value) {
-                  console.debug(...err403.UILIB, '🔍 Lookup onChange triggered:', value);
+                onChange: function (value) {
+                  console.debug(...uiLib.UILIB, '🔍 Lookup onChange triggered:', value);
                   if (value && value.id) {
-                    console.debug(...err403.UILIB, '📋 Record data:', value.record);
+                    console.debug(...uiLib.UILIB, '📋 Record data:', value.record);
                     modal.setFieldValue('accountName', value.record?.name || 'N/A');
                     modal.setFieldValue('accountNumber', value.record?.accountnumber || 'N/A');
                     modal.setFieldValue('email', value.record?.emailaddress1 || 'N/A');
@@ -682,7 +733,7 @@ export const Demo: React.FC = () => {
                     modal.setFieldValue('city', value.record?.address1_city || 'N/A');
                     modal.setFieldValue('state', value.record?.address1_stateorprovince || 'N/A');
                   } else {
-                    console.debug(...err403.UILIB, '❌ Lookup cleared');
+                    console.debug(...uiLib.UILIB, '❌ Lookup cleared');
                     modal.setFieldValue('accountName', '');
                     modal.setFieldValue('accountNumber', '');
                     modal.setFieldValue('email', '');
@@ -711,9 +762,9 @@ export const Demo: React.FC = () => {
               { id: 'foundedDate', label: 'Founded Date', type: 'date' },
               { id: 'publiclyTraded', label: 'Publicly Traded', type: 'switch', value: true },
               { id: 'satisfactionScore', label: 'Customer Satisfaction', type: 'range', value: 85, showValue: true, extraAttributes: { min: 0, max: 100, step: 5 } },
-              { 
-                id: 'businessAddress', 
-                label: 'Business Address', 
+              {
+                id: 'businessAddress',
+                label: 'Business Address',
                 type: 'addressLookup',
                 placeholder: 'Search for address...',
                 addressLookup: {
@@ -749,16 +800,16 @@ export const Demo: React.FC = () => {
             message: 'Step 5: Configure your communication preferences and upload supporting documents.',
             content: '<small style="color: #605e5c;">These preferences can be changed later in your account settings.</small>',
             fields: [
-              { 
-                id: 'allowMarketing', 
-                label: 'Allow Marketing Communications', 
-                type: 'switch', 
+              {
+                id: 'allowMarketing',
+                label: 'Allow Marketing Communications',
+                type: 'switch',
                 value: true,
                 tooltip: 'Toggle to show/hide marketing preference options'
               },
-              { 
-                id: 'attachments', 
-                label: 'Supporting Documents', 
+              {
+                id: 'attachments',
+                label: 'Supporting Documents',
                 type: 'file',
                 fileUpload: {
                   accept: '.pdf,.doc,.docx',
@@ -772,24 +823,24 @@ export const Demo: React.FC = () => {
                   }
                 }
               },
-              { 
-                id: 'emailNotifications', 
-                label: 'Email Notifications', 
-                type: 'switch', 
+              {
+                id: 'emailNotifications',
+                label: 'Email Notifications',
+                type: 'switch',
                 value: true,
                 visibleWhen: { field: 'allowMarketing', operator: 'truthy' }
               },
-              { 
-                id: 'smsAlerts', 
-                label: 'SMS Alerts', 
-                type: 'switch', 
+              {
+                id: 'smsAlerts',
+                label: 'SMS Alerts',
+                type: 'switch',
                 value: false,
                 visibleWhen: { field: 'allowMarketing', operator: 'truthy' }
               },
-              { 
-                id: 'newsletter', 
-                label: 'Marketing Newsletter', 
-                type: 'switch', 
+              {
+                id: 'newsletter',
+                label: 'Marketing Newsletter',
+                type: 'switch',
                 value: true,
                 visibleWhen: { field: 'allowMarketing', operator: 'truthy' }
               },
@@ -800,40 +851,47 @@ export const Demo: React.FC = () => {
         ]
       },
       buttons: [
-        new err403.ModalButton('Cancel', () => {}),
-        new err403.ModalButton('⬅️ Previous', () => {
+        new uiLib.Button('Cancel', () => { }),
+        new uiLib.Button('⬅️ Previous', () => {
           modal.previousStep();
           return false; // Don't close modal
         }),
-        new err403.ModalButton('Next ➡️', () => {
+        new uiLib.Button('Next ➡️', () => {
           modal.nextStep();
           return false; // Don't close modal
         }),
-        new err403.ModalButton('✅ Finish', () => {
-          const allData = modal.getFieldValues();
-          const selectedProducts = modal.getFieldValue('productTable');
-          
-          console.log('📦 Complete Wizard Data:', allData);
-          console.log('✅ Selected Products:', selectedProducts);
-          
-          const summary = {
-            ...allData,
-            selectedProducts: selectedProducts
-          };
-          
-          err403.ModalHelpers.alert(
-            '🎉 Wizard Completed!',
-            formatJsonWithStyle(summary)
-          );
-          
-          err403.Toast.success({
-            title: '🎉 Wizard Completed!',
-            message: `Company: ${allData.companyName || 'N/A'} | ${selectedProducts.length} product(s) selected`,
-            duration: 6000,
-            sound: true
-          });
-          return true;
-        }, true)
+        new uiLib.Button({
+          label: 'Finish',
+          callback: () => {
+            const allData = modal.getFieldValues();
+            const selectedProducts = modal.getFieldValue('productTable');
+
+            console.log('📦 Complete Wizard Data:', allData);
+            console.log('✅ Selected Products:', selectedProducts);
+
+            const summary = {
+              ...allData,
+              selectedProducts: selectedProducts
+            };
+
+            uiLib.ModalHelpers.alert(
+              '🎉 Wizard Completed!',
+              formatJsonWithStyle(summary)
+            );
+
+            uiLib.Toast.success({
+              title: '🎉 Wizard Completed!',
+              message: `Company: ${allData.companyName || 'N/A'} | ${selectedProducts.length} product(s) selected`,
+              duration: 6000,
+              sound: true
+            });
+            return true;
+          },
+          setFocus: true,
+          requiresValidation: true,
+          validateAllSteps: true,
+          id: 'finishBtn'
+        })
       ]
     });
     modal.show();
@@ -842,7 +900,7 @@ export const Demo: React.FC = () => {
   // Show welcome toast on mount
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      err403.Toast.info({
+      uiLib.Toast.info({
         title: 'Welcome!',
         message: 'Try the buttons to see Toast notifications and Modal dialogs in action.',
         duration: 6000
@@ -867,7 +925,7 @@ export const Demo: React.FC = () => {
           badge="ready"
           description="Toast notifications with auto-dismiss, stacking, and optional sound alerts."
           code={`// Success Toast
-err403.Toast.success({
+uiLib.Toast.success({
   title: "Account Saved",
   message: "The account has been updated successfully.",
   duration: 5000,
@@ -875,21 +933,21 @@ err403.Toast.success({
 });
 
 // Error Toast
-err403.Toast.error({
+uiLib.Toast.error({
   title: "Operation Failed",
   message: "Unable to save. Please try again.",
   duration: 6000
 });
 
 // Warning Toast
-err403.Toast.warn({
+uiLib.Toast.warn({
   title: "Warning",
   message: "Some fields are missing.",
   duration: 5000
 });
 
 // Info Toast
-err403.Toast.info({
+uiLib.Toast.info({
   title: "Information",
   message: "System maintenance tonight at 10 PM.",
   duration: 7000
@@ -916,13 +974,13 @@ err403.Toast.info({
           badge="ready"
           description="Consistent console logging with styled prefixes for debugging."
           code={`// Debug/Trace logs
-console.debug(...err403.TRACE, "Debug message", { userId: 123 });
+console.debug(...uiLib.TRACE, "Debug message", { userId: 123 });
 
 // Warning logs
-console.warn(...err403.WAR, "Warning message");
+console.warn(...uiLib.WAR, "Warning message");
 
 // Error logs
-console.error(...err403.ERR, "Error message", new Error("Sample"));`}
+console.error(...uiLib.ERR, "Error message", new Error("Sample"));`}
         >
           <Section title="Log Types">
             <div className="d365-btn-group">
@@ -943,13 +1001,13 @@ console.error(...err403.ERR, "Error message", new Error("Sample"));`}
           badge="ready"
           description="Modals with forms, validation, wizard navigation, tabs, and conditional field visibility."
           code={`// Alert Modal
-err403.Modal.alert('Success', 'Changes saved successfully.');
+uiLib.Modal.alert('Success', 'Changes saved successfully.');
 
 // Confirm Modal  
-const confirmed = await err403.Modal.confirm('Delete Record?', 'This action cannot be undone.');
+const confirmed = await uiLib.Modal.confirm('Delete Record?', 'This action cannot be undone.');
 
 // Form Modal with Fields
-const modal = new err403.Modal({
+const modal = new uiLib.Modal({
   title: "New Account",
   size: "large",
   fields: [
@@ -960,8 +1018,8 @@ const modal = new err403.Modal({
     { id: 'revenue', label: 'Annual Revenue', type: 'number' }
   ],
   buttons: [
-    new err403.ModalButton('Cancel', () => {}),
-    new err403.ModalButton('Save', () => {
+    new uiLib.Button('Cancel', () => {}),
+    new uiLib.Button('Save', () => {
       const data = modal.getFieldValues();
       console.log('Saved:', data);
       return true;
@@ -971,7 +1029,7 @@ const modal = new err403.Modal({
 modal.show();
 
 // Address Lookup with Google Maps
-const addressModal = new err403.Modal({
+const addressModal = new uiLib.Modal({
   title: "Contact with Address",
   fields: [
     { id: 'firstname', label: 'First Name', type: 'text', required: true },
@@ -1005,7 +1063,7 @@ const addressModal = new err403.Modal({
 });
 
 // File Upload with Drag & Drop
-const uploadModal = new err403.Modal({
+const uploadModal = new uiLib.Modal({
   title: "Upload Documents",
   fields: [
     { 
@@ -1028,8 +1086,16 @@ const uploadModal = new err403.Modal({
         >
           <Section title="Basic Modals">
             <div className="d365-btn-group">
-              <button className="d365-btn d365-btn--primary" onClick={showAlertModal}>Alert</button>
-              <button className="d365-btn d365-btn--primary" onClick={showConfirmModal}>Confirm</button>
+              <button className="d365-btn d365-btn--primary" onClick={showAlertSuccess}>✅ Success Alert</button>
+              <button className="d365-btn d365-btn--primary" onClick={showAlertInfo}>ℹ️ Info Alert</button>
+              <button className="d365-btn d365-btn--primary" onClick={showAlertWarning}>⚠️ Warning Alert</button>
+              <button className="d365-btn d365-btn--primary" onClick={showAlertError}>❌ Error Alert</button>
+            </div>
+            <div className="d365-btn-group" style={{ marginTop: '12px' }}>
+              <button className="d365-btn d365-btn--secondary" onClick={showConfirmSuccess}>✅ Success Confirm</button>
+              <button className="d365-btn d365-btn--secondary" onClick={showConfirmWarning}>⚠️ Warning Confirm</button>
+              <button className="d365-btn d365-btn--secondary" onClick={showConfirmError}>❌ Error Confirm</button>
+              <button className="d365-btn d365-btn--secondary" onClick={showConfirmModal}>❓ Question Confirm</button>
             </div>
           </Section>
           <Section title="Form Modals">
@@ -1055,7 +1121,7 @@ const uploadModal = new err403.Modal({
           badge="ready"
           description="Advanced entity record lookup with search, pagination, and sorting."
           code={`// Simple Lookup
-err403.Lookup.open({
+uiLib.Lookup.open({
   entity: 'account',
   title: 'Select Account',
   columns: ['name', 'emailaddress1', 'telephone1'],
@@ -1065,7 +1131,7 @@ err403.Lookup.open({
 });
 
 // Multi-Select Lookup
-err403.Lookup.open({
+uiLib.Lookup.open({
   entity: 'contact',
   title: 'Select Contacts',
   allowMultiSelect: true,
@@ -1093,7 +1159,7 @@ err403.Lookup.open({
           badge="ready"
           description="Display tabular data with sortable columns and row selection."
           code={`// Table as a field in modals
-const modal = new err403.Modal({
+const modal = new uiLib.Modal({
   title: 'Product Catalog',
   size: 'large',
   fields: [
