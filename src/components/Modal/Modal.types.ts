@@ -67,6 +67,7 @@ export interface TableColumn {
     visible?: boolean;
     sortable?: boolean;
     width?: string;
+    align?: 'left' | 'center' | 'right';
 }
 
 export interface FieldConfig {
@@ -191,6 +192,8 @@ export interface ModalButtonConfig {
     preventClose?: boolean;
     isDestructive?: boolean;
     id?: string;
+    requiresValidation?: boolean;  // If true, button is disabled until all required fields are valid
+    validateAllSteps?: boolean;    // If true (in wizards), validates ALL steps instead of just current step
 }
 
 export class ModalButton {
@@ -200,6 +203,8 @@ export class ModalButton {
     setFocus: boolean;
     preventClose: boolean;
     isDestructive: boolean;
+    requiresValidation: boolean;
+    validateAllSteps: boolean;
 
     constructor(
         labelOrConfig: string | ModalButtonConfig,
@@ -207,7 +212,9 @@ export class ModalButton {
         setFocus: boolean = false,
         preventClose: boolean = false,
         isDestructive: boolean = false,
-        id?: string
+        id?: string,
+        requiresValidation: boolean = false,
+        validateAllSteps: boolean = false
     ) {
         if (this.isButtonConfig(labelOrConfig)) {
             // Object-style API (modern, self-documenting)
@@ -219,6 +226,8 @@ export class ModalButton {
             this.setFocus = labelOrConfig.setFocus ?? false;
             this.preventClose = labelOrConfig.preventClose ?? false;
             this.isDestructive = labelOrConfig.isDestructive ?? false;
+            this.requiresValidation = labelOrConfig.requiresValidation ?? false;
+            this.validateAllSteps = labelOrConfig.validateAllSteps ?? false;
             this.id = labelOrConfig.id ?? labelOrConfig.label.toLowerCase().replace(/\s+/g, '');
         } else {
             // Positional parameters API (traditional, backward compatible)
@@ -230,6 +239,8 @@ export class ModalButton {
             this.setFocus = setFocus;
             this.preventClose = preventClose;
             this.isDestructive = isDestructive;
+            this.requiresValidation = requiresValidation;
+            this.validateAllSteps = validateAllSteps;
             this.id = id ?? labelOrConfig.toLowerCase().replace(/\s+/g, '');
         }
     }

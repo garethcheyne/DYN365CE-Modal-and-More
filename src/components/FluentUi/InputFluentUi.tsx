@@ -3,7 +3,7 @@
  * Uses Field component for consistent layout
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input, Textarea, Field } from '@fluentui/react-components';
 import type { InputProps, TextareaOnChangeData } from '@fluentui/react-components';
 
@@ -29,7 +29,7 @@ export const InputFluentUi: React.FC<InputFluentUiProps> = ({
     id,
     label,
     type = 'text',
-    value: initialValue = '',
+    value: externalValue = '',
     placeholder = '',
     required = false,
     disabled = false,
@@ -42,7 +42,12 @@ export const InputFluentUi: React.FC<InputFluentUiProps> = ({
     onBlur,
     onFocus,
 }) => {
-    const [value, setValue] = useState<string | number>(initialValue);
+    const [value, setValue] = useState<string | number>(externalValue);
+
+    // Sync with external value changes (for setFieldValue support)
+    useEffect(() => {
+        setValue(externalValue);
+    }, [externalValue]);
 
     const handleInputChange: InputProps['onChange'] = (_, data) => {
         const newValue = type === 'number' && data.value !== '' ? Number(data.value) : data.value;

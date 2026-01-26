@@ -200,7 +200,7 @@ export const Demo: React.FC = () => {
 
   // Logger handlers
   const logTrace = () => console.debug(...err403.TRACE, 'Debug message', { userId: 123 });
-  const logWarning = () => console.warn(...err403.WAR, 'Warning message');
+  const logWarning = () => console.debug(...err403.WAR, 'Warning message');
   const logError = () => console.error(...err403.ERR, 'Error message', new Error('Sample'));
 
   // Modal handlers
@@ -296,7 +296,7 @@ export const Demo: React.FC = () => {
             dragDropText: 'Drag and drop files here',
             browseText: 'or browse to choose files',
             onFilesSelected: (files) => {
-              console.log(`${files.length} file(s) selected:`, files.map(f => f.name));
+              console.debug(...err403.UILIB, `${files.length} file(s) selected:`, files.map(f => f.name));
               err403.Toast.info({ title: 'Files Selected', message: `${files.length} file(s) ready to upload` });
             }
           }
@@ -306,7 +306,7 @@ export const Demo: React.FC = () => {
         new err403.ModalButton('Close', () => {}),
         new err403.ModalButton('Submit', () => {
           const data = modal.getFieldValues();
-          console.log('Form data:', data);
+          console.debug(...err403.UILIB, 'Form data:', data);
           err403.ModalHelpers.alert(
             'Form Data Submitted',
             formatJsonWithStyle(data)
@@ -347,7 +347,7 @@ export const Demo: React.FC = () => {
               longitude: 'address1_longitude'
             },
             onSelect: (address) => {
-              console.log('Selected address:', address);
+              console.debug(...err403.UILIB, 'Selected address:', address);
               err403.Toast.success({ 
                 title: 'Address Selected',
                 message: `${address.formattedAddress}`,
@@ -370,7 +370,7 @@ export const Demo: React.FC = () => {
         new err403.ModalButton('Cancel', () => {}),
         new err403.ModalButton('Create Contact', () => {
           const data = modal.getFieldValues();
-          console.log('Contact data with address:', data);
+          console.debug(...err403.UILIB, 'Contact data with address:', data);
           
           // Show result modal with formatted JSON
           err403.ModalHelpers.alert(
@@ -463,27 +463,35 @@ export const Demo: React.FC = () => {
   // Table handlers
   const showSimpleTable = () => {
     const sampleData = [
-      { id: 1, name: 'Contoso Ltd', industry: 'Technology', revenue: 5000000, employees: 250 },
-      { id: 2, name: 'Fabrikam Inc', industry: 'Manufacturing', revenue: 8500000, employees: 450 },
-      { id: 3, name: 'Adventure Works', industry: 'Retail', revenue: 3200000, employees: 120 },
-      { id: 4, name: 'Northwind Traders', industry: 'Distribution', revenue: 6700000, employees: 180 }
+      { id: 1, name: 'Contoso Ltd', industry: 'Technology', revenue: 5000000, employees: 250, location: 'USA' },
+      { id: 2, name: 'Fabrikam Inc', industry: 'Manufacturing', revenue: 8500000, employees: 450, location: 'USA' },
+      { id: 3, name: 'Adventure Works', industry: 'Retail', revenue: 3200000, employees: 120, location: 'Canada' },
+      { id: 4, name: 'Northwind Traders', industry: 'Distribution', revenue: 6700000, employees: 180, location: 'USA' },
+      { id: 5, name: 'Wide World Importers', industry: 'Distribution', revenue: 7200000, employees: 220, location: 'Canada' },
+      { id: 6, name: 'Tailspin Toys', industry: 'Retail', revenue: 4100000, employees: 95, location: 'UK' },
+      { id: 7, name: 'Alpine Ski House', industry: 'Retail', revenue: 2800000, employees: 75, location: 'Canada' },
+      { id: 8, name: 'City Power & Light', industry: 'Technology', revenue: 9200000, employees: 380, location: 'USA' },
+      { id: 9, name: 'Fourth Coffee', industry: 'Manufacturing', revenue: 5600000, employees: 165, location: 'UK' },
+      { id: 10, name: 'Proseware Inc', industry: 'Technology', revenue: 6300000, employees: 210, location: 'UK' }
     ];
 
     const modal = new err403.Modal({
       title: 'Company Directory',
       size: 'large',
       fields: [
-        new err403.Table({
+        {
           id: 'companyTable',
+          type: 'table',
           tableColumns: [
             { id: 'name', header: 'Company Name', visible: true, sortable: true, width: '250px' },
-            { id: 'industry', header: 'Industry', visible: true, sortable: true, width: '200px' },
-            { id: 'revenue', header: 'Revenue', visible: true, sortable: true, width: '150px' },
-            { id: 'employees', header: 'Employees', visible: true, sortable: true, width: '120px' }
+            { id: 'industry', header: 'Industry', visible: true, sortable: true, width: '150px' },
+            { id: 'location', header: 'Location', visible: true, sortable: true, width: '120px' },
+            { id: 'revenue', header: 'Revenue', visible: true, sortable: true, width: '150px', align: 'right' },
+            { id: 'employees', header: 'Employees', visible: true, sortable: true, width: '120px', align: 'right' }
           ],
           data: sampleData,
           selectionMode: 'none'
-        })
+        }
       ],
       buttons: [new err403.ModalButton('Close', () => {}, true)]
     });
@@ -502,8 +510,9 @@ export const Demo: React.FC = () => {
       title: 'Select Contacts',
       size: 'large',
       fields: [
-        new err403.Table({
+        {
           id: 'contactTable',
+          type: 'table',
           tableColumns: [
             { id: 'name', header: 'Full Name', visible: true, sortable: true, width: '200px' },
             { id: 'email', header: 'Email Address', visible: true, sortable: true, width: '250px' },
@@ -511,7 +520,7 @@ export const Demo: React.FC = () => {
           ],
           data: contactData,
           selectionMode: 'multiple'
-        })
+        }
       ],
       buttons: [
         new err403.ModalButton('Cancel', () => {}),
@@ -553,7 +562,7 @@ export const Demo: React.FC = () => {
             dragDropText: 'Drag and drop documents here',
             browseText: 'or click to browse',
             onFilesSelected: (files) => {
-              console.log('Files selected:', files.map(f => ({ name: f.name, size: f.size })));
+              console.debug(...err403.UILIB, 'Files selected:', files.map(f => ({ name: f.name, size: f.size })));
               const totalSize = files.reduce((sum, f) => sum + f.size, 0);
               const totalMB = (totalSize / 1048576).toFixed(2);
               err403.Toast.info({ 
@@ -591,7 +600,7 @@ export const Demo: React.FC = () => {
             return false;
           }
           
-          console.log('Uploading files:', { 
+          console.debug(...err403.UILIB, 'Uploading files:', { 
             documents: documents.map(f => f.name),
             images: images?.map(f => f.name) || [],
             description 
@@ -628,7 +637,7 @@ export const Demo: React.FC = () => {
         enabled: true,
         type: 'steps-left',
         currentStep: 1,
-        totalSteps: 4,
+        totalSteps: 5,
         allowStepNavigation: true,
         steps: [
           {
@@ -645,8 +654,56 @@ export const Demo: React.FC = () => {
           },
           {
             id: 'step2',
+            label: 'Address Lookup Test',
+            message: 'Step 2: Test lookup field with auto-population of related fields.',
+            content: '<small style="color: #605e5c;">Select an account from the lookup. The fields below will auto-populate.</small>',
+            fields: [
+              { 
+                id: 'accountLookup', 
+                label: 'Select Account', 
+                type: 'lookup',
+                entityName: 'account',
+                lookupColumns: [
+                  { attribute: 'name', label: 'Account Name' },
+                  { attribute: 'accountnumber', label: 'Account Number' },
+                  { attribute: 'emailaddress1', label: 'Email' },
+                  { attribute: 'telephone1', label: 'Phone' },
+                  { attribute: 'address1_city', label: 'City' },
+                  { attribute: 'address1_stateorprovince', label: 'State' }
+                ],
+                onChange: function(value) {
+                  console.debug(...err403.UILIB, '🔍 Lookup onChange triggered:', value);
+                  if (value && value.id) {
+                    console.debug(...err403.UILIB, '📋 Record data:', value.record);
+                    modal.setFieldValue('accountName', value.record?.name || 'N/A');
+                    modal.setFieldValue('accountNumber', value.record?.accountnumber || 'N/A');
+                    modal.setFieldValue('email', value.record?.emailaddress1 || 'N/A');
+                    modal.setFieldValue('phone', value.record?.telephone1 || 'N/A');
+                    modal.setFieldValue('city', value.record?.address1_city || 'N/A');
+                    modal.setFieldValue('state', value.record?.address1_stateorprovince || 'N/A');
+                  } else {
+                    console.debug(...err403.UILIB, '❌ Lookup cleared');
+                    modal.setFieldValue('accountName', '');
+                    modal.setFieldValue('accountNumber', '');
+                    modal.setFieldValue('email', '');
+                    modal.setFieldValue('phone', '');
+                    modal.setFieldValue('city', '');
+                    modal.setFieldValue('state', '');
+                  }
+                }
+              },
+              { id: 'accountName', label: '→ Account Name', type: 'text', readOnly: true, placeholder: 'Will auto-populate...' },
+              { id: 'accountNumber', label: '→ Account Number', type: 'text', readOnly: true, placeholder: 'Will auto-populate...' },
+              { id: 'email', label: '→ Email', type: 'text', readOnly: true, placeholder: 'Will auto-populate...' },
+              { id: 'phone', label: '→ Phone', type: 'text', readOnly: true, placeholder: 'Will auto-populate...' },
+              { id: 'city', label: '→ City', type: 'text', readOnly: true, placeholder: 'Will auto-populate...' },
+              { id: 'state', label: '→ State', type: 'text', readOnly: true, placeholder: 'Will auto-populate...' }
+            ]
+          },
+          {
+            id: 'step3',
             label: 'Business Details',
-            message: 'Step 2: Tell us more about your business operations.',
+            message: 'Step 3: Tell us more about your business operations.',
             content: '<small style="color: #605e5c;">This information helps us tailor our services to your needs.</small>',
             fields: [
               { id: 'revenue', label: 'Annual Revenue', type: 'number', required: true, placeholder: 'Enter revenue (required)' },
@@ -669,11 +726,12 @@ export const Demo: React.FC = () => {
           {
             id: 'step3',
             label: 'Product Selection',
-            message: 'Step 3: Select the products you are interested in.',
+            message: 'Step 4: Select the products you are interested in.',
             content: '<small style="color: #605e5c;">You can select multiple products from the table below.</small>',
             fields: [
-              new err403.Table({
+              {
                 id: 'productTable',
+                type: 'table',
                 tableColumns: [
                   { id: 'product', header: 'Product Name', visible: true, sortable: true, width: '250px' },
                   { id: 'category', header: 'Category', visible: true, sortable: true, width: '180px' },
@@ -682,13 +740,13 @@ export const Demo: React.FC = () => {
                 ],
                 data: productData,
                 selectionMode: 'multiple'
-              })
+              }
             ]
           },
           {
             id: 'step4',
             label: 'Preferences',
-            message: 'Step 4: Configure your communication preferences and upload supporting documents.',
+            message: 'Step 5: Configure your communication preferences and upload supporting documents.',
             content: '<small style="color: #605e5c;">These preferences can be changed later in your account settings.</small>',
             fields: [
               { 
@@ -1034,33 +1092,37 @@ err403.Lookup.open({
           title="Table Component"
           badge="ready"
           description="Display tabular data with sortable columns and row selection."
-          code={`// Create Table
-const table = new err403.Table({
-  id: 'productsTable',
-  columns: [
-    { id: 'name', header: 'Product Name', sortable: true, width: '250px' },
-    { id: 'category', header: 'Category', sortable: true, width: '150px' },
-    { id: 'price', header: 'Price', sortable: true, width: '100px' },
-    { id: 'stock', header: 'In Stock', sortable: true, width: '100px' }
-  ],
-  data: [
-    { id: 1, name: 'Surface Laptop 5', category: 'Hardware', price: 1299, stock: 45 },
-    { id: 2, name: 'Office 365 E3', category: 'Software', price: 20, stock: 999 },
-    { id: 3, name: 'Azure Credits', category: 'Cloud', price: 100, stock: 500 }
-  ],
-  selectionMode: 'multiple'
-});
-
-// Get selected rows
-const selected = table.getValue();
-console.log('Selected:', selected);
-
-// Use table in a modal
+          code={`// Table as a field in modals
 const modal = new err403.Modal({
   title: 'Product Catalog',
   size: 'large',
-  fields: [table]
-});`}
+  fields: [
+    {
+      id: 'productsTable',
+      type: 'table',
+      label: 'Products',
+      tableColumns: [
+        { id: 'name', header: 'Product Name', visible: true, sortable: true, width: '250px' },
+        { id: 'category', header: 'Category', visible: true, sortable: true, width: '150px' },
+        { id: 'price', header: 'Price', visible: true, sortable: true, width: '100px' },
+        { id: 'stock', header: 'In Stock', visible: true, sortable: true, width: '100px' }
+      ],
+      data: [
+        { id: 1, name: 'Surface Laptop 5', category: 'Hardware', price: 1299, stock: 45 },
+        { id: 2, name: 'Office 365 E3', category: 'Software', price: 20, stock: 999 },
+        { id: 3, name: 'Azure Credits', category: 'Cloud', price: 100, stock: 500 }
+      ],
+      selectionMode: 'multiple',
+      onRowSelect: (selectedRows) => {
+        console.log('Selected:', selectedRows);
+      }
+    }
+  ]
+});
+
+// Get selected rows
+const selected = modal.getFieldValue('productsTable');
+console.log('Selected:', selected);`}
         >
           <Section title="Table Types">
             <div className="d365-btn-group">

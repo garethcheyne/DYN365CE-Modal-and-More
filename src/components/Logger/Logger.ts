@@ -21,9 +21,15 @@ export const ERR = [
   'background: #F44336; color: white; font-weight: bold; padding: 2px 6px; border-radius: 3px;'
 ];
 
+export const UILIB = [
+  '%c uiLib ',
+  'background: #9C27B0; color: white; font-weight: bold; padding: 2px 6px; border-radius: 3px;'
+];
+
 export const Logger = {
   TRACE,
   BUG, // Backwards compatibility
   WAR,
-  ERR
+  ERR,
+  UILIB
 };

@@ -342,92 +342,123 @@ function createContact() {
     title: 'Create New Contact',
     size: 'medium',
     fields: [
-      new uiLib.Input({
+      {
         id: 'firstname',
         label: 'First Name',
         type: 'text',
         required: true,
         placeholder: 'Enter first name'
-      }),
-      new uiLib.Input({
+      },
+      {
         id: 'lastname',
         label: 'Last Name',
         type: 'text',
         required: true,
         placeholder: 'Enter last name'
-      }),
-      new uiLib.Input({
+      },
+      {
         id: 'email',
         label: 'Email',
         type: 'email',
         required: true,
-        placeholder: 'contact@example.com',
-        validation: {
-          rules: [
-            { type: 'email', message: 'Please enter a valid email address' }
-          ]
-        }
-      }),
-      new uiLib.Input({
+        placeholder: 'contact@example.com'
+      },
+      {
         id: 'phone',
         label: 'Phone',
-        type: 'text',
+        type: 'tel',
         placeholder: '(555) 123-4567'
-      }),
-      new uiLib.OptionSet({
+      },
+      {
         id: 'preferredcontactmethod',
         label: 'Preferred Contact Method',
-        options: [
-          { label: 'Email', value: '1' },
-          { label: 'Phone', value: '2' },
-          { label: 'Mail', value: '3' }
-        ]
-      })
+        type: 'select',
+        options: ['Email', 'Phone', 'Mail']
+      }
     ],
     buttons: [
-      new uiLib.Button('Cancel', function() {
-        // Just close the modal
-      }),
-      new uiLib.Button('Create Contact', function() {
-        // Validate all fields
-        if (!modal.validateAllFields()) {
-          uiLib.Toast.error({ message: 'Please fix validation errors' });
-          return false; // Keep modal open
-        }
-        
-        // Get form data
-        var data = modal.getFieldValues();
-        
-        // Create the contact record
-        var contact = {
-          firstname: data.firstname,
-          lastname: data.lastname,
-          emailaddress1: data.email,
-          telephone1: data.phone,
-          preferredcontactmethodcode: parseInt(data.preferredcontactmethod)
-        };
-        
-        Xrm.WebApi.createRecord('contact', contact).then(
-          function success(result) {
-            uiLib.Toast.success({ 
-              message: 'Contact created successfully!' 
-            });
-            console.log('Created contact ID:', result.id);
-          },
-          function error(err) {
-            uiLib.Toast.error({ 
-              message: 'Failed to create contact: ' + err.message 
-            });
+      new uiLib.Button({ label: 'Cancel', callback: () => {}, id: 'cancelBtn' }),
+      new uiLib.Button({
+        label: 'Create Contact',
+        callback: function() {
+          // Get form data
+          var data = modal.getFieldValues();
+          
+          // Check required fields
+          if (!data.firstname || !data.lastname || !data.email) {
+            uiLib.Toast.error({ message: 'Please fill in all required fields' });
+            return false; // Keep modal open
           }
-        );
         
-        return true; // Close modal
-      }, true) // true = primary button (blue)
+          // Create the contact record
+          var contact = {
+            firstname: data.firstname,
+            lastname: data.lastname,
+            emailaddress1: data.email,
+            telephone1: data.phone
+          };
+        
+          Xrm.WebApi.createRecord('contact', contact).then(
+            function success(result) {
+              uiLib.Toast.success({ 
+                message: 'Contact created successfully!' 
+              });
+              console.log('Created contact ID:', result.id);
+            },
+            function error(err) {
+              uiLib.Toast.error({ 
+                message: 'Failed to create contact: ' + err.message 
+              });
+            }
+          );
+          
+          return true; // Close modal
+        },
+        setFocus: true,
+        requiresValidation: true,  // Button disabled until required fields are filled
+        id: 'createBtn'
+      })
     ]
   });
   
   modal.show();
 }
+```
+
+**💡 Tip: Automatic Button Validation**
+
+Use `requiresValidation: true` to automatically disable buttons until all required fields are valid:
+
+```javascript
+// Button auto-disabled until form is complete
+new uiLib.Button({
+  label: 'Submit',
+  callback: () => { /* submit */ },
+  requiresValidation: true,  // ⚡ Auto-validates form
+  setFocus: true,
+  id: 'submitBtn'
+})
+
+// Works in wizards - validates current step
+new uiLib.Button({
+  label: 'Next',
+  callback: () => { wizard.nextStep(); return false; },
+  requiresValidation: true,  // ⚡ Validates current step only
+  setFocus: true,
+  id: 'nextBtn'
+})
+
+// Finish button - validates ALL steps
+new uiLib.Button({
+  label: 'Finish',
+  callback: () => { /* submit */ },
+  requiresValidation: true,  // ⚡ Validates form
+  validateAllSteps: true,    // ⚡ Checks ALL wizard steps
+  setFocus: true,
+  id: 'finishBtn'
+})
+
+// Respects: hidden fields (visibleWhen), conditional requirements (requiredWhen)
 ```
 
 ### Example 5: Multi-Step Wizard
@@ -455,26 +486,23 @@ function runAccountSetupWizard() {
           message: 'Step 1: Enter the basic account information below.',
           content: '<small>This information will be used to identify the account in the system.</small>',
           fields: [
-            new uiLib.Input({
+            {
               id: 'accountname',
               label: 'Account Name',
               type: 'text',
               required: true
-            }),
-            new uiLib.Input({
+            },
+            {
               id: 'accountnumber',
               label: 'Account Number',
               type: 'text'
-            }),
-            new uiLib.OptionSet({
+            },
+            {
               id: 'industrycode',
               label: 'Industry',
-              options: [
-                { label: 'Technology', value: '1' },
-                { label: 'Manufacturing', value: '2' },
-                { label: 'Services', value: '3' }
-              ]
-            })
+              type: 'select',
+              options: ['Technology', 'Manufacturing', 'Services']
+            }
           ]
         },
         {
@@ -485,26 +513,26 @@ function runAccountSetupWizard() {
           message: 'Step 2: Provide the primary business address.',
           content: '<small>This address will be used for official correspondence.</small>',
           fields: [
-            new uiLib.Input({
+            {
               id: 'address1_line1',
               label: 'Street Address',
               type: 'text'
-            }),
-            new uiLib.Input({
+            },
+            {
               id: 'address1_city',
               label: 'City',
               type: 'text'
-            }),
-            new uiLib.Input({
+            },
+            {
               id: 'address1_stateorprovince',
               label: 'State/Province',
               type: 'text'
-            }),
-            new uiLib.Input({
+            },
+            {
               id: 'address1_postalcode',
               label: 'Postal Code',
               type: 'text'
-            })
+            }
           ]
         },
         {
@@ -515,37 +543,47 @@ function runAccountSetupWizard() {
           message: 'Step 3: Review your information before submitting.',
           content: '<small>You can go back to previous steps to make changes if needed.</small>',
           fields: [
-            new uiLib.MultiLine({
+            {
               id: 'description',
               label: 'Additional Notes',
+              type: 'textarea',
               rows: 4,
               placeholder: 'Any additional information...'
-            })
+            }
           ]
         }
       ]
     },
     buttons: [
-      new uiLib.Button('Previous', function() {
-        modal.previousStep();
-        return false; // Don't close
+      new uiLib.Button({ 
+        label: 'Previous', 
+        callback: () => { modal.previousStep(); return false; },
+        id: 'prevBtn'
       }),
-      new uiLib.Button('Next', function() {
-        if (modal.validateCurrentStep()) {
-          modal.nextStep();
-        }
-        return false; // Don't close
-      }, true),
-      new uiLib.Button('Finish', function() {
-        var data = modal.getFieldValues();
-        
-        // Create the account
-        Xrm.WebApi.createRecord('account', data).then(function(result) {
-          uiLib.Toast.success({ message: 'Account created successfully!' });
-        });
-        
-        return true; // Close modal
-      }, true)
+      new uiLib.Button({ 
+        label: 'Next', 
+        callback: () => { modal.nextStep(); return false; },
+        setFocus: true,
+        requiresValidation: true,  // Disabled until current step is valid
+        id: 'nextBtn'
+      }),
+      new uiLib.Button({ 
+        label: 'Finish',
+        callback: function() {
+          var data = modal.getFieldValues();
+          
+          // Create the account
+          Xrm.WebApi.createRecord('account', data).then(function(result) {
+            uiLib.Toast.success({ message: 'Account created successfully!' });
+          });
+          
+          return true; // Close modal
+        },
+        setFocus: true,
+        requiresValidation: true,  // Disabled until all fields are valid
+        validateAllSteps: true,    // Validates ALL steps, not just current
+        id: 'finishBtn'
+      })
     ]
   });
 }
@@ -776,7 +814,117 @@ function createFlexibleContactForm() {
 // Both visibleWhen and requiredWhen can be used on the same field
 ```
 
-### Example 8: D365 Option Set Auto-Fetch
+### Example 8: Field onChange Callbacks
+
+React to field value changes with custom logic:
+
+```javascript
+function createOrderForm() {
+  const modal = new uiLib.Modal({
+    title: 'Create Order',
+    fields: [
+      // Customer address lookup with onChange
+      {
+        id: 'customerAddress',
+        label: 'Customer Address',
+        type: 'lookup',
+        entityName: 'customeraddress',
+        lookupColumns: ['line1', 'city', 'postalcode'],
+        onChange: async (value) => {
+          if (value && value.length > 0) {
+            // Load related data when address selected
+            const addressId = value[0].id;
+            
+            modal.getButton('loadBtn').setLabel('Loading...').disable();
+            
+            try {
+              const details = await Xrm.WebApi.retrieveRecord(
+                'customeraddress', 
+                addressId, 
+                '?$select=shippingmethodcode'
+              );
+              
+              // Update other fields based on selection
+              modal.setFieldValue('shippingMethod', details.shippingmethodcode);
+              
+              uiLib.Toast.success({ message: 'Address details loaded' });
+            } catch (error) {
+              uiLib.Toast.error({ message: 'Failed to load details' });
+            } finally {
+              modal.getButton('loadBtn').setLabel('Load').enable();
+            }
+          } else {
+            // Clear dependent fields when selection is cleared
+            modal.setFieldValue('shippingMethod', '');
+          }
+        }
+      },
+      
+      // Shipping method field (populated by onChange)
+      {
+        id: 'shippingMethod',
+        label: 'Shipping Method',
+        type: 'select',
+        options: ['Standard', 'Express', 'Overnight']
+      },
+      
+      // Quantity field with onChange validation
+      {
+        id: 'quantity',
+        label: 'Quantity',
+        type: 'number',
+        onChange: (value) => {
+          if (value > 100) {
+            uiLib.Toast.warn({ 
+              message: 'Large order quantity - please confirm with manager' 
+            });
+          }
+        }
+      },
+      
+      // Account type with onChange to toggle fields
+      {
+        id: 'accountType',
+        label: 'Account Type',
+        type: 'select',
+        options: ['Retail', 'Wholesale'],
+        onChange: (value) => {
+          // Could also use visibleWhen, but onChange gives more control
+          if (value === 'Wholesale') {
+            uiLib.Toast.info({ 
+              message: 'Wholesale accounts receive automatic 15% discount' 
+            });
+          }
+        }
+      }
+    ],
+    buttons: [
+      new uiLib.Button({ label: 'Cancel', callback: () => {}, id: 'cancelBtn' }),
+      new uiLib.Button({ 
+        label: 'Load', 
+        callback: () => false, 
+        id: 'loadBtn' 
+      }),
+      new uiLib.Button({ 
+        label: 'Create Order', 
+        callback: () => {
+          const data = modal.getFieldValues();
+          console.log('Order data:', data);
+          return true;
+        }, 
+        setFocus: true,
+        id: 'createBtn' 
+      })
+    ]
+  });
+  modal.show();
+}
+
+// onChange return values are ignored - use for side effects only
+// onChange fires whenever field value changes (user input, setFieldValue, etc.)
+```
+
+### Example 9: D365 Option Set Auto-Fetch
 
 Automatically load option set values from Dynamics 365 metadata:
 
@@ -797,12 +945,8 @@ function createLeadForm() {
         type: 'text', 
         required: true 
       },
-      { 
-        id: 'emailaddress1', 
-        label: 'Email', 
-        type: 'email', 
-        required: true 
-      },
+      { id: 'lastname', label: 'Last Name', type: 'text', required: true },
+      { id: 'emailaddress1', label: 'Email', type: 'email', required: true },
       // Auto-fetch Industry option set
       {
         id: 'industrycode',
@@ -835,23 +979,28 @@ function createLeadForm() {
       }
     ],
     buttons: [
-      new uiLib.Button('Cancel', () => { /* close */ }),
-      new uiLib.Button('Create Lead', function() {
-        const data = modal.getAllFieldValues();
-        
-        Xrm.WebApi.createRecord('lead', {
-          firstname: data.firstname,
-          lastname: data.lastname,
-          emailaddress1: data.emailaddress1,
-          industrycode: parseInt(data.industrycode),
-          leadsourcecode: parseInt(data.leadsourcecode),
-          leadqualitycode: parseInt(data.leadqualitycode)
-        }).then(() => {
-          uiLib.Toast.success({ message: 'Lead created successfully' });
-        });
-        
-        return true;
-      }, true)
+      new uiLib.Button({ label: 'Cancel', callback: () => {}, id: 'cancelBtn' }),
+      new uiLib.Button({
+        label: 'Create Lead',
+        callback: function() {
+          const data = modal.getFieldValues();
+          
+          Xrm.WebApi.createRecord('lead', {
+            firstname: data.firstname,
+            lastname: data.lastname,
+            emailaddress1: data.emailaddress1,
+            industrycode: parseInt(data.industrycode),
+            leadsourcecode: parseInt(data.leadsourcecode),
+            leadqualitycode: parseInt(data.leadqualitycode)
+          }).then(() => {
+            uiLib.Toast.success({ message: 'Lead created successfully' });
+          });
+          
+          return true;
+        },
+        setFocus: true,
+        id: 'createBtn'
+      })
     ]
   });
   modal.show();
@@ -859,12 +1008,13 @@ function createLeadForm() {
 
 // The library automatically:
 // 1. Fetches option set metadata from D365
-// 2. Populates dropdown with options
+// 2. Populates dropdown with options (text/value pairs)
 // 3. Uses attribute display name as label (if not provided)
 // 4. Handles both local and global option sets
+// 5. Returns option set VALUE (integer) when getFieldValues() is called
 ```
 
-### Example 8: Address Lookup with Google Maps or Azure Maps
+### Example 10: Address Lookup with Google Maps or Azure Maps
 
 Auto-complete addresses with country restrictions. The addressLookup field stores the **complete address object** with all components:
 
@@ -971,14 +1121,15 @@ function createContactWithAddress() {
 // }
 ```
 
-### Example 9: Account Lookup with Selection
+### Example 11: Account Lookup with Selection
 
 Let users search and select records:
 
 ```javascript
 function selectAccount() {
-  uiLib.Lookup.open({
-    entity: 'account',
+  // Modal Dialog Lookup (full-screen with table)
+  new uiLib.Lookup({
+    entityName: 'account',
     columns: ['name', 'accountnumber', 'telephone1', 'address1_city'],
     columnLabels: {
       name: 'Account Name',
@@ -989,12 +1140,13 @@ function selectAccount() {
     searchFields: ['name', 'accountnumber'], // Search in these visible fields
     additionalSearchFields: ['emailaddress1', 'websiteurl'], // Also search email/website but don't display
     onSelect: function(results) {
+    onSelect: function(results) {
       if (results.length > 0) {
         var account = results[0];
         
         // Set the value on the current form
         Xrm.Page.getAttribute('parentaccountid').setValue([{
-          id: account.id,
+          id: account.accountid, // Use entity ID field
           name: account.name,
           entityType: 'account'
         }]);
@@ -1004,72 +1156,39 @@ function selectAccount() {
         });
       }
     }
-  });
+  }).show();
 }
 ```
 
-**Search Behavior:** The lookup uses "contains" logic, so searching for "smith" will find "John Smith", "Smithson Inc", and "Blacksmith Corp". The search checks both visible fields (`name`, `accountnumber`) and hidden fields (`emailaddress1`, `websiteurl`), allowing users to find records by email or website even though those columns aren't displayed in the grid.
+**Lookup Behavior:** The Modal Dialog Lookup provides a full-screen interface with search, filtering, sorting, and multi-select capabilities. Use inline lookup fields (`type: 'lookup'`) for simpler dropdown selection.
 
-### Example 10: Multi-Select Contacts
-
-Select multiple records at once:
-
-```javascript
-function selectMultipleContacts() {
-  uiLib.Lookup.open({
-    entity: 'contact',
-    columns: ['fullname', 'emailaddress1', 'telephone1', 'jobtitle'],
-    columnLabels: {
-      fullname: 'Name',
-      emailaddress1: 'Email',
-      telephone1: 'Phone',
-      jobtitle: 'Job Title'
-    },
-    multiSelect: true, // Allow selecting multiple records
-    onSelect: function(selectedContacts) {
-      console.log('Selected ' + selectedContacts.length + ' contacts');
-      
-      // Process each selected contact
-      selectedContacts.forEach(function(contact) {
-        console.log(contact.fullname + ' - ' + contact.emailaddress1);
-      });
-      
-      uiLib.Toast.success({ 
-        message: selectedContacts.length + ' contacts selected' 
-      });
-    }
-  });
-}
-```
-
-### Example 11: Filtered Lookup (Active Accounts Only)
+### Example 12: Filtered Lookup (Active Accounts Only)
 
 Show only records that match specific criteria:
 
 ```javascript
 function selectActiveAccount() {
-  uiLib.Lookup.open({
-    entity: 'account',
+  // Modal Dialog Lookup with filtering
+  new uiLib.Lookup({
+    entityName: 'account',
     columns: ['name', 'accountnumber', 'revenue'],
-    columnLabels: {
-      name: 'Account Name',
-      accountnumber: 'Account #',
-      revenue: 'Annual Revenue'
-    },
-    // Only show active accounts
-    filters: '<filter><condition attribute="statecode" operator="eq" value="0" /></filter>',
-    // Sort by revenue (highest first)
-    orderBy: [{ attribute: 'revenue', descending: true }],
+    filters: 'statecode eq 0', // OData filter for active records
+    multiple: false, // Single selection
     onSelect: function(results) {
       if (results.length > 0) {
-        console.log('Selected account:', results[0].name);
+        const account = results[0];
+        console.log('Selected account:', account.name);
+        
+        uiLib.Toast.success({ 
+          message: 'Selected: ' + account.name 
+        });
       }
     }
-  });
+  }).show();
 }
 ```
 
-### Example 12: Data Table with Sorting and Selection
+### Example 13: Data Table with Sorting and Selection
 
 Display tabular data with sorting, selection, and customizable columns:
 
@@ -1188,7 +1307,7 @@ modal.setFieldValue('productsTable', dataWithStyledValues);
 // HTML in cells will be rendered - you'll see styled, colored text
 ```
 
-### Example 13: Form with Tabs
+### Example 14: Form with Tabs
 
 Organize complex forms with tabs:
 
@@ -1197,85 +1316,87 @@ function editAccountDetails(accountId) {
   var modal = new uiLib.Modal({
     title: 'Edit Account',
     size: 'large',
-    fields: [
-      new uiLib.Group({
-        id: 'tabs',
-        asTabs: true, // Display as tabs
+    tabs: [
+      // General tab
+      {
+        id: 'general',
+        label: 'General',
         fields: [
-          // General tab
-          new uiLib.Group({
-            id: 'general',
-            label: 'General',
-            fields: [
-              new uiLib.Input({
-                id: 'name',
-                label: 'Account Name',
-                type: 'text',
-                required: true
-              }),
-              new uiLib.Input({
-                id: 'telephone1',
-                label: 'Phone',
-                type: 'text'
-              }),
-              new uiLib.Input({
-                id: 'websiteurl',
-                label: 'Website',
-                type: 'text'
-              })
-            ]
-          }),
-          // Address tab
-          new uiLib.Group({
-            id: 'address',
-            label: 'Address',
-            fields: [
-              new uiLib.Input({
-                id: 'address1_line1',
-                label: 'Street',
-                type: 'text'
-              }),
-              new uiLib.Input({
-                id: 'address1_city',
-                label: 'City',
-                type: 'text'
-              }),
-              new uiLib.Input({
-                id: 'address1_postalcode',
-                label: 'Zip Code',
-                type: 'text'
-              })
-            ]
-          }),
-          // Notes tab
-          new uiLib.Group({
-            id: 'notes',
-            label: 'Notes',
-            fields: [
-              new uiLib.MultiLine({
-                id: 'description',
-                label: 'Description',
-                rows: 6
-              })
-            ]
-          })
+          {
+            id: 'name',
+            label: 'Account Name',
+            type: 'text',
+            required: true
+          },
+          {
+            id: 'telephone1',
+            label: 'Phone',
+            type: 'tel'
+          },
+          {
+            id: 'websiteurl',
+            label: 'Website',
+            type: 'url'
+          }
         ]
-      })
+      },
+      // Address tab
+      {
+        id: 'address',
+        label: 'Address',
+        fields: [
+          {
+            id: 'address1_line1',
+            label: 'Street',
+            type: 'text'
+          },
+          {
+            id: 'address1_city',
+            label: 'City',
+            type: 'text'
+          },
+          {
+            id: 'address1_postalcode',
+            label: 'Zip Code',
+            type: 'text'
+          }
+        ]
+      },
+      // Notes tab
+      {
+        id: 'notes',
+        label: 'Notes',
+        fields: [
+          {
+            id: 'description',
+            label: 'Description',
+            type: 'textarea',
+            rows: 6
+          }
+        ]
+      }
     ],
     buttons: [
-      new uiLib.Button('Cancel', function() {
-        // Close without saving
+      new uiLib.Button({ 
+        label: 'Cancel', 
+        callback: () => {},
+        id: 'cancelBtn'
       }),
-      new uiLib.Button('Save', function() {
-        var data = modal.getFieldValues();
-        
-        Xrm.WebApi.updateRecord('account', accountId, data).then(function() {
-          uiLib.Toast.success({ message: 'Account updated' });
-          location.reload(); // Refresh the form
-        });
-        
-        return true;
-      }, true)
+      new uiLib.Button({ 
+        label: 'Save',
+        callback: function() {
+          var data = modal.getFieldValues();
+          
+          Xrm.WebApi.updateRecord('account', accountId, data).then(function() {
+            uiLib.Toast.success({ message: 'Account updated' });
+            location.reload(); // Refresh the form
+          });
+          
+          return true;
+        },
+        setFocus: true,
+        id: 'saveBtn'
+      })
     ]
   });
   
@@ -1312,7 +1433,7 @@ function onCityChange(executionContext) {
 }
 ```
 
-### Example 14: Progress Indicator
+### Example 15: Progress Indicator
 
 Show progress during long operations:
 
@@ -1816,6 +1937,16 @@ new uiLib.Modal({
     field: 'otherFieldId',    // Field to watch
     operator: 'truthy',       // Same operators as visibleWhen
     value: 'someValue'        // Optional value (not needed for truthy/falsy)
+  },
+  
+  // Field change callback
+  onChange: (value) => {
+    console.log('Field value changed:', value);
+    // Trigger side effects, update other fields, fetch data, etc.
+    // For lookup fields: value is array of { id, name, entityType, record }
+    // For tables: value is array of selected rows
+    // For other fields: value is the field's current value
+    // Return value is ignored
   }
 }
 
@@ -1835,13 +1966,17 @@ new uiLib.Modal({
 - 'date' - Fluent UI DatePicker
 - 'select' - with options: ['Option 1', 'Option 2'] or [{ label, value }]
   - displayMode: 'dropdown' (default) or 'badges' for clickable badge buttons
-- 'lookup' - Inline D365-style dropdown lookup (lookupColumns displayed in order specified)
+- 'lookup' - Inline D365-style dropdown lookup
   - entityName: D365 entity name
-  - lookupColumns: Array of columns - strings or objects with {attribute, label, visible}
-    - String format: ['name', 'accountnumber'] - uses attribute name as label
-    - Object format: [{attribute: 'name', label: 'Account Name'}, ...] - uses custom label
-    - First column is primary display, second is subtitle
+  - lookupColumns: Array of columns to fetch and display
+    - String format: ['line1', 'city', 'postalcode'] - shows values only (no labels)
+    - Object format: [{attribute: 'line1', label: 'Address'}, ...] - shows "Label: value"
+    - **Label display**: If label provided, shows "Label: value". If label is null/empty, shows value only
+    - First column = primary display (bold, larger font)
+    - Second column = subtitle (smaller, gray text)
+    - Additional columns = fetched but not displayed in dropdown
   - filters: OData filter string or FetchXML fragment
+  - Returns: { id, name, subtitle, entityType, record }
   - Note: Use lookupColumns for inline lookup fields, columns for Modal Dialog Lookups
 - 'checkbox' - Boolean checkbox (D365 native style)
 - 'switch' - Boolean toggle switch (modern style)
@@ -1907,10 +2042,57 @@ new uiLib.Modal({
     { attribute: 'accountnumber', label: 'Number' }   // Custom label
   ],
   // Or simple strings: lookupColumns: ['name', 'accountnumber'],
-  filters: "statecode eq 0",  // Optional OData or FetchXML filter
+  // Note: Column names MUST match D365 schema exactly (case-sensitive)
+  // Common columns: 'name', 'fullname' (contacts), 'subject' (emails), 'title' (tasks)
+  filters: "statecode eq 0",  // Optional OData filter or FetchXML
   placeholder: 'Search accounts...',
   required: true
 }
+
+// IMPORTANT: For customeraddress entity
+{ 
+  id: 'addressLookup',
+  label: 'Address',
+  type: 'lookup',
+  entityName: 'customeraddress',
+  lookupColumns: [
+    'line1',          // Street address (NOT 'name' - it doesn't exist on customeraddress!)
+    'city',
+    'postalcode'
+  ],
+  placeholder: 'Search addresses...'
+}
+
+// If lookupColumns is omitted or columns don't exist:
+// Library automatically falls back to common names like 'name', 'fullname', 'title', 'subject'
+
+// Multiple Entity Types (Polymorphic Lookups):
+// The inline lookup currently supports ONE entity type at a time.
+// For Customer-type fields (Account OR Contact), use TWO separate lookups:
+{
+  id: 'customerType',
+  label: 'Customer Type',
+  type: 'select',
+  options: ['Account', 'Contact'],
+  required: true
+},
+{
+  id: 'accountLookup',
+  label: 'Account',
+  type: 'lookup',
+  entityName: 'account',
+  lookupColumns: ['name', 'accountnumber'],
+  visibleWhen: { field: 'customerType', operator: 'equals', value: 'Account' }
+},
+{
+  id: 'contactLookup',
+  label: 'Contact',
+  type: 'lookup',
+  entityName: 'contact',
+  lookupColumns: ['fullname', 'emailaddress1'],
+  visibleWhen: { field: 'customerType', operator: 'equals', value: 'Contact' }
+}
+// For true multi-entity search, use Modal Dialog Lookup (see Lookup section below)
 
 // Example: Conditional field visibility
 { 
@@ -1983,8 +2165,8 @@ new uiLib.Table({
   type: 'table',
   label: 'Products',
   tableColumns: [
-    { id: 'name', header: 'Product Name', visible: true, sortable: true, width: '250px' },
-    { id: 'price', header: 'Price', visible: true, sortable: true, width: '100px' }
+    { id: 'name', header: 'Product Name', visible: true, sortable: true, width: '250px', align: 'left' },
+    { id: 'price', header: 'Price ($)', visible: true, sortable: true, width: '100px', align: 'right' }
   ],
   data: [
     { id: 1, name: 'Product A', price: 100 },

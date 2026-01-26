@@ -1,8 +1,3 @@
-/**
- * Table field component using Fluent UI DataGrid
- * Replaces vanilla Table.ts with React-based Fluent UI components
- */
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   DataGrid,
@@ -22,18 +17,22 @@ import {
   MenuDivider,
   Button,
   Input,
+  Popover,
+  PopoverSurface,
+  Select,
 } from '@fluentui/react-components';
 import {
   ChevronDown20Regular,
-  ArrowSortUp20Regular,
-  ArrowSortDown20Regular,
   GroupList20Regular,
   Filter20Regular,
   ColumnTriple20Regular,
   ArrowLeft20Regular,
   ArrowRight20Regular,
+  ArrowSortUp20Regular,
+  ArrowSortDown20Regular,
 } from '@fluentui/react-icons';
 import { FieldConfig } from '../Modal/Modal.types';
+import { UILIB } from '../Logger/Logger';
 
 // Define local types for table columns (simplified version)
 type TableColumnId = string;
@@ -62,41 +61,48 @@ const useStyles = makeStyles({
   container: {
     maxHeight: '400px',
     overflow: 'auto',
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    borderRadius: tokens.borderRadiusMedium,
     backgroundColor: tokens.colorNeutralBackground1,
+    padding: '8px',
   },
   dataGrid: {
     minWidth: '100%',
     backgroundColor: tokens.colorNeutralBackground1,
     '& .fui-DataGridHeader': {
       backgroundColor: 'transparent',
-      borderBottom: `2px solid ${tokens.colorNeutralStroke2}`,
+      borderBottom: `1px solid rgba(0, 0, 0, 0.54)`,  // Darker border for header (D365 style)
     },
     '& .fui-DataGridHeaderCell': {
       backgroundColor: 'transparent',
+      fontFamily: '"Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif',
+      WebkitFontSmoothing: 'antialiased',
+      fontSize: '14px',  // D365 header font size
       fontWeight: 600,
-      fontSize: '12px',
-      color: '#323130',
-      padding: '8px 12px',
+      color: 'rgb(36, 36, 36)',  // D365 header text color
+      padding: '0 12px',  // 12px left and right padding
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      height: '42px',  // D365 row height
       borderRight: 'none',
       textTransform: 'none',
       letterSpacing: 'normal',
+      borderBottom: `2px solid transparent`,  // Transparent border by default
       '&:hover': {
-        backgroundColor: '#f3f2f1',
+        backgroundColor: 'transparent',  // No background change
+        border: `2px solid #0078d4`,  // Blue border on hover (D365 style)
+      },
+      '&:active, &:focus': {
+        backgroundColor: 'transparent',  // No background change
+        border: `2px solid #0078d4`,  // Blue border when active (D365 style)
       },
     },
     '& .fui-DataGridCell': {
       fontSize: '14px',
       color: '#323130',
+      padding: '0 12px',  // 12px left and right padding
+      height: '42px',  // D365 row height
       borderRight: 'none',
       overflow: 'hidden',
-    },
-    '& .fui-DataGridRow': {
-      borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-      '&:hover': {
-        backgroundColor: '#f3f2f1',
-      },
     },
   },
   truncatedCell: {
@@ -121,7 +127,13 @@ const useStyles = makeStyles({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
+    gap: '8px',
+  },
+  columnHeaderContent: {
+    display: 'flex',
+    alignItems: 'center',
     gap: '4px',
+    flex: 1,
   },
   columnHeaderButton: {
     minWidth: 'auto',
@@ -139,22 +151,52 @@ const useStyles = makeStyles({
 
 export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectionChange }) => {
   const styles = useStyles();
-  
+
   const [data, setData] = useState<TableRow[]>(
     (config.data || []).map((row, index) => ({ ...row, _index: index }))
   );
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
-  const [sortState, setSortState] = useState<{
-    sortColumn: TableColumnId | undefined;
-    sortDirection: 'ascending' | 'descending';
-  }>({ sortColumn: undefined, sortDirection: 'ascending' });
-  
+
   // Column configuration state
   const [columnOrder, setColumnOrder] = useState<string[]>(
     (config.tableColumns || []).filter(col => col.visible !== false).map(col => col.id)
   );
-  const [columnFilters, setColumnFilters] = useState<{ [key: string]: string }>({});
+  const [columnFilters, setColumnFilters] = useState<{ [key: string]: { operator: string; value: string } }>({});
   const [filterInputs, setFilterInputs] = useState<{ [key: string]: string }>({});
+  const [filterOperators, setFilterOperators] = useState<{ [key: string]: string }>({});
+  const [groupByColumn, setGroupByColumn] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  // Detect column data type based on first non-null value
+  const getColumnDataType = useCallback((columnId: string): 'string' | 'number' | 'boolean' | 'date' => {
+    for (const row of data) {
+      const value = row[columnId];
+      if (value != null) {
+        if (typeof value === 'boolean') return 'boolean';
+        if (typeof value === 'number') return 'number';
+        if (value instanceof Date) return 'date';
+        // Check if string looks like a date
+        if (typeof value === 'string' && !isNaN(Date.parse(value)) && /\d{4}-\d{2}-\d{2}/.test(value)) return 'date';
+        return 'string';
+      }
+    }
+    return 'string'; // Default to string
+  }, [data]);
+
+  // Get filter operators based on data type
+  const getFilterOperators = useCallback((dataType: 'string' | 'number' | 'boolean' | 'date'): string[] => {
+    switch (dataType) {
+      case 'boolean':
+        return ['Equals', 'Does not equal', 'Contains data', 'Does not contain data'];
+      case 'number':
+        return ['Equals', 'Does not equal', 'Greater than', 'Greater than or equal', 'Less than', 'Less than or equal', 'Contains data', 'Does not contain data'];
+      case 'date':
+        return ['Equals', 'Does not equal', 'On or after', 'On or before', 'Contains data', 'Does not contain data'];
+      case 'string':
+      default:
+        return ['Equals', 'Does not equal', 'Contains', 'Does not contain', 'Begins with', 'Does not begin with', 'Ends with', 'Does not end with', 'Contains data', 'Does not contain data'];
+    }
+  }, []);
 
   // Update data when config.data changes (e.g., from setFieldValue)
   useEffect(() => {
@@ -170,14 +212,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     setColumnOrder(newOrder);
   }, [config.tableColumns]);
 
-  // Column menu handlers
-  const handleSortAscending = useCallback((columnId: string) => {
-    setSortState({ sortColumn: columnId, sortDirection: 'ascending' });
-  }, []);
-
-  const handleSortDescending = useCallback((columnId: string) => {
-    setSortState({ sortColumn: columnId, sortDirection: 'descending' });
-  }, []);
+  // Column menu handlers (sorting now handled by DataGrid)
 
   const handleMoveLeft = useCallback((columnId: string) => {
     setColumnOrder(prev => {
@@ -201,11 +236,12 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
 
   const handleApplyFilter = useCallback((columnId: string) => {
     const filterValue = filterInputs[columnId] || '';
+    const operator = filterOperators[columnId] || 'Equals';
     setColumnFilters(prev => ({
       ...prev,
-      [columnId]: filterValue,
+      [columnId]: { operator, value: filterValue },
     }));
-  }, [filterInputs]);
+  }, [filterInputs, filterOperators]);
 
   const handleClearFilter = useCallback((columnId: string) => {
     setColumnFilters(prev => {
@@ -217,6 +253,35 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
       const newInputs = { ...prev };
       delete newInputs[columnId];
       return newInputs;
+    });
+    setFilterOperators(prev => {
+      const newOperators = { ...prev };
+      delete newOperators[columnId];
+      return newOperators;
+    });
+  }, []);
+
+  const handleGroupBy = useCallback((columnId: string) => {
+    setGroupByColumn(prev => {
+      const newGroupBy = prev === columnId ? null : columnId;
+      // If grouping by a column, expand all groups by default
+      if (newGroupBy) {
+        // We'll populate this after groups are created
+        // For now just clear it, the useMemo will handle expansion
+      }
+      return newGroupBy;
+    });
+  }, []);
+
+  const toggleGroupExpansion = useCallback((groupKey: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupKey)) {
+        newSet.delete(groupKey);
+      } else {
+        newSet.add(groupKey);
+      }
+      return newSet;
     });
   }, []);
 
@@ -232,13 +297,13 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
       } else {
         newSet.delete(rowIndex);
       }
-      
+
       // Trigger callback
       if (onSelectionChange) {
         const selectedData = Array.from(newSet).map(idx => data[idx]);
         onSelectionChange(selectedData);
       }
-      
+
       return newSet;
     });
   }, [config.selectionMode, data, onSelectionChange]);
@@ -247,157 +312,186 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   const handleSelectAll = useCallback((checked: boolean) => {
     setSelectedRows(() => {
       const newSet = checked ? new Set(data.map((_, idx) => idx)) : new Set<number>();
-      
+
       if (onSelectionChange) {
         const selectedData = Array.from(newSet).map(idx => data[idx]);
         onSelectionChange(selectedData);
       }
-      
+
       return newSet;
     });
   }, [data, onSelectionChange]);
 
-  // Handle sorting
-  const handleSort = useCallback((columnId: string) => {
-    setSortState(prev => {
-      const newDirection = 
-        prev.sortColumn === columnId && prev.sortDirection === 'ascending'
-          ? 'descending'
-          : 'ascending';
-      
-      return { sortColumn: columnId, sortDirection: newDirection };
-    });
-  }, []);
 
-  // Sort data
-  const sortedData = useMemo(() => {
+
+  // Apply filters only (DataGrid handles sorting)
+  const filteredData = useMemo(() => {
     let filtered = data;
-    
+
     // Apply filters
-    Object.entries(columnFilters).forEach(([columnId, filterValue]) => {
-      if (filterValue) {
-        filtered = filtered.filter(row => {
-          const cellValue = row[columnId];
-          return cellValue != null && String(cellValue).toLowerCase().includes(filterValue.toLowerCase());
-        });
-      }
+    Object.entries(columnFilters).forEach(([columnId, { operator, value: filterValue }]) => {
+      filtered = filtered.filter(row => {
+        const cellValue = row[columnId];
+        const cellStr = cellValue != null ? String(cellValue).toLowerCase() : '';
+        const filterStr = filterValue.toLowerCase();
+
+        switch (operator) {
+          case 'Equals':
+            return cellStr === filterStr;
+          case 'Does not equal':
+            return cellStr !== filterStr;
+          case 'Contains':
+            return cellStr.includes(filterStr);
+          case 'Does not contain':
+            return !cellStr.includes(filterStr);
+          case 'Begins with':
+            return cellStr.startsWith(filterStr);
+          case 'Does not begin with':
+            return !cellStr.startsWith(filterStr);
+          case 'Ends with':
+            return cellStr.endsWith(filterStr);
+          case 'Does not end with':
+            return !cellStr.endsWith(filterStr);
+          case 'Contains data':
+            return cellValue != null && cellStr !== '';
+          case 'Does not contain data':
+            return cellValue == null || cellStr === '';
+          case 'Greater than':
+            return cellValue != null && Number(cellValue) > Number(filterValue);
+          case 'Greater than or equal':
+            return cellValue != null && Number(cellValue) >= Number(filterValue);
+          case 'Less than':
+            return cellValue != null && Number(cellValue) < Number(filterValue);
+          case 'Less than or equal':
+            return cellValue != null && Number(cellValue) <= Number(filterValue);
+          case 'On or after':
+            return cellValue != null && new Date(cellValue) >= new Date(filterValue);
+          case 'On or before':
+            return cellValue != null && new Date(cellValue) <= new Date(filterValue);
+          default:
+            return true;
+        }
+      });
     });
-    
-    // Apply sorting
-    if (!sortState.sortColumn) return filtered;
 
-    return [...filtered].sort((a, b) => {
-      const aVal = a[sortState.sortColumn as string];
-      const bVal = b[sortState.sortColumn as string];
+    return filtered;
+  }, [data, columnFilters]);
 
-      let comparison = 0;
-      if (aVal == null && bVal == null) comparison = 0;
-      else if (aVal == null) comparison = 1;
-      else if (bVal == null) comparison = -1;
-      else if (typeof aVal === 'number' && typeof bVal === 'number') {
-        comparison = aVal - bVal;
-      } else {
-        comparison = String(aVal).localeCompare(String(bVal));
+  // Group data if groupByColumn is set
+  const displayData = useMemo(() => {
+    if (!groupByColumn) return filteredData;
+
+    // Group rows by the selected column
+    const groups = new Map<string, TableRow[]>();
+    filteredData.forEach(row => {
+      const groupValue = row[groupByColumn];
+      const groupKey = groupValue != null ? String(groupValue) : '(Blank)';
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
       }
-
-      return sortState.sortDirection === 'descending' ? -comparison : comparison;
+      groups.get(groupKey)!.push(row);
     });
-  }, [data, sortState, columnFilters]);
 
-  // Column header menu component
-  const ColumnHeaderMenu: React.FC<{ columnId: string; columnLabel: string; columnIndex: number }> = ({
+    // Auto-expand all groups if expandedGroups is empty (first time grouping)
+    const groupKeys = Array.from(groups.keys());
+    let currentExpandedGroups = expandedGroups;
+    if (expandedGroups.size === 0 && groupKeys.length > 0) {
+      currentExpandedGroups = new Set(groupKeys);
+      setExpandedGroups(currentExpandedGroups);
+    }
+
+    // Convert to flat array with group headers
+    const result: TableRow[] = [];
+    Array.from(groups.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .forEach(([groupKey, rows]) => {
+        // Add group header row
+        result.push({
+          _index: -1,
+          _isGroupHeader: true,
+          _groupKey: groupKey,
+          _groupCount: rows.length,
+          _isExpanded: currentExpandedGroups.has(groupKey),
+        } as any);
+
+        // Add data rows if expanded
+        if (currentExpandedGroups.has(groupKey)) {
+          result.push(...rows);
+        }
+      });
+
+    return result;
+  }, [filteredData, groupByColumn, expandedGroups]);
+
+  // Column header menu component (sorting handled by DataGrid natively)
+  const ColumnHeaderMenu: React.FC<{ columnId: string; columnIndex: number }> = ({
     columnId,
-    columnLabel,
     columnIndex,
   }) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+    const [isWidthDialogOpen, setIsWidthDialogOpen] = useState(false);
+    const [filterValue, setFilterValue] = useState(filterInputs[columnId] || '');
+    const [selectedOperator, setSelectedOperator] = useState(filterOperators[columnId] || 'Equals');
+    const [columnWidth, setColumnWidth] = useState('');
+    const menuButtonRef = React.useRef<HTMLButtonElement>(null);
     const canMoveLeft = columnIndex > 0;
     const canMoveRight = columnIndex < columnOrder.length - 1;
-    const hasFilter = columnFilters[columnId];
+    const dataType = getColumnDataType(columnId);
+    const operators = getFilterOperators(dataType);
 
     return (
-      <div className={styles.columnHeader}>
-        <span>{columnLabel}</span>
-        <Menu open={isOpen} onOpenChange={(_, data) => setIsOpen(data.open)}>
+      <>
+        <Menu open={isMenuOpen} onOpenChange={(_, data) => setIsMenuOpen(data.open)}>
           <MenuTrigger disableButtonEnhancement>
             <Button
+              ref={menuButtonRef}
               appearance="subtle"
               icon={<ChevronDown20Regular />}
               className={styles.columnHeaderButton}
               aria-label="Column options"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
             />
           </MenuTrigger>
           <MenuPopover>
             <MenuList>
-              <MenuItem
-                icon={<ArrowSortUp20Regular />}
-                onClick={() => {
-                  handleSortAscending(columnId);
-                  setIsOpen(false);
-                }}
-              >
+              <MenuItem icon={<ArrowSortUp20Regular />}>
                 A to Z
               </MenuItem>
-              <MenuItem
-                icon={<ArrowSortDown20Regular />}
-                onClick={() => {
-                  handleSortDescending(columnId);
-                  setIsOpen(false);
-                }}
-              >
+              <MenuItem icon={<ArrowSortDown20Regular />}>
                 Z to A
               </MenuItem>
               <MenuDivider />
-              <MenuItem icon={<GroupList20Regular />}>
-                Group by this column
+              <MenuItem
+                icon={<GroupList20Regular />}
+                onClick={() => {
+                  handleGroupBy(columnId);
+                  setIsMenuOpen(false);
+                }}
+              >
+                {groupByColumn === columnId ? 'Ungroup' : 'Group by'}
               </MenuItem>
               <MenuDivider />
-              <div style={{ padding: '8px 12px' }} onClick={(e) => e.stopPropagation()}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <Filter20Regular style={{ fontSize: '20px', color: '#605e5c' }} />
-                  <span style={{ fontSize: '14px', fontWeight: 600 }}>Filter by</span>
-                </div>
-                <Input
-                  className={styles.filterInput}
-                  placeholder="Enter filter value..."
-                  value={filterInputs[columnId] || ''}
-                  onChange={(e) => setFilterInputs(prev => ({ ...prev, [columnId]: e.target.value }))}
-                  onKeyDown={(e) => {
-                    e.stopPropagation();
-                    if (e.key === 'Enter') {
-                      handleApplyFilter(columnId);
-                      setIsOpen(false);
-                    }
-                  }}
-                />
-                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                  <Button
-                    size="small"
-                    appearance="primary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleApplyFilter(columnId);
-                      setIsOpen(false);
-                    }}
-                  >
-                    Apply
-                  </Button>
-                  {hasFilter && (
-                    <Button
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleClearFilter(columnId);
-                        setIsOpen(false);
-                      }}
-                    >
-                      Clear
-                    </Button>
-                  )}
-                </div>
-              </div>
+              <MenuItem
+                icon={<Filter20Regular />}
+                onClick={() => {
+                  setFilterValue(filterInputs[columnId] || '');
+                  setSelectedOperator(filterOperators[columnId] || 'Equals');
+                  setIsFilterDialogOpen(true);
+                  setIsMenuOpen(false);
+                }}
+              >
+                Filter by
+              </MenuItem>
               <MenuDivider />
-              <MenuItem icon={<ColumnTriple20Regular />} disabled>
+              <MenuItem
+                icon={<ColumnTriple20Regular />}
+                onClick={() => {
+                  setIsWidthDialogOpen(true);
+                  setIsMenuOpen(false);
+                }}
+              >
                 Column width
               </MenuItem>
               <MenuDivider />
@@ -405,7 +499,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                 icon={<ArrowLeft20Regular />}
                 onClick={() => {
                   handleMoveLeft(columnId);
-                  setIsOpen(false);
+                  setIsMenuOpen(false);
                 }}
                 disabled={!canMoveLeft}
               >
@@ -415,7 +509,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                 icon={<ArrowRight20Regular />}
                 onClick={() => {
                   handleMoveRight(columnId);
-                  setIsOpen(false);
+                  setIsMenuOpen(false);
                 }}
                 disabled={!canMoveRight}
               >
@@ -424,7 +518,134 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
             </MenuList>
           </MenuPopover>
         </Menu>
-      </div>
+
+        {/* Filter Callout */}
+        <Popover
+          open={isFilterDialogOpen}
+          onOpenChange={(_, data) => setIsFilterDialogOpen(data.open)}
+          positioning={{ target: menuButtonRef.current, position: 'below', align: 'start' }}
+        >
+          <PopoverSurface style={{ padding: '16px', width: '240px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <span style={{ fontWeight: 600, fontSize: '14px' }}>Filter by</span>
+              <Button
+                appearance="subtle"
+                icon={<span style={{ fontSize: '12px' }}>✕</span>}
+                onClick={() => setIsFilterDialogOpen(false)}
+                size="small"
+                style={{ minWidth: 'auto', padding: '4px' }}
+              />
+            </div>
+            <label htmlFor={`filter-operator-${columnId}`} style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 600 }}>
+              Operator
+            </label>
+            <Select
+              id={`filter-operator-${columnId}`}
+              value={selectedOperator}
+              onChange={(_, data) => {
+                const newOperator = data.value;
+                setSelectedOperator(newOperator);
+                setFilterOperators(prev => ({ ...prev, [columnId]: newOperator }));
+              }}
+              style={{ width: '100%', marginBottom: '8px' }}
+            >
+              {operators.map(op => (
+                <option key={op} value={op}>{op}</option>
+              ))}
+            </Select>
+            <Input
+              placeholder=""
+              value={filterValue}
+              onChange={(e) => setFilterValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setFilterInputs(prev => ({ ...prev, [columnId]: filterValue }));
+                  handleApplyFilter(columnId);
+                  setIsFilterDialogOpen(false);
+                }
+              }}
+              style={{ width: '100%', marginBottom: '12px', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button
+                appearance="primary"
+                onClick={() => {
+                  setFilterInputs(prev => ({ ...prev, [columnId]: filterValue }));
+                  setFilterOperators(prev => ({ ...prev, [columnId]: selectedOperator }));
+                  handleApplyFilter(columnId);
+                  setIsFilterDialogOpen(false);
+                }}
+                style={{ flex: 1 }}
+              >
+                Apply
+              </Button>
+              <Button
+                appearance="secondary"
+                onClick={() => {
+                  handleClearFilter(columnId);
+                  setFilterValue('');
+                  setSelectedOperator('Equals');
+                  setIsFilterDialogOpen(false);
+                }}
+                style={{ flex: 1 }}
+              >
+                Clear
+              </Button>
+            </div>
+          </PopoverSurface>
+        </Popover>
+
+        {/* Column Width Callout */}
+        <Popover
+          open={isWidthDialogOpen}
+          onOpenChange={(_, data) => setIsWidthDialogOpen(data.open)}
+          positioning={{ target: menuButtonRef.current, position: 'below', align: 'start' }}
+        >
+          <PopoverSurface style={{ padding: '16px', width: '240px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <span style={{ fontWeight: 600, fontSize: '14px' }}>Column width</span>
+              <Button
+                appearance="subtle"
+                icon={<span style={{ fontSize: '12px' }}>✕</span>}
+                onClick={() => setIsWidthDialogOpen(false)}
+                size="small"
+                style={{ minWidth: 'auto', padding: '4px' }}
+              />
+            </div>
+            <Input
+              placeholder="e.g., 200px or 20%"
+              value={columnWidth}
+              onChange={(e) => setColumnWidth(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  // Column width adjustment would be implemented here
+                  setIsWidthDialogOpen(false);
+                }
+              }}
+              style={{ width: '100%', marginBottom: '12px', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button
+                appearance="primary"
+                onClick={() => {
+                  // Column width adjustment would be implemented here
+                  setIsWidthDialogOpen(false);
+                }}
+                style={{ flex: 1 }}
+              >
+                Apply
+              </Button>
+              <Button
+                appearance="secondary"
+                onClick={() => setIsWidthDialogOpen(false)}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </PopoverSurface>
+        </Popover>
+      </>
     );
   };
 
@@ -448,61 +669,96 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
 
     // Data columns
     const visibleColumns = (config.tableColumns || []).filter(col => col.visible !== false);
-    
+
     // Debug: Log column configuration
     if (visibleColumns.length === 0) {
-      console.warn('TableFluentUi: No visible columns found. tableColumns:', config.tableColumns);
+      console.debug(...UILIB, 'TableFluentUi: No visible columns found. tableColumns:', config.tableColumns);
     }
-    
+
     // Sort columns by columnOrder
-    const orderedColumns = columnOrder
+    const orderedCols = columnOrder
       .map(colId => visibleColumns.find(col => col.id === colId))
       .filter(col => col != null);
-    
-    orderedColumns.forEach((column, index) => {
+
+    orderedCols.forEach((column, index) => {
       cols.push(
         createTableColumn<TableRow>({
           columnId: column.id,
-          renderHeaderCell: () => (
-            <ColumnHeaderMenu
-              columnId={column.id}
-              columnLabel={column.header}
-              columnIndex={index}
-            />
-          ),
+          renderHeaderCell: () => {
+            return (
+              <>
+                {column.header}
+                <ColumnHeaderMenu
+                  columnId={column.id}
+                  columnIndex={index}
+                />
+              </>
+            );
+          },
           renderCell: (item: TableRow) => {
+            // Check if this is a group header row
+            if ((item as any)._isGroupHeader) {
+              // Only render content in first column
+              if (index === 0) {
+                const groupKey = (item as any)._groupKey;
+                const groupCount = (item as any)._groupCount;
+                const isExpanded = (item as any)._isExpanded;
+                return (
+                  <TableCellLayout>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => toggleGroupExpansion(groupKey)}
+                    >
+                      <span style={{ fontSize: '16px' }}>{isExpanded ? '▼' : '▶'}</span>
+                      <span>{groupKey} ({groupCount})</span>
+                    </div>
+                  </TableCellLayout>
+                );
+              }
+              return <TableCellLayout></TableCellLayout>;
+            }
+
             const cellValue = item[column.id];
-            
+            const textAlign = column.align || 'left';
+
             // If the value is a string that looks like HTML, render it as HTML
             if (typeof cellValue === 'string' && (cellValue.includes('<') || cellValue.includes('&'))) {
               return (
                 <TableCellLayout truncate>
-                  <div className={styles.truncatedCell} dangerouslySetInnerHTML={{ __html: cellValue }} />
+                  <div className={styles.truncatedCell} style={{ textAlign }} dangerouslySetInnerHTML={{ __html: cellValue }} />
                 </TableCellLayout>
               );
             }
-            
+
             // Otherwise render as text
             return (
               <TableCellLayout truncate title={cellValue != null ? String(cellValue) : ''}>
-                {cellValue != null ? String(cellValue) : ''}
+                <div style={{ textAlign }}>
+                  {cellValue != null ? String(cellValue) : ''}
+                </div>
               </TableCellLayout>
             );
           },
           compare: column.sortable !== false ? (a: TableRow, b: TableRow) => {
             const aVal = a[column.id];
             const bVal = b[column.id];
-            
+
             // Handle null/undefined
             if (aVal == null && bVal == null) return 0;
             if (aVal == null) return -1;
             if (bVal == null) return 1;
-            
+
             // String comparison
             if (typeof aVal === 'string' && typeof bVal === 'string') {
               return aVal.localeCompare(bVal);
             }
-            
+
             // Number comparison
             return Number(aVal) - Number(bVal);
           } : undefined,
@@ -511,12 +767,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     });
 
     return cols;
-  }, [config, data.length, selectedRows, handleSelectAll, handleRowSelect, styles.radioButton, columnOrder, columnFilters, filterInputs, handleSortAscending, handleSortDescending, handleMoveLeft, handleMoveRight, handleApplyFilter, handleClearFilter]);
-
-  // Prepare sort options for DataGrid
-  const sortOptions = sortState.sortColumn
-    ? { sortColumn: sortState.sortColumn, sortDirection: sortState.sortDirection }
-    : undefined;
+  }, [config, data.length, selectedRows, handleSelectAll, handleRowSelect, styles.radioButton, columnOrder, columnFilters, filterInputs, handleMoveLeft, handleMoveRight, handleApplyFilter, handleClearFilter, groupByColumn, toggleGroupExpansion]);
 
   if (data.length === 0) {
     return (
@@ -529,19 +780,11 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   return (
     <div className={styles.container}>
       <DataGrid
-        items={sortedData}
+        items={displayData}
         columns={columns as any}
-        sortable
+        sortable={!groupByColumn}
         resizableColumns
         columnSizingOptions={columnSizingOptions}
-        {...(sortOptions && {
-          sortState: sortOptions,
-          onSortChange: (_, data) => {
-            if (data.sortColumn) {
-              handleSort(String(data.sortColumn));
-            }
-          },
-        })}
         selectionMode={config.selectionMode === 'none' ? undefined : config.selectionMode === 'multiple' ? 'multiselect' : 'single'}
         selectedItems={Array.from(selectedRows)}
         onSelectionChange={(_, data) => {
@@ -553,7 +796,9 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
           });
           setSelectedRows(newSelectedIndexes);
           if (onSelectionChange) {
-            const selectedData = Array.from(newSelectedIndexes).map(idx => sortedData[idx]);
+            const selectedData = Array.from(newSelectedIndexes)
+              .map(idx => displayData[idx])
+              .filter(item => !(item as any)._isGroupHeader); // Exclude group headers
             onSelectionChange(selectedData);
           }
         }}

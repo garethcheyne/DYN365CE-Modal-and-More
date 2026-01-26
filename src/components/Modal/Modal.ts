@@ -22,7 +22,7 @@ import type {
 } from './Modal.types';
 import { ModalButton } from './Modal.types';
 import { getTargetDocument } from '../../utils/dom';
-import { WAR, ERR } from '../Logger/Logger';
+import { WAR, ERR, UILIB } from '../Logger/Logger';
 import {
   React,
   TabList,
@@ -70,6 +70,7 @@ export class Modal implements ModalInstance {
   private modalStartX: number = 0;
   private modalStartY: number = 0;
   private isFullscreen: boolean = false;
+  private fieldSetters: Map<string, (value: any) => void> = new Map(); // React state setters
 
   constructor(options: ModalOptions) {
     this.options = {
@@ -115,7 +116,7 @@ export class Modal implements ModalInstance {
     try {
       // Check if Xrm is available
       if (typeof (window as any).Xrm === 'undefined') {
-        console.log(...WAR, 'Dynamics 365 Xrm object not available. Cannot fetch option set.');
+        console.debug(...WAR, 'Dynamics 365 Xrm object not available. Cannot fetch option set.');
         return [];
       }
 
@@ -126,7 +127,7 @@ export class Modal implements ModalInstance {
       const attributeMetadata = attribute.Attributes._collection[attributeName];
 
       if (!attributeMetadata || !attributeMetadata.OptionSet) {
-        console.log(...WAR, `No option set found for ${entityName}.${attributeName}`);
+        console.debug(...WAR, `No option set found for ${entityName}.${attributeName}`);
         return [];
       }
 
@@ -151,11 +152,10 @@ export class Modal implements ModalInstance {
         options.sort((a, b) => a.label.localeCompare(b.label));
       }
 
-      console.log(`Fetched ${options.length} options for ${entityName}.${attributeName}`);
       return options;
 
     } catch (error) {
-      console.log(...ERR, `Error fetching option set for ${entityName}.${attributeName}:`, error);
+      console.error(...ERR, `Error fetching option set for ${entityName}.${attributeName}:`, error);
       return [];
     }
   }
@@ -169,14 +169,14 @@ export class Modal implements ModalInstance {
     container.setAttribute('data-field-id', field.id);
 
     if (!field.addressLookup) {
-      console.log(...WAR, 'Address lookup configuration missing');
+      console.debug(...WAR, 'Address lookup configuration missing');
       return null;
     }
 
     const { provider, apiKey, placeholder, fields: relatedFields, onSelect } = field.addressLookup;
 
     if (!apiKey) {
-      console.log(...ERR, `${provider === 'google' ? 'Google Maps' : 'Azure Maps'} API key required`);
+      console.error(...ERR, `${provider === 'google' ? 'Google Maps' : 'Azure Maps'} API key required`);
       return null;
     }
 
@@ -504,7 +504,7 @@ export class Modal implements ModalInstance {
 
     // Mount fullscreen icon
     const fullscreenIconContainer = doc.createElement('div');
-    fullscreenIconContainer.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; margin: 0;';
+    fullscreenIconContainer.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; margin: 0; margin-top: 4px;';
     const FullscreenIcon = React.createElement(FullScreenMaximizeRegular);
     mountFluentComponent(fullscreenIconContainer, FullscreenIcon, defaultTheme);
     fullscreenBtn.appendChild(fullscreenIconContainer);
@@ -838,6 +838,9 @@ export class Modal implements ModalInstance {
       const connectorColor = showError ? '#d13438' : isCompleted ? '#107c10' : '#d2d0ce';
       (connector as HTMLElement).style.background = connectorColor;
     });
+
+    // Update button states based on validation
+    this.updateButtonStates();
   }
 
   private createSideCart(): HTMLElement | null {
@@ -1008,6 +1011,12 @@ export class Modal implements ModalInstance {
         const LookupWrapper = () => {
           const [selectedLookup, setSelectedLookup] = React.useState<any>(field.value || null);
 
+          // Store setter for external updates
+          React.useEffect(() => {
+            this.fieldSetters.set(field.id, setSelectedLookup);
+            return () => { this.fieldSetters.delete(field.id); };
+          }, []);
+
           return React.createElement(LookupFluentUi, {
             id: field.id,
             label: field.label,
@@ -1155,6 +1164,12 @@ export class Modal implements ModalInstance {
         const TextareaWrapper = () => {
           const [textValue, setTextValue] = React.useState(field.value || '');
 
+          // Store setter for external updates
+          React.useEffect(() => {
+            this.fieldSetters.set(field.id, setTextValue);
+            return () => { this.fieldSetters.delete(field.id); };
+          }, []);
+
           return React.createElement(InputFluentUi, {
             id: field.id,
             label: field.label,
@@ -1196,6 +1211,12 @@ export class Modal implements ModalInstance {
 
         const SelectWrapper = () => {
           const [selectValue, setSelectValue] = React.useState(field.value || '');
+
+          // Store setter for external updates
+          React.useEffect(() => {
+            this.fieldSetters.set(field.id, setSelectValue);
+            return () => { this.fieldSetters.delete(field.id); };
+          }, []);
 
           return React.createElement(DropdownFluentUi, {
             id: field.id,
@@ -1385,6 +1406,12 @@ export class Modal implements ModalInstance {
         const InputWrapper = () => {
           const [inputValue, setInputValue] = React.useState(field.value || '');
 
+          // Store setter for external updates
+          React.useEffect(() => {
+            this.fieldSetters.set(field.id, setInputValue);
+            return () => { this.fieldSetters.delete(field.id); };
+          }, []);
+
           return React.createElement(InputFluentUi, {
             id: field.id,
             label: field.label,
@@ -1543,15 +1570,99 @@ export class Modal implements ModalInstance {
     this.modal!.appendChild(this.footer);
   }
 
+  /**
+   * Update button states based on validation requirements
+   * Disables buttons with requiresValidation=true when required fields are invalid
+   */
+  private updateButtonStates(): void {
+    if (!this.options.buttons || this.options.buttons.length === 0) return;
+
+    this.options.buttons.forEach((btn) => {
+      if (!btn.requiresValidation) return;
+
+      const buttonElement = this.buttonElements.get(btn);
+      if (!buttonElement) return;
+
+      const fluentButton = buttonElement.querySelector('button');
+      if (!fluentButton) return;
+
+      // Check if all required fields are valid
+      let isValid = true;
+
+      if (this.options.progress?.enabled && this.options.progress.steps) {
+        // For wizard: validate current step OR all steps based on button config
+        if (btn.validateAllSteps) {
+          // Validate ALL steps for buttons like "Finish"
+          isValid = this.options.progress.steps.every((_, index) => this.validateStep(index));
+        } else {
+          // Validate only current step for buttons like "Next"
+          isValid = this.validateStep(this.currentStep - 1);
+        }
+      } else if (this.options.fields) {
+        // For regular modal: validate all fields
+        isValid = this.validateAllFields();
+      }
+
+      fluentButton.disabled = !isValid;
+    });
+  }
+
+  /**
+   * Validate all fields in the modal (non-wizard)
+   */
+  validateAllFields(): boolean {
+    if (!this.options.fields) return true;
+
+    for (const field of this.options.fields) {
+      // Skip hidden fields
+      if (field.visibleWhen) {
+        const isVisible = this.evaluateVisibilityCondition(field.visibleWhen);
+        if (!isVisible) continue;
+      }
+
+      // Determine if field is required
+      let isRequired = false;
+      
+      if (field.requiredWhen) {
+        isRequired = this.evaluateVisibilityCondition(field.requiredWhen);
+      } else {
+        isRequired = field.required || false;
+      }
+
+      if (isRequired) {
+        const value = this.getFieldValue(field.id);
+        // Empty values: null, undefined, empty string, empty array
+        if (value === null || value === undefined || value === '' || 
+            (Array.isArray(value) && value.length === 0)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
   private createButton(btn: ModalButton): HTMLElement {
     const doc = getTargetDocument();
     const buttonContainer = doc.createElement('div');
 
     const isPrimary = btn.setFocus;
+    
+    // Determine button appearance
+    // isDestructive takes precedence and shows red warning style
+    let appearance: 'primary' | 'secondary' | 'outline' = isPrimary ? 'primary' : 'secondary';
+    
+    // Additional styling for destructive buttons (red)
+    const buttonStyle: React.CSSProperties = { minWidth: '96px' };
+    if (btn.isDestructive) {
+      buttonStyle.backgroundColor = '#d13438';
+      buttonStyle.color = '#ffffff';
+      buttonStyle.borderColor = '#d13438';
+    }
 
     // Use Fluent UI Button component via React
     const ButtonComponent = React.createElement(Button, {
-      appearance: isPrimary ? 'primary' : 'secondary',
+      appearance: appearance,
       onClick: async () => {
         const result = await btn.callback();
 
@@ -1563,7 +1674,7 @@ export class Modal implements ModalInstance {
         }
       },
       children: btn.label,
-      style: { minWidth: '96px' }
+      style: buttonStyle
     });
 
     // Mount the Fluent UI button
@@ -1672,7 +1783,7 @@ export class Modal implements ModalInstance {
   }
 
   show(): void {
-    console.debug('UI-lib Modal.show()', {
+    console.debug(...UILIB, 'Modal.show()', {
       version: PACKAGE_VERSION,
       title: this.options.title,
       size: this.options.size,
@@ -1893,7 +2004,14 @@ export class Modal implements ModalInstance {
     // Update internal value map
     this.fieldValues.set(fieldId, value);
 
-    // Update the actual DOM element
+    // Use React state setter if available (for Fluent UI components)
+    const setter = this.fieldSetters.get(fieldId);
+    if (setter) {
+      setter(value);
+      return;
+    }
+
+    // Fallback: Update the actual DOM element for non-React fields
     const element = this.getElement(`[data-field-id="${fieldId}"]`);
     if (element && element instanceof HTMLElement) {
       const input = element.querySelector('input, textarea, select') as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
@@ -1909,6 +2027,9 @@ export class Modal implements ModalInstance {
         input.dispatchEvent(new Event('change', { bubbles: true }));
       }
     }
+
+    // Update button states based on new field value
+    this.updateButtonStates();
   }
 
   validateCurrentStep(): boolean {
@@ -1916,60 +2037,6 @@ export class Modal implements ModalInstance {
       return this.validateStep(this.currentStep - 1);
     }
     return this.validateAllFields();
-  }
-
-  validateAllFields(): boolean {
-    if (!this.options.fields || this.options.fields.length === 0) return true;
-
-    // Check all required fields
-    for (const field of this.options.fields) {
-      // Skip if field is not visible
-      const isVisible = this.fieldVisibilityMap.get(field.id);
-      if (isVisible === false) continue;
-
-      // Check base required property
-      let isRequired = field.required || false;
-      
-      // Check conditional required (requiredWhen)
-      if (field.requiredWhen) {
-        const conditionallyRequired = this.evaluateVisibilityCondition(field.requiredWhen);
-        isRequired = isRequired || conditionallyRequired;
-      }
-
-      if (isRequired) {
-        const value = this.getFieldValue(field.id);
-        // Empty values: null, undefined, empty string, empty array
-        if (value === null || value === undefined || value === '' || 
-            (Array.isArray(value) && value.length === 0)) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Update button states based on form validation
-   * Disables primary/submit buttons until all required fields are filled
-   */
-  private updateButtonStates(): void {
-    if (!this.options.buttons || this.options.buttons.length === 0) return;
-
-    const isValid = this.validateCurrentStep();
-
-    this.options.buttons.forEach((btn) => {
-      const buttonElement = this.buttonElements.get(btn);
-      if (!buttonElement) return;
-
-      // Only disable primary buttons (submit buttons)
-      if (btn.setFocus) {
-        const fluentButton = buttonElement.querySelector('button');
-        if (fluentButton) {
-          fluentButton.disabled = !isValid;
-        }
-      }
-    });
   }
 
   updateSideCart(_content: string | { imageUrl: string }): void {

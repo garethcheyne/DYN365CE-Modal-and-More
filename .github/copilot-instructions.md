@@ -136,6 +136,16 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
     value: 'someValue'        // Optional value (not needed for truthy/falsy)
   },
 
+  // Field change callback
+  onChange: (value) => {
+    console.log('Field value changed:', value);
+    // Trigger side effects, update other fields, fetch data, etc.
+    // For lookup fields: value is array of { id, name, entityType, record }
+    // For tables: value is array of selected rows
+    // For other fields: value is the field's current value
+    // Return value is ignored
+  },
+
   // D365 Option Set auto-fetch
   optionSet: {
     entityName: 'account',       // D365 entity name
@@ -154,13 +164,19 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
 - `date` - Date picker
 - `select` - Dropdown (use `options` array)
 - `lookup` - Inline D365-style dropdown lookup (entityName, lookupColumns, filters)
-  - `lookupColumns`: Array of columns (strings or {attribute, label, visible}) - shown in order specified
+  - `lookupColumns`: Array of columns to fetch and display
+    - String format: ['line1', 'city', 'postalcode'] - shows values only
+    - Object format: [{attribute: 'line1', label: 'Address'}, ...] - shows "Label: value"
+    - **Label display**: If label provided, displays "Label: value". If label null/empty, shows value only
+    - First column = primary text (bold, 14px, label in gray if provided)
+    - Second column = subtitle (gray, 12px, label in bold if provided)
+    - Additional columns = fetched but not shown in dropdown
   - Note: Use `lookupColumns` for inline lookups, `columns` for Modal Dialog Lookups
 - `checkbox` - Boolean checkbox (D365 native style)
 - `switch` - Boolean toggle switch (modern style)
 - `range` - Slider (use `extraAttributes: { min, max, step }`)
 - `table` - Data grid with sortable columns, selection, and filtering
-  - Use `tableColumns` property (array of {id, header, visible, sortable, width})
+  - Use `tableColumns` property (array of {id, header, visible, sortable, width, align})
   - Use `data` property (array of row objects)
   - Use `selectionMode` property ('none', 'single', 'multiple')
   - Use `onRowSelect` callback for selection changes
@@ -432,10 +448,11 @@ files.forEach((file) => {
 **Table Field Example:**
 
 ```javascript
-// Using Table class
+// Using inline field config
 fields: [
-  new uiLib.Table({
+  {
     id: "productsTable",
+    type: "table",
     label: "Products",
     tableColumns: [
       {
@@ -444,6 +461,7 @@ fields: [
         visible: true,
         sortable: true,
         width: "250px",
+        align: "left",
       },
       {
         id: "category",
@@ -451,6 +469,7 @@ fields: [
         visible: true,
         sortable: true,
         width: "180px",
+        align: "left",
       },
       {
         id: "price",
@@ -458,6 +477,7 @@ fields: [
         visible: true,
         sortable: true,
         width: "120px",
+        align: "right",
       },
       {
         id: "stock",
@@ -465,6 +485,7 @@ fields: [
         visible: true,
         sortable: true,
         width: "100px",
+        align: "right",
       },
     ],
     data: [
@@ -487,10 +508,10 @@ fields: [
     onRowSelect: (selectedRows) => {
       console.log(selectedRows);
     },
-  }),
+  },
 ];
 
-// Using inline field config (simpler)
+// Simpler example
 fields: [
   {
     id: "productsTable",
@@ -503,8 +524,9 @@ fields: [
         visible: true,
         sortable: true,
         width: "250px",
+        align: "left",
       },
-      { id: "price", header: "Price ($)", visible: true, sortable: true },
+      { id: "price", header: "Price ($)", visible: true, sortable: true, align: "right" },
     ],
     data: [
       { id: 1, product: "Product A", price: 100 },
@@ -562,17 +584,54 @@ new uiLib.Modal({
       label: "Account",
       type: "lookup",
       entityName: "account",
-      lookupColumns: ["name", "accountnumber"],
-      filters: "statecode eq 0", // Optional OData filter
+      lookupColumns: ["name", "accountnumber"], // Shows: name, accountnumber (values only, no labels)
+      filters: "statecode eq 0", // Optional OData filter or FetchXML
       placeholder: "Search accounts...",
       required: true,
     },
+    // With labels - shows "Label: value" format
+    {
+      id: "addressLookup",
+      label: "Address",
+      type: "lookup",
+      entityName: "customeraddress",
+      lookupColumns: [
+        { attribute: "line1", label: "Address" },
+        { attribute: "city", label: "City" },
+        { attribute: "postalcode", label: "Postal Code" }
+      ], // Shows: "Address: 123 Main St" (line 1), "City: Auckland" (line 2)
+      placeholder: "Search addresses...",
+    }
   ],
 });
 // - Inline dropdown appears below the field
 // - Search as you type
 // - Click to select
 // - Returns: { id, name, subtitle, entityType, record }
+// - With labels: displays "Label: value"
+// - Without labels: displays value only
+// - If columns don't exist, library auto-falls back to common names: 'name', 'fullname', 'subject', 'title'
+// - Field validation fetches entity metadata to check column existence
+
+// IMPORTANT: Multiple Entity Types (Polymorphic Lookups)
+// Inline lookup supports ONE entity at a time. For Customer-type fields (Account OR Contact),
+// use conditional visibility with separate lookups:
+[
+  { id: 'customerType', label: 'Type', type: 'select', options: ['Account', 'Contact'] },
+  { 
+    id: 'accountLookup', 
+    type: 'lookup', 
+    entityName: 'account',
+    visibleWhen: { field: 'customerType', operator: 'equals', value: 'Account' }
+  },
+  { 
+    id: 'contactLookup', 
+    type: 'lookup', 
+    entityName: 'contact',
+    visibleWhen: { field: 'customerType', operator: 'equals', value: 'Contact' }
+  }
+]
+// For true multi-entity search across tables simultaneously, use Modal Dialog Lookup instead.
 ```
 
 2. **Modal Dialog Lookup** (Advanced) - Full-screen modal with table:
@@ -594,33 +653,38 @@ new uiLib.Lookup({
 Data grid component with sorting, selection, and D365 integration.
 
 ```javascript
-new uiLib.Table({
-  id: "productsTable",
-  tableColumns: [
-    {
-      id: "name",
-      header: "Product",
-      visible: true,
-      sortable: true,
-      width: "200px",
+// Use as a field in modals
+fields: [
+  {
+    id: "productsTable",
+    type: "table",
+    label: "Products",
+    tableColumns: [
+      {
+        id: "name",
+        header: "Product",
+        visible: true,
+        sortable: true,
+        width: "200px",
+      },
+      {
+        id: "price",
+        header: "Price",
+        visible: true,
+        sortable: true,
+        width: "100px",
+      },
+    ],
+    data: [
+      { id: 1, name: "Product A", price: 100 },
+      { id: 2, name: "Product B", price: 200 },
+    ],
+    selectionMode: "multiple",
+    onRowSelect: (rows) => {
+      console.log(rows);
     },
-    {
-      id: "price",
-      header: "Price",
-      visible: true,
-      sortable: true,
-      width: "100px",
-    },
-  ],
-  data: [
-    { id: 1, name: "Product A", price: 100 },
-    { id: 2, name: "Product B", price: 200 },
-  ],
-  selectionMode: "multiple",
-  onRowSelect: (rows) => {
-    console.log(rows);
   },
-});
+];
 ```
 
 ## File Structure
@@ -820,7 +884,9 @@ React components wrap Fluent UI v9 components:
 
 ## Common Patterns
 
-### Form Validation
+### Form Validation with Auto-Disabled Buttons
+
+Use `requiresValidation: true` to automatically disable submit buttons until all required fields are filled:
 
 ```javascript
 const modal = new uiLib.Modal({
@@ -829,9 +895,36 @@ const modal = new uiLib.Modal({
     { id: "phone", label: "Phone", type: "tel", required: true },
   ],
   buttons: [
-    new uiLib.Button(
-      "Submit",
-      function () {
+    new uiLib.Button({
+      label: "Submit",
+      callback: function () {
+        const email = modal.getFieldValue("email");
+        const phone = modal.getFieldValue("phone");
+
+        // No need to manually check - button only enabled when valid
+        // Process data...
+        return true; // Close modal
+      },
+      setFocus: true,
+      requiresValidation: true,  // ⚡ Auto-disabled until email and phone filled
+      id: "submitBtn",
+    }),
+  ],
+});
+```
+
+**Manual Validation (Old Way):**
+
+```javascript
+const modal = new uiLib.Modal({
+  fields: [
+    { id: "email", label: "Email", type: "email", required: true },
+    { id: "phone", label: "Phone", type: "tel", required: true },
+  ],
+  buttons: [
+    new uiLib.Button({
+      label: "Submit",
+      callback: function () {
         const email = modal.getFieldValue("email");
         const phone = modal.getFieldValue("phone");
 
@@ -843,8 +936,9 @@ const modal = new uiLib.Modal({
         // Process data...
         return true; // Close modal
       },
-      true,
-    ),
+      setFocus: true,
+      id: "submitBtn",
+    }),
   ],
 });
 ```
@@ -927,14 +1021,26 @@ uiLib.ModalHelpers.alert('Form Data', formatJsonWithStyle(data));
 const wizard = new uiLib.Modal({
   progress: { enabled: true, currentStep: 1, steps: [...] },
   buttons: [
-    new uiLib.Button('Previous', () => { wizard.previousStep(); return false; }),
-    new uiLib.Button('Next', () => {
-      if (validateCurrentStep()) {
-        wizard.nextStep();
-      }
-      return false;
+    new uiLib.Button({ 
+      label: 'Previous', 
+      callback: () => { wizard.previousStep(); return false; },
+      id: 'prevBtn'
     }),
-    new uiLib.Button('Finish', () => { submitForm(); }, true)
+    new uiLib.Button({ 
+      label: 'Next', 
+      callback: () => {
+        wizard.nextStep();
+        return false;
+      },
+      setFocus: true,
+      id: 'nextBtn'
+    }),
+    new uiLib.Button({ 
+      label: 'Finish', 
+      callback: () => { submitForm(); },
+      setFocus: true,
+      id: 'finishBtn'
+    })
   ]
 });
 ```
@@ -964,10 +1070,15 @@ const modal = new uiLib.Modal({
   title: 'Process Data',
   fields: [...],
   buttons: [
-    new uiLib.Button('Cancel', () => true, false, false, false, 'cancelBtn'),
-    new uiLib.Button('Submit', function() {
-      // Process...
-    }, true, false, false, 'submitBtn')
+    new uiLib.Button({ label: 'Cancel', callback: () => true, id: 'cancelBtn' }),
+    new uiLib.Button({ 
+      label: 'Submit', 
+      callback: function() {
+        // Process...
+      }, 
+      setFocus: true, 
+      id: 'submitBtn'
+    })
   ]
 });
 modal.show();
@@ -1034,7 +1145,9 @@ new uiLib.Button({
   }, // Required - click handler
   setFocus: true, // Optional - makes this the primary (blue) button
   preventClose: false, // Optional - if true, button won't close modal automatically
-  isDestructive: false, // Optional - if true, button appears red (warning style)
+  isDestructive: false, // Optional - if true, button appears red (warning/danger style)
+  requiresValidation: true, // Optional - if true, button is disabled until all required fields are valid
+  validateAllSteps: true, // Optional - if true (in wizards), validates ALL steps instead of just current
   id: "saveBtn", // Optional but STRONGLY RECOMMENDED - unique identifier
 });
 
@@ -1054,8 +1167,10 @@ new uiLib.Button(
   callback: function,      // Click handler
   setFocus: boolean,       // Auto-focus this button (makes it blue/primary)
   preventClose: boolean,   // Keep modal open on click
-  isDestructive: boolean,  // Red danger style
-  id?: string              // Optional unique identifier (RECOMMENDED)
+  isDestructive: boolean,  // Red danger/warning style
+  id?: string,             // Optional unique identifier (RECOMMENDED)
+  requiresValidation?: boolean,  // Optional - disable button until all required fields are valid
+  validateAllSteps?: boolean     // Optional - validate ALL wizard steps instead of just current
 )
 ```
 
@@ -1068,10 +1183,10 @@ const modal = new uiLib.Modal({
   title: "Save Record",
   fields: [{ id: "name", label: "Name", type: "text", required: true }],
   buttons: [
-    new uiLib.Button("Cancel", () => true, false, false, false, "cancelBtn"),
-    new uiLib.Button(
-      "Save",
-      async function () {
+    new uiLib.Button({ label: "Cancel", callback: () => true, id: "cancelBtn" }),
+    new uiLib.Button({
+      label: "Save",
+      callback: async function () {
         const name = modal.getFieldValue("name");
         if (!name) {
           uiLib.Toast.error({ message: "Name is required" });
@@ -1094,11 +1209,9 @@ const modal = new uiLib.Modal({
           return false; // Keep modal open
         }
       },
-      true,
-      false,
-      false,
-      "saveBtn",
-    ),
+      setFocus: true,
+      id: "saveBtn",
+    }),
   ],
 });
 ```
@@ -1109,9 +1222,26 @@ const modal = new uiLib.Modal({
 const wizard = new uiLib.Modal({
   progress: { enabled: true, currentStep: 1, steps: [...] },
   buttons: [
-    new uiLib.Button('Previous', () => { wizard.previousStep(); return false; }, false, false, false, 'prevBtn'),
-    new uiLib.Button('Next', () => { wizard.nextStep(); return false; }, false, false, false, 'nextBtn'),
-    new uiLib.Button('Finish', () => { submitForm(); }, true, false, false, 'finishBtn')
+    new uiLib.Button({ 
+      label: 'Previous', 
+      callback: () => { wizard.previousStep(); return false; },
+      id: 'prevBtn'
+    }),
+    new uiLib.Button({ 
+      label: 'Next', 
+      callback: () => { wizard.nextStep(); return false; },
+      setFocus: true,
+      requiresValidation: true,  // Disabled until current step is valid
+      id: 'nextBtn'
+    }),
+    new uiLib.Button({ 
+      label: 'Finish', 
+      callback: () => { submitForm(); },
+      setFocus: true,
+      requiresValidation: true,  // Disabled until all steps are valid
+      validateAllSteps: true,    // Validates ALL steps, not just current
+      id: 'finishBtn'
+    })
   ]
 });
 wizard.show();
@@ -1181,16 +1311,19 @@ if (currentStep === 1) {
 
 ## Best Practices for AI Agents
 
-1. **Use field config objects**, not old helper classes like `new uiLib.Input()`
-2. **Leverage conditional visibility** (`visibleWhen`) instead of manual DOM manipulation
-3. **Use conditional required** (`requiredWhen`) for dynamic validation
-4. **Use wizard steps** for multi-step forms with `progress.steps`
-5. **Always provide code examples** when documenting features
-6. **Test in demo page** before updating documentation
-7. **Keep README.md and demo page in sync** with actual implementation
-8. **Use TypeScript types** from `Modal.types.ts` for accurate IntelliSense
-9. **Initialize library first** - Always call `uiLib.init()` before using components
-10. **Check health state** - Use returned health object to verify CSS loaded
+1. **Use field config objects**, not old helper classes like `new uiLib.Input()` or `new uiLib.Table()`
+2. **Use object-style Button API** with explicit IDs: `new uiLib.Button({ label, callback, id })`
+3. **Use `requiresValidation: true`** on submit/next buttons to auto-disable until form is valid
+4. **Leverage conditional visibility** (`visibleWhen`) instead of manual DOM manipulation
+5. **Use conditional required** (`requiredWhen`) for dynamic validation
+6. **Use wizard steps** for multi-step forms with `progress.steps`
+6. **Always provide code examples** when documenting features
+7. **Test in demo page** before updating documentation
+8. **Keep README.md and demo page in sync** with actual implementation
+9. **Use TypeScript types** from `Modal.types.ts` for accurate IntelliSense
+10. **Initialize library first** - Always call `uiLib.init()` before using components
+11. **Check health state** - Use returned health object to verify CSS loaded
+12. **Provide explicit button IDs** - Never rely on auto-generated IDs for maintainability
 
 ## Version Management
 

@@ -105,6 +105,7 @@ interface TableColumn {
     visible?: boolean;
     sortable?: boolean;
     width?: string;
+    align?: 'left' | 'center' | 'right';
 }
 interface FieldConfig {
     id: string;
@@ -220,6 +221,8 @@ interface ModalButtonConfig {
     preventClose?: boolean;
     isDestructive?: boolean;
     id?: string;
+    requiresValidation?: boolean;
+    validateAllSteps?: boolean;
 }
 declare class ModalButton {
     id: string;
@@ -228,7 +231,9 @@ declare class ModalButton {
     setFocus: boolean;
     preventClose: boolean;
     isDestructive: boolean;
-    constructor(labelOrConfig: string | ModalButtonConfig, callback?: () => void | false | Promise<void | false>, setFocus?: boolean, preventClose?: boolean, isDestructive?: boolean, id?: string);
+    requiresValidation: boolean;
+    validateAllSteps: boolean;
+    constructor(labelOrConfig: string | ModalButtonConfig, callback?: () => void | false | Promise<void | false>, setFocus?: boolean, preventClose?: boolean, isDestructive?: boolean, id?: string, requiresValidation?: boolean, validateAllSteps?: boolean);
     private isButtonConfig;
     private validateLabel;
     private validateCallback;
@@ -296,6 +301,7 @@ declare class Modal implements ModalInstance {
     private modalStartX;
     private modalStartY;
     private isFullscreen;
+    private fieldSetters;
     constructor(options: ModalOptions);
     /**
      * Initialize modal asynchronously (for D365 option set fetching)
@@ -323,6 +329,15 @@ declare class Modal implements ModalInstance {
     private updateFieldVisibility;
     private getAllFields;
     private createFooter;
+    /**
+     * Update button states based on validation requirements
+     * Disables buttons with requiresValidation=true when required fields are invalid
+     */
+    private updateButtonStates;
+    /**
+     * Validate all fields in the modal (non-wizard)
+     */
+    validateAllFields(): boolean;
     private createButton;
     private startDrag;
     private handleDrag;
@@ -345,12 +360,6 @@ declare class Modal implements ModalInstance {
     getFieldValues(): Record<string, any>;
     setFieldValue(fieldId: string, value: any): void;
     validateCurrentStep(): boolean;
-    validateAllFields(): boolean;
-    /**
-     * Update button states based on form validation
-     * Disables primary/submit buttons until all required fields are filled
-     */
-    private updateButtonStates;
     updateSideCart(_content: string | {
         imageUrl: string;
     }): void;
@@ -496,7 +505,7 @@ interface LookupOptions {
  * Uses Modal component with Fluent UI SearchBox and Table
  */
 
-declare class Lookup$1 {
+declare class Lookup {
     private static activeModal;
     private options;
     private records;
@@ -521,11 +530,13 @@ declare const TRACE: string[];
 declare const BUG: string[];
 declare const WAR: string[];
 declare const ERR: string[];
+declare const UILIB: string[];
 declare const Logger: {
     TRACE: string[];
     BUG: string[];
     WAR: string[];
     ERR: string[];
+    UILIB: string[];
 };
 
 /**
@@ -689,158 +700,6 @@ declare const theme: {
 };
 
 /**
- * Modal Field Helper Classes
- * Provides convenient constructors for modal fields
- */
-
-/**
- * Input field helper
- */
-declare class Input implements FieldConfig {
-    id: string;
-    label?: string;
-    type?: string;
-    value?: any;
-    placeholder?: string;
-    disabled?: boolean;
-    required?: boolean;
-    divider?: boolean;
-    extraAttributes?: Record<string, string | number>;
-    showValue?: boolean;
-    validation?: any;
-    constructor(config: FieldConfig);
-}
-/**
- * MultiLine (textarea) field helper
- */
-declare class MultiLine implements FieldConfig {
-    id: string;
-    label?: string;
-    type: string;
-    value?: any;
-    placeholder?: string;
-    disabled?: boolean;
-    required?: boolean;
-    rows?: number;
-    divider?: boolean;
-    constructor(config: FieldConfig);
-}
-/**
- * OptionSet (dropdown/select) field helper
- */
-declare class OptionSet implements FieldConfig {
-    id: string;
-    label?: string;
-    type: string;
-    value?: any;
-    disabled?: boolean;
-    required?: boolean;
-    options?: Array<string | {
-        label: string;
-        value: string;
-    }>;
-    multiSelect?: boolean;
-    divider?: boolean;
-    constructor(config: FieldConfig);
-}
-/**
- * DateRange field helper
- */
-declare class DateRange implements FieldConfig {
-    id: string;
-    label?: string;
-    type: string;
-    startDate?: Date;
-    endDate?: Date;
-    required?: boolean;
-    disabled?: boolean;
-    divider?: boolean;
-    constructor(config: FieldConfig);
-}
-/**
- * Lookup field helper
- */
-declare class Lookup implements FieldConfig {
-    id: string;
-    label?: string;
-    type: string;
-    entityTypes?: string[];
-    allowMultiSelect?: boolean;
-    callback?: (selected: any[]) => void;
-    required?: boolean;
-    disabled?: boolean;
-    divider?: boolean;
-    constructor(config: FieldConfig);
-}
-/**
- * Custom field helper
- */
-declare class Custom implements FieldConfig {
-    id: string;
-    label?: string;
-    type: string;
-    render?: () => HTMLElement;
-    html?: string;
-    divider?: boolean;
-    constructor(config: FieldConfig);
-}
-/**
- * Group field helper (for organizing fields, optionally as tabs)
- */
-declare class Group implements FieldConfig {
-    id: string;
-    label?: string;
-    type: string;
-    fields?: FieldConfig[];
-    asTabs?: boolean;
-    divider?: boolean;
-    constructor(config: FieldConfig);
-}
-/**
- * Table field helper (for displaying tabular data with sorting and selection)
- */
-declare class Table implements FieldConfig {
-    id: string;
-    label?: string;
-    type: string;
-    tableColumns?: Array<{
-        id: string;
-        header: string;
-        visible?: boolean;
-        sortable?: boolean;
-        width?: string;
-    }>;
-    data?: any[];
-    selectionMode?: 'none' | 'single' | 'multiple';
-    onRowSelect?: (selectedRows: any[]) => void;
-    divider?: boolean;
-    constructor(config: FieldConfig);
-}
-/**
- * File upload field helper (for file uploads with drag-and-drop)
- */
-declare class File$1 implements FieldConfig {
-    id: string;
-    label?: string;
-    type: string;
-    value?: any;
-    required?: boolean;
-    disabled?: boolean;
-    fileUpload?: {
-        accept?: string;
-        maxFiles?: number;
-        maxSize?: number;
-        multiple?: boolean;
-        showFileList?: boolean;
-        onFilesSelected?: (files: globalThis.File[]) => void;
-        dragDropText?: string;
-        browseText?: string;
-    };
-    divider?: boolean;
-    constructor(config: FieldConfig);
-}
-
-/**
  * FluentProvider wrapper for D365 CE UI Library
  * Provides Fluent UI v9 theming and context for all components
  */
@@ -887,7 +746,7 @@ declare function onLoad(executionContext?: any): HealthState;
  */
 declare function findInstance(): any;
 
-export { BUG, ModalButton as Button, Custom, DateRange, ERR, File$1 as File, Group, Input, Logger, Lookup$1 as Lookup, Lookup as LookupField, Modal, ModalButton, ModalHelpers_d as ModalHelpers, MultiLine, OptionSet, TRACE, Table, Toast, WAR, d365Theme, findInstance, init, onLoad, theme };
+export { BUG, ModalButton as Button, ERR, Logger, Lookup, Modal, ModalButton, ModalHelpers_d as ModalHelpers, TRACE, Toast, UILIB, WAR, d365Theme, findInstance, init, onLoad, theme };
 export type { HealthState };
 
 /**

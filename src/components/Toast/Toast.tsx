@@ -13,6 +13,7 @@ import {
 } from '@fluentui/react-icons';
 import { FluentProvider, webLightTheme } from '@fluentui/react-components';
 import type { ToastOptions, ToastType } from './Toast.types';
+import { UILIB } from '../Logger/Logger';
 
 interface ToastItem {
   id: string;
@@ -261,7 +262,7 @@ function getTargetDocument(): Document {
     }
   } catch (e) {
     // Cross-origin iframe - can't access parent
-    console.warn('Toast: Cannot access parent document (cross-origin), using current window');
+    console.debug(...UILIB, 'Toast: Cannot access parent document (cross-origin), using current window');
   }
   return document;
 }
@@ -425,10 +426,9 @@ if (typeof window !== 'undefined') {
     const targetWindow = window.parent !== window ? window.parent : window;
     if (targetWindow && !targetWindow.Toast) {
       targetWindow.Toast = Toast;
-      console.log('Toast: Global Toast API available on parent window');
     }
   } catch (e) {
     // Cross-origin - can't set on parent window
-    console.warn('Toast: Cannot set global Toast on parent window (cross-origin)');
+    console.debug(...UILIB, 'Toast: Cannot set global Toast on parent window (cross-origin)');
   }
 }

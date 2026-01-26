@@ -9,19 +9,8 @@ import { Modal } from './components/Modal/Modal';
 import { ModalButton } from './components/Modal/Modal.types';
 import * as ModalHelpers from './components/Modal/ModalHelpers';
 import { Lookup } from './components/Lookup/Lookup';
-import { Logger, TRACE, BUG, WAR, ERR } from './components/Logger/Logger';
+import { Logger, TRACE, BUG, WAR, ERR, UILIB } from './components/Logger/Logger';
 import { theme } from './styles/theme';
-import {
-    Input,
-    MultiLine,
-    OptionSet,
-    DateRange,
-    Lookup as LookupField,
-    Custom,
-    Group,
-    Table,
-    File
-} from './components/Modal/ModalFields';
 import { initializeFluentProvider, d365Theme, FluentProvider } from './providers/FluentProvider';
 
 /**
@@ -32,7 +21,7 @@ function loadCSS(): boolean {
     
     // Check if CSS is already loaded
     if (document.getElementById(cssId)) {
-        console.debug(...TRACE, 'UI Library CSS already loaded');
+        console.debug(...TRACE, 'uiLib CSS already loaded');
         return true;
     }
     
@@ -63,14 +52,14 @@ function loadCSS(): boolean {
             
             document.head.appendChild(link);
             
-            console.debug(...TRACE, 'UI-lib CSS loaded from:', cssPath);
+            console.debug(...TRACE, 'uiLib CSS loaded from:', cssPath);
             return true;
         } else {
-            console.warn('UI Library: Could not determine script location for CSS auto-loading');
+            console.debug(...TRACE, 'uiLib: Could not determine script location for CSS auto-loading');
             return false;
         }
     } catch (error) {
-        console.error('UI Library: Error loading CSS:', error);
+        console.error(...ERR, 'uiLib: Error loading CSS:', error);
         return false;
     }
 }
@@ -94,7 +83,7 @@ export interface HealthState {
  * @returns Health state of the library
  */
 export function init(executionContext?: any): HealthState {
-    console.debug(...TRACE, 'UI-lib init() - Starting initialization', {
+    console.debug(...TRACE, 'uiLib init() - Starting initialization', {
         version: PACKAGE_VERSION,
         executionContext,
         timestamp: new Date().toISOString()
@@ -124,7 +113,7 @@ export function init(executionContext?: any): HealthState {
         instance: libraryInstance
     };
     
-    console.debug(...TRACE, 'UI Library init() - Initialization complete. Library available as window.uiLib and window.err403 (backward compatible)', {
+    console.debug(...TRACE, 'uiLib init() - Initialization complete. Library available as window.uiLib and window.err403 (backward compatible)', {
         version: PACKAGE_VERSION,
         availableComponents: ['Toast', 'Modal', 'Lookup', 'Table', 'TRACE', 'WAR', 'ERR'],
         health
@@ -201,17 +190,8 @@ export {
     BUG,
     WAR,
     ERR,
+    UILIB,
     theme,
-    // Field helper classes
-    Input,
-    MultiLine,
-    OptionSet,
-    DateRange,
-    LookupField,
-    Custom,
-    Group,
-    Table,
-    File,
     // Fluent UI integration
     FluentProvider,
     d365Theme
@@ -234,17 +214,8 @@ if (typeof window !== 'undefined') {
         BUG,
         WAR,
         ERR,
+        UILIB,
         theme,
-        // Field helper classes
-        Input,
-        MultiLine,
-        OptionSet,
-        DateRange,
-        LookupField,
-        Custom,
-        Group,
-        Table,
-        File,
         // Alias Button for ModalButton
         Button: ModalButton,
         // Fluent UI integration
@@ -297,7 +268,7 @@ if (typeof window !== 'undefined') {
             // Already loaded in parent window, copy reference to current window
             (window as any).uiLib = existingInstance;
             (window as any).err403 = existingInstance; // Backward compatibility
-            console.debug(...TRACE, 'UI Library found in parent window, assigned to current window');
+            console.debug(...TRACE, 'uiLib found in parent window, assigned to current window');
         } else {
             // First time loading or already in correct scope
             (window as any).uiLib = libraryObject;

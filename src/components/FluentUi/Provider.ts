@@ -15,4 +15,4 @@ import {
 export const defaultTheme = webLightTheme;
 
 // Re-export all
-export { FluentProvider, webLightTheme, webDarkTheme, type Theme };
+export { FluentProvider, webDarkTheme, type Theme };

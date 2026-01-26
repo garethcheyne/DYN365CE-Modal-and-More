@@ -28,6 +28,18 @@ export default defineConfig({
         terserOptions: {
             compress: {
                 drop_console: false,
+                drop_debugger: true,
+                pure_funcs: ['console.debug'],
+                passes: 3,
+                unsafe: true,
+                unsafe_comps: true,
+                unsafe_math: true,
+                unsafe_proto: true,
+                keep_fargs: false,
+                module: true,
+            },
+            mangle: {
+                safari10: true,
             },
         },
         sourcemap: true,

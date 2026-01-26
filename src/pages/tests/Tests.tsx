@@ -345,7 +345,7 @@ export const Tests: React.FC = () => {
       addLog(setLoggerLogs, '✓ TRACE log written to console');
     }},
     { label: 'WAR Log', handler: () => {
-      console.warn(...err403.WAR, 'Test warning log');
+      console.debug(...err403.WAR, 'Test warning log');
       addLog(setLoggerLogs, '✓ WAR log written to console');
     }},
     { label: 'ERR Log', handler: () => {
@@ -354,7 +354,7 @@ export const Tests: React.FC = () => {
     }},
     { label: 'Multiple Logs', handler: () => {
       console.debug(...err403.TRACE, 'Debug');
-      console.warn(...err403.WAR, 'Warning');
+      console.debug(...err403.WAR, 'Warning');
       console.error(...err403.ERR, 'Error');
       addLog(setLoggerLogs, '✓ Multiple logs written - check browser console');
     }}
@@ -483,7 +483,7 @@ export const Tests: React.FC = () => {
 
       // Run logger tests
       console.debug(...err403.TRACE, 'Auto test'); count++;
-      console.warn(...err403.WAR, 'Auto test'); count++;
+      console.debug(...err403.WAR, 'Auto test'); count++;
       console.error(...err403.ERR, 'Auto test'); count++;
 
       setTimeout(() => {

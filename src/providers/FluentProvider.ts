@@ -47,4 +47,4 @@ export function getFluentTheme(): Theme {
   return d365Theme;
 }
 
-export { Provider as FluentProvider, webLightTheme };
+export { Provider as FluentProvider };

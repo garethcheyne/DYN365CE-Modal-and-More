@@ -7,6 +7,7 @@
 import { Modal } from '../Modal/Modal';
 import { ModalButton } from '../Modal/Modal.types';
 import type { LookupOptions, LookupResult, EntityMetadata } from './Lookup.types';
+import { UILIB } from '../Logger/Logger';
 
 // Metadata cache to avoid repeated API calls
 const metadataCache: Map<string, EntityMetadata> = new Map();
@@ -78,7 +79,7 @@ async function getEntityMetadata(entityName: string): Promise<EntityMetadata | n
       metadataCache.set(entityName, metadata);
       return metadata;
     } catch (error) {
-      console.warn(`Failed to fetch metadata for ${entityName}:`, error);
+      console.debug(...UILIB, `Failed to fetch metadata for ${entityName}:`, error);
     }
   }
 
@@ -158,12 +159,11 @@ async function fetchRecords(
         totalCount: parseInt(result['@Microsoft.Dynamics.CRM.totalrecordcount'] || result.entities?.length || '0', 10)
       };
     } catch (error) {
-      console.warn(`Failed to fetch ${entity} records via Xrm.WebApi:`, error);
+      console.debug(...UILIB, `Failed to fetch ${entity} records via Xrm.WebApi:`, error);
     }
   }
 
   // Fall back to mock data
-  console.log(`Using mock data for entity: ${entity}`);
   const allMockData = generateMockData(entity, 100);
 
   // Apply search filter for mock data (contains)

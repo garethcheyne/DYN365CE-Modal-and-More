@@ -65,6 +65,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [dropdownWidth, setDropdownWidth] = React.useState<number>(400);
     const [displayName, setDisplayName] = React.useState<string>(entityDisplayName || '');
+    const [expandedItems, setExpandedItems] = React.useState<Set<string>>(new Set());
 
     // Parse lookup columns configuration
     const columnConfigs = React.useMemo(() => {
@@ -89,11 +90,17 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                 // Try to get actual D365 entity icon from metadata
                 if (typeof window !== 'undefined' && (window as any).Xrm?.Utility?.getEntityMetadata) {
                     const metadata = await (window as any).Xrm.Utility.getEntityMetadata(entityName);
+                    
                     if (metadata?.IconSmallName) {
                         // D365 entity icons are typically in web resources
                         const iconName = metadata.IconSmallName.replace('.png', '').replace('.svg', '');
-                        setEntityIcon(`/$web/Icons/${iconName}_16.svg`);
+                        const iconUrl = `/$web/Icons/${iconName}_16.svg`;
+                        setEntityIcon(iconUrl);
+                    } else {
+                        console.log('[Lookup] No IconSmallName in metadata, using fallback');
+                        setEntityIcon(getGenericEntityIcon(entityName));
                     }
+                    
                     // Get display name if not provided
                     if (!entityDisplayName && metadata?.DisplayName?.UserLocalizedLabel?.Label) {
                         setDisplayName(metadata.DisplayName.UserLocalizedLabel.Label);
@@ -101,13 +108,14 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                     return; // Exit early if we got the real icon
                 }
                 
+                console.log('[Lookup] Xrm not available, using generic icon');
                 // Fallback to generic icon only for mock/testing when Xrm is not available
                 setEntityIcon(getGenericEntityIcon(entityName));
                 if (!entityDisplayName) {
                     setDisplayName(entityName.charAt(0).toUpperCase() + entityName.slice(1) + 's');
                 }
             } catch (error) {
-                console.warn('Failed to fetch entity icon from D365 metadata, using fallback:', error);
+                console.warn('[Lookup] Failed to fetch entity icon from D365 metadata, using fallback:', error);
                 setEntityIcon(getGenericEntityIcon(entityName));
                 if (!entityDisplayName) {
                     setDisplayName(entityName.charAt(0).toUpperCase() + entityName.slice(1) + 's');
@@ -128,22 +136,62 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
             if (typeof window !== 'undefined' && (window as any).Xrm?.WebApi) {
                 const xrmWebApi = (window as any).Xrm.WebApi;
 
-                // Build select query
-                const selectColumns = columnConfigs.map(c => c.attribute);
-                const primaryId = `${entityName}id`;
-                const select = [primaryId, ...selectColumns].join(',');
+                // Get entity metadata to find valid primary key and fields
+                let primaryId = `${entityName}id`; // Default convention
+                let validColumns: string[] = [];
+
+                try {
+                    // Try to get entity metadata to validate fields exist
+                    if ((window as any).Xrm?.Utility?.getEntityMetadata) {
+                        const metadata = await (window as any).Xrm.Utility.getEntityMetadata(entityName, ['Attributes', 'PrimaryIdAttribute']);
+                        
+                        // Use actual primary ID attribute
+                        if (metadata?.PrimaryIdAttribute) {
+                            primaryId = metadata.PrimaryIdAttribute;
+                        }
+
+                        // Validate which columns actually exist
+                        if (metadata?.Attributes && Array.isArray(metadata.Attributes)) {
+                            const existingAttributes = metadata.Attributes.map((attr: any) => attr.LogicalName);
+                            validColumns = columnConfigs
+                                .map(c => c.attribute)
+                                .filter(attr => existingAttributes.includes(attr));
+                            
+                            // If no valid columns, try common fallbacks
+                            if (validColumns.length === 0) {
+                                const fallbacks = ['name', 'fullname', 'title', 'subject'];
+                                validColumns = fallbacks.filter(attr => existingAttributes.includes(attr));
+                                
+                                // If still no valid columns, use first text attribute
+                                if (validColumns.length === 0) {
+                                    const firstTextAttr = metadata.Attributes.find((attr: any) => 
+                                        attr.AttributeType === 'String' || attr.AttributeType === 'Memo'
+                                    );
+                                    if (firstTextAttr) {
+                                        validColumns = [firstTextAttr.LogicalName];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (metaError) {
+                    console.warn(`Could not fetch metadata for ${entityName}, using provided columns:`, metaError);
+                }
+
+                // If metadata fetch failed or returned no valid columns, use provided columns
+                const selectColumns = validColumns.length > 0 
+                    ? validColumns 
+                    : columnConfigs.map(c => c.attribute);
 
                 // Check if filters is FetchXML (contains <filter or <condition tags)
                 const isFetchXml = filters && (filters.includes('<filter') || filters.includes('<condition'));
 
                 let result;
                 if (isFetchXml) {
-                    // Build FetchXML query
+                    // Build FetchXML query - omit attribute tags to return ALL fields
                     let fetchXml = `
                         <fetch top="25">
                             <entity name="${entityName}">
-                                <attribute name="${primaryId}" />
-                                ${selectColumns.map(col => `<attribute name="${col}" />`).join('')}
                                 ${filters || ''}
                                 ${searchTerm ? `
                                 <filter type="or">
@@ -158,7 +206,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                     // Use fetchXml method
                     result = await xrmWebApi.retrieveMultipleRecords(entityName, `?fetchXml=${encodeURIComponent(fetchXml)}`);
                 } else {
-                    // Build OData filter query
+                    // Build OData filter query - omit $select to return ALL fields
                     let filterQuery = filters || '';
                     if (searchTerm) {
                         const searchFilters = selectColumns
@@ -169,8 +217,8 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                             : searchFilters;
                     }
 
-                    // Build full query
-                    const query = `?$select=${select}${filterQuery ? `&$filter=${filterQuery}` : ''}&$top=25&$orderby=${selectColumns[0]} asc`;
+                    // Build full query without $select to get all fields
+                    const query = `?${filterQuery ? `$filter=${filterQuery}&` : ''}$top=25&$orderby=${selectColumns[0]} asc`;
 
                     // Fetch records
                     result = await xrmWebApi.retrieveMultipleRecords(entityName, query);
@@ -202,22 +250,33 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
         } catch (error: any) {
             console.error('Failed to fetch lookup records:', error);
             
-            // Check if filters is FetchXML for better error message
-            const isFetchXml = filters && (filters.includes('<filter') || filters.includes('<condition'));
+            // Provide helpful error messages based on error type
+            let errorMessage = 'Failed to load records';
             
-            // Set error message for display
-            const errorMessage = error?.message || 'Failed to load records';
+            if (error?.message?.includes('does not exist')) {
+                errorMessage = `Invalid field in lookupColumns for entity '${entityName}'. Check column names match D365 schema.`;
+                console.error(`Attempted columns: ${columnConfigs.map(c => c.attribute).join(', ')}`);
+                console.error(`Tip: Common column names are 'name', 'fullname', 'subject', 'title'. Use browser DevTools to inspect actual D365 entity metadata.`);
+            } else if (error?.message?.includes('Invalid Query')) {
+                errorMessage = `Invalid query for entity '${entityName}'. Check filters or column names.`;
+                
+                const isFetchXml = filters && (filters.includes('<filter') || filters.includes('<condition'));
+                if (isFetchXml) {
+                    console.error('Invalid FetchXML query. Verify your filters configuration.');
+                } else {
+                    console.error('Invalid OData query. Verify lookupColumns match entity schema.');
+                }
+            }
+            
             setError(errorMessage);
             setOptions([]);
             
-            // Log detailed error for developers
-            if (isFetchXml) {
-                console.error('Invalid FetchXML query. Check your filters configuration.');
-                console.error('Filter:', filters);
-            } else {
-                console.error('Invalid OData query. Check your filters configuration.');
-                console.error('Filter:', filters);
-            }
+            // Log detailed configuration for debugging
+            console.error('Lookup configuration:', {
+                entityName,
+                lookupColumns: columnConfigs,
+                filters
+            });
         } finally {
             setLoading(false);
         }
@@ -273,6 +332,12 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
         }
     };
 
+    const handleInputClick = (e: React.MouseEvent) => {
+        // Prevent PopoverTrigger from toggling when clicking input
+        e.stopPropagation();
+        setIsDropdownOpen(true);
+    };
+
     return (
         <Field
             label={label}
@@ -297,6 +362,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                             value={searchValue}
                             onChange={handleInputChange}
                             onFocus={handleInputFocus}
+                            onClick={handleInputClick}
                             disabled={disabled}
                             appearance="filled-darker"
                             role="combobox"
@@ -310,6 +376,26 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                                 borderRight: 'none'
                             }}
                         />
+                        {/* Clear button when value is selected */}
+                        {selectedOption && (
+                            <Button
+                                icon={<svg width="16" height="16" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" fill="currentColor"/></svg>}
+                                appearance="subtle"
+                                disabled={disabled}
+                                onClick={() => {
+                                    setSelectedOption(null);
+                                    setSearchValue('');
+                                    onChange(null);
+                                }}
+                                style={{
+                                    minWidth: '32px',
+                                    backgroundColor: '#f3f2f1',
+                                    borderColor: 'transparent',
+                                    borderRadius: 0
+                                }}
+                                aria-label="Clear selection"
+                            />
+                        )}
                         <Button
                             icon={<Search20Regular />}
                             appearance="outline"
@@ -346,9 +432,35 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                         color: '#605e5c',
                         position: 'sticky',
                         top: 0,
-                        zIndex: 1
+                        zIndex: 1,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
                     }}>
-                        {searchValue ? `Search ${displayName.toLowerCase()}...` : displayName}
+                        <span>{searchValue ? `Search ${displayName.toLowerCase()}...` : displayName}</span>
+                        {/* Expand All button - only show if there are items with additional columns */}
+                        {options.length > 0 && visibleColumns.length > 2 && (
+                            <Button
+                                size="small"
+                                appearance="subtle"
+                                onClick={() => {
+                                    const allExpanded = expandedItems.size === options.length;
+                                    if (allExpanded) {
+                                        setExpandedItems(new Set());
+                                    } else {
+                                        setExpandedItems(new Set(options.map(opt => opt.id)));
+                                    }
+                                }}
+                                style={{
+                                    fontSize: '11px',
+                                    minWidth: 'auto',
+                                    padding: '2px 8px',
+                                    height: '24px'
+                                }}
+                            >
+                                {expandedItems.size === options.length ? 'Collapse All' : 'Expand All'}
+                            </Button>
+                        )}
                     </div>
 
                     {loading ? (
@@ -379,71 +491,167 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                                 const isSelected = selectedOption?.id === option.id;
                                 const primaryColumn = visibleColumns[0];
                                 const secondaryColumn = visibleColumns[1];
+                                const additionalColumns = visibleColumns.slice(2);
+                                const isExpanded = expandedItems.has(option.id);
+                                const hasAdditionalColumns = additionalColumns.length > 0 && additionalColumns.some(col => option.columns[col.attribute]);
 
                                 return (
                                     <div
                                         key={option.id}
-                                        onClick={() => handleOptionClick(option)}
                                         style={{
-                                            padding: '8px 12px',
-                                            cursor: 'pointer',
                                             backgroundColor: isSelected ? '#f3f2f1' : 'transparent',
                                             borderBottom: '1px solid #edebe9',
-                                            display: 'flex',
-                                            gap: '8px',
-                                            alignItems: 'center',
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            if (!isSelected) {
-                                                e.currentTarget.style.backgroundColor = '#faf9f8';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (!isSelected) {
-                                                e.currentTarget.style.backgroundColor = 'transparent';
-                                            }
                                         }}
                                     >
-                                        {/* Entity Icon */}
-                                        {option.iconUrl && (
-                                            <div style={{ flexShrink: 0 }}>
-                                                <img
-                                                    src={option.iconUrl}
-                                                    alt={option.entityType}
-                                                    style={{ width: '16px', height: '16px' }}
-                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                                />
-                                            </div>
-                                        )}
+                                        {/* Main row with first 2 columns */}
+                                        <div
+                                            onClick={() => handleOptionClick(option)}
+                                            style={{
+                                                padding: '8px 12px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                gap: '8px',
+                                                alignItems: 'center',
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                if (!isSelected) {
+                                                    e.currentTarget.parentElement!.style.backgroundColor = '#faf9f8';
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (!isSelected) {
+                                                    e.currentTarget.parentElement!.style.backgroundColor = 'transparent';
+                                                }
+                                            }}
+                                        >
+                                            {/* Entity Icon */}
+                                            {option.iconUrl && (
+                                                <div style={{ flexShrink: 0 }}>
+                                                    <img
+                                                        src={option.iconUrl}
+                                                        alt={option.entityType}
+                                                        style={{ width: '16px', height: '16px' }}
+                                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                    />
+                                                </div>
+                                            )}
 
-                                        {/* Content - Two line layout */}
-                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-                                            {/* Primary text */}
-                                            <div style={{
-                                                fontSize: '14px',
-                                                fontWeight: 600,
-                                                color: '#242424',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap'
-                                            }}>
-                                                {primaryColumn ? option.columns[primaryColumn.attribute] : option.name}
-                                            </div>
-                                            
-                                            {/* Secondary text */}
-                                            {secondaryColumn && option.columns[secondaryColumn.attribute] && (
+                                            {/* Content - Two line layout */}
+                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                                                {/* Primary text */}
                                                 <div style={{
-                                                    fontSize: '12px',
-                                                    fontWeight: 400,
-                                                    color: '#605e5c',
+                                                    fontSize: '14px',
+                                                    fontWeight: 600,
+                                                    color: '#242424',
                                                     overflow: 'hidden',
                                                     textOverflow: 'ellipsis',
                                                     whiteSpace: 'nowrap'
                                                 }}>
-                                                    {option.columns[secondaryColumn.attribute]}
+                                                    {primaryColumn?.label ? (
+                                                        <>
+                                                            <span style={{ color: '#605e5c', fontWeight: 400 }}>{primaryColumn.label}: </span>
+                                                            {primaryColumn ? option.columns[primaryColumn.attribute] : option.name}
+                                                        </>
+                                                    ) : (
+                                                        primaryColumn ? option.columns[primaryColumn.attribute] : option.name
+                                                    )}
+                                                </div>
+                                                
+                                                {/* Secondary text */}
+                                                {secondaryColumn && option.columns[secondaryColumn.attribute] && (
+                                                    <div style={{
+                                                        fontSize: '12px',
+                                                        fontWeight: 400,
+                                                        color: '#605e5c',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        {secondaryColumn?.label ? (
+                                                            <>
+                                                                <span style={{ fontWeight: 600 }}>{secondaryColumn.label}: </span>
+                                                                {option.columns[secondaryColumn.attribute]}
+                                                            </>
+                                                        ) : (
+                                                            option.columns[secondaryColumn.attribute]
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Expand/Collapse chevron */}
+                                            {hasAdditionalColumns && (
+                                                <div
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setExpandedItems(prev => {
+                                                            const newSet = new Set(prev);
+                                                            if (newSet.has(option.id)) {
+                                                                newSet.delete(option.id);
+                                                            } else {
+                                                                newSet.add(option.id);
+                                                            }
+                                                            return newSet;
+                                                        });
+                                                    }}
+                                                    style={{
+                                                        flexShrink: 0,
+                                                        width: '20px',
+                                                        height: '20px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: 'pointer',
+                                                        borderRadius: '2px',
+                                                        color: '#605e5c'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.backgroundColor = '#edebe9';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                                    }}
+                                                >
+                                                    <svg width="12" height="12" viewBox="0 0 12 12" style={{
+                                                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                        transition: 'transform 0.2s ease'
+                                                    }}>
+                                                        <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    </svg>
                                                 </div>
                                             )}
                                         </div>
+
+                                        {/* Expanded additional columns */}
+                                        {hasAdditionalColumns && isExpanded && (
+                                            <div style={{
+                                                padding: '4px 12px 8px 36px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '4px',
+                                                backgroundColor: isSelected ? '#f3f2f1' : '#faf9f8',
+                                                borderTop: '1px solid #edebe9'
+                                            }}>
+                                                {additionalColumns.map((col, idx) => {
+                                                    const value = option.columns[col.attribute];
+                                                    if (!value) return null;
+                                                    
+                                                    return (
+                                                        <div key={idx} style={{
+                                                            fontSize: '12px',
+                                                            color: '#605e5c',
+                                                            display: 'flex',
+                                                            gap: '4px'
+                                                        }}>
+                                                            {col.label && (
+                                                                <span style={{ fontWeight: 600, minWidth: '100px' }}>{col.label}:</span>
+                                                            )}
+                                                            <span style={{ flex: 1 }}>{value}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -482,11 +690,11 @@ function generateMockLookupData(
 
     if (entityName === 'account') {
         const accounts = [
-            { name: 'Contoso Ltd', accountnumber: 'ACC-1001', telephone1: '555-123-4567', emailaddress1: 'info@contoso.com', address1_city: 'Seattle' },
-            { name: 'Fabrikam Inc', accountnumber: 'ACC-1002', telephone1: '555-234-5678', emailaddress1: 'contact@fabrikam.com', address1_city: 'New York' },
-            { name: 'Adventure Works', accountnumber: 'ACC-1003', telephone1: '555-345-6789', emailaddress1: 'sales@adventure.com', address1_city: 'Chicago' },
-            { name: 'Northwind Traders', accountnumber: 'ACC-1004', telephone1: '555-456-7890', emailaddress1: 'info@northwind.com', address1_city: 'Boston' },
-            { name: 'Wide World Importers', accountnumber: 'ACC-1005', telephone1: '555-567-8901', emailaddress1: 'contact@worldwide.com', address1_city: 'San Francisco' }
+            { name: 'Contoso Ltd', accountnumber: 'ACC-1001', telephone1: '555-123-4567', emailaddress1: 'info@contoso.com', address1_city: 'Seattle', address1_stateorprovince: 'WA' },
+            { name: 'Fabrikam Inc', accountnumber: 'ACC-1002', telephone1: '555-234-5678', emailaddress1: 'contact@fabrikam.com', address1_city: 'New York', address1_stateorprovince: 'NY' },
+            { name: 'Adventure Works', accountnumber: 'ACC-1003', telephone1: '555-345-6789', emailaddress1: 'sales@adventure.com', address1_city: 'Chicago', address1_stateorprovince: 'IL' },
+            { name: 'Northwind Traders', accountnumber: 'ACC-1004', telephone1: '555-456-7890', emailaddress1: 'info@northwind.com', address1_city: 'Boston', address1_stateorprovince: 'MA' },
+            { name: 'Wide World Importers', accountnumber: 'ACC-1005', telephone1: '555-567-8901', emailaddress1: 'contact@worldwide.com', address1_city: 'San Francisco', address1_stateorprovince: 'CA' }
         ];
 
         accounts.forEach((acc, idx) => {
