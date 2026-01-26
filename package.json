@@ -1,6 +1,6 @@
 {
   "name": "d365-modalandmore",
-  "version": "2026.01.26.01",
+  "version": "2026.01.26.02",
   "author": "Gareth Cheyne err403.com",
   "description": "TypeScript UI utility library for Dynamics 365 CE - Toast notifications, Modal dialogs with tabs, and more",
   "main": "build/err403-ui-lib.min.js",
@@ -20,6 +20,7 @@
     "pack-solution": "node scripts/pack-solution-zip.js",
     "release": "npm run build:all && npm run update-solution && npm run pack-solution",
     "version:bump": "node scripts/bump-version.js",
+    "git:release": "node scripts/git-release.js",
     "pac:auth": "node scripts/pac-deploy.js auth",
     "pac:pack": "npm run update-solution && node scripts/pac-deploy.js pack",
     "pac:import": "node scripts/pac-deploy.js import",
