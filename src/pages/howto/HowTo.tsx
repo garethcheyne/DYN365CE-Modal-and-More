@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { Layout } from '../shared/Layout';
 
 declare const PACKAGE_VERSION: string;
@@ -87,6 +88,7 @@ export const HowTo: React.FC = () => {
         <div className="d365-docs">
           <Markdown
             remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
             components={{
               // Links open in new tab
               a: ({ href, children }) => (
