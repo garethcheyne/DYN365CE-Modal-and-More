@@ -1,32 +1,22 @@
 {
   "name": "d365-modalandmore",
-  "version": "2026.01.26.03",
+  "version": "2026.01.26.04",
   "author": "Gareth Cheyne err403.com",
   "description": "TypeScript UI utility library for Dynamics 365 CE - Toast notifications, Modal dialogs with tabs, and more",
   "main": "build/err403-ui-lib.min.js",
   "types": "build/ui-lib.types.d.ts",
   "scripts": {
     "dev": "vite --config vite.pages.config.ts --open /pages/about.html",
-    "dev:pages": "vite --config vite.pages.config.ts",
     "build": "vite build && (npx tsc --emitDeclarationOnly || true) && npx rollup -c rollup.dts.config.js && cp build/ui-lib.min.js release/ && cp build/ui-lib.min.js.map release/ && cp build/ui-lib.types.d.ts release/ui-lib.types.d.ts.js && cp README.md release/README.md.html && cp assets/logo.svg release/ && cp assets/brand.svg release/",
     "build:pages": "node scripts/build-pages.js",
     "build:all": "npm run build && npm run build:pages",
-    "build:types": "npx tsc --emitDeclarationOnly && npx rollup -c rollup.dts.config.js",
-    "watch": "vite build --watch",
-    "preview": "vite preview",
     "test": "vite --config vite.pages.config.ts --open /pages/tests.html",
     "demo": "vite --config vite.pages.config.ts --open /pages/demo.html",
     "update-solution": "node scripts/update-solution.js",
     "pack-solution": "node scripts/pack-solution-zip.js",
     "release": "npm run build:all && npm run update-solution && npm run pack-solution",
-    "version:bump": "node scripts/bump-version.js",
     "git:release": "node scripts/git-release.js",
-    "pac:auth": "node scripts/pac-deploy.js auth",
-    "pac:pack": "npm run update-solution && node scripts/pac-deploy.js pack",
-    "pac:import": "node scripts/pac-deploy.js import",
-    "pac:deploy": "npm run build:all && npm run update-solution && node scripts/pac-deploy.js deploy",
-    "pac:status": "node scripts/check-publish-status.js",
-    "deploy": "npm run pac:deploy"
+    "deploy": "npm run build:all && npm run update-solution && node scripts/pac-deploy.js deploy"
   },
   "keywords": [
     "dynamics-365",
@@ -38,7 +28,7 @@
     "notification",
     "ui"
   ],
-  "license": "ISC",
+  "license": "MIT",
   "files": [
     "build"
   ],
