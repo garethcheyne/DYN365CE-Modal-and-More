@@ -1,4 +1,4 @@
-<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.25122.162" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.25122.00162">
+<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.25122.162" OrganizationSchemaType="Full" CRMServerServiceabilityVersion="9.2.25122.00162">
   <Entities></Entities>
   <Roles></Roles>
   <Workflows></Workflows>
@@ -166,7 +166,7 @@
     <AppModule>
       <UniqueName>err403_UILibraryforDynamics365</UniqueName>
       <IntroducedVersion>2025.11.12.2</IntroducedVersion>
-      <WebResourceId>953b9fac-1e5e-e611-80d6-00155ded156f</WebResourceId>
+      <WebResourceId>86296e30-83f9-f011-8406-00224810270e</WebResourceId>
       <OptimizedFor></OptimizedFor>
       <statecode>0</statecode>
       <statuscode>1</statuscode>
@@ -181,10 +181,10 @@
         <Role id="{119f245c-3cc8-4b62-b31c-d1a046ced15d}" />
       </AppModuleRoleMaps>
       <LocalizedNames>
-        <LocalizedName description="UI Library for Dynamics 365" languagecode="1033" />
+        <LocalizedName description="Modal and More (uiLib)" languagecode="1033" />
       </LocalizedNames>
       <Descriptions>
-        <Description description="Professional-grade UI components that seamlessly integrate with Dynamics 365, giving your forms, ribbons, and custom pages the same polished look and feel as native D365 interfaces." languagecode="1033" />
+        <Description description="Professional-grade UI components that seamlessly integrate with Dynamics 365, giving your forms, ribbons, and custom pages the same polished look and feel as native D365 interfaces.&#xA;www.err430.com" languagecode="1033" />
       </Descriptions>
       <appsettings>
         <appsetting settingdefinitionid.uniquename="AppChannel">
