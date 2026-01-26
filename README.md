@@ -254,6 +254,10 @@ See the library in action:
 - **Demo Page:** `https://[your-org].dynamics.com/WebResources/err403_/demo.html`
 - **Test Suite:** `https://[your-org].dynamics.com/WebResources/err403_/tests.html`
 
+### AI Agent Helper
+
+The solution includes **`copilot-instructions.md`** - a comprehensive guide for AI agents (GitHub Copilot, Claude, etc.) to help you build complex modals, forms, and wizards faster. Point your AI assistant to this file for accurate code generation with all library features.
+
 ---
 
 ## Complete Examples

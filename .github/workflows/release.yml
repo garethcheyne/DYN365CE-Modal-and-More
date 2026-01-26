@@ -81,6 +81,7 @@ jobs:
             build/ui-lib.min.js.map
             build/ui-lib.types.d.ts
             README.md
+            .github/copilot-instructions.md
           generate_release_notes: true
           draft: false
           prerelease: false

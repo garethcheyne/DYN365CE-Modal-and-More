@@ -11,13 +11,14 @@ The project uses GitHub Actions to automatically build and create releases when 
 ### Trigger Events
 
 The workflow automatically runs when:
-1. **Commits to main/master branch** - Automatically builds and creates a release
-2. **Version tags** - Manually tagged releases (e.g., `v2026.01.24.01`)
-3. **Manual trigger** - Can be manually run from GitHub Actions UI
+1. **Version tags** - Pushing tags like `v2026.01.26.01` triggers the release (use `npm run git:release`)
+2. **Manual trigger** - Can be manually run from GitHub Actions UI
+
+**Note:** The workflow does NOT trigger on regular commits to main/master. Only version tags trigger releases.
 
 ### What Happens Automatically
 
-When you push to main, GitHub Actions will:
+When you push a version tag, GitHub Actions will:
 
 1. ✅ Checkout the code
 2. ✅ Install dependencies
