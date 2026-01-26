@@ -39,6 +39,9 @@ import {
   FileUploadFluentUi,
   Slider,
   Field,
+  Popover,
+  PopoverTrigger,
+  PopoverSurface,
   mountFluentComponent,
   defaultTheme,
 } from '../FluentUi';
@@ -59,6 +62,7 @@ export class Modal implements ModalInstance {
   private fieldVisibilityMap: Map<string, boolean> = new Map();
   private fieldRequiredMap: Map<string, boolean> = new Map();
   private fieldValidationErrors: Map<string, string> = new Map(); // Track validation errors
+  private buttonDisabledSetters: Map<ModalButton, (disabled: boolean) => void> = new Map(); // React state setters for button disabled state
   private currentStep: number = 1;
   private totalSteps: number = 1;
   private stepPanels: HTMLElement[] = [];
@@ -174,7 +178,26 @@ export class Modal implements ModalInstance {
       return null;
     }
 
-    const { provider, apiKey, placeholder, fields: relatedFields, onSelect } = field.addressLookup;
+    // Support dynamic values - if apiKey or provider are field IDs, read their values
+    let { provider, apiKey, placeholder, fields: relatedFields, onSelect } = field.addressLookup;
+    
+    // If apiKey looks like a field ID (no spaces, alphanumeric), try to read it as a field value
+    if (typeof apiKey === 'string' && apiKey.includes('{{') && apiKey.includes('}}')) {
+      const fieldId = apiKey.replace(/\{\{|\}\}/g, '').trim();
+      const fieldValue = this.fieldValues.get(fieldId) || this.getFieldValue(fieldId);
+      if (fieldValue) {
+        apiKey = fieldValue.toString();
+      }
+    }
+    
+    // Same for provider
+    if (typeof provider === 'string' && provider.includes('{{') && provider.includes('}}')) {
+      const fieldId = provider.replace(/\{\{|\}\}/g, '').trim();
+      const fieldValue = this.fieldValues.get(fieldId) || this.getFieldValue(fieldId);
+      if (fieldValue) {
+        provider = fieldValue as 'google' | 'azure';
+      }
+    }
 
     if (!apiKey) {
       console.error(...ERR, `${provider === 'google' ? 'Google Maps' : 'Azure Maps'} API key required`);
@@ -311,10 +334,11 @@ export class Modal implements ModalInstance {
     this.createFooter();
 
     // Update button states after React components mount
-    // Use requestAnimationFrame to ensure DOM is updated
-    requestAnimationFrame(() => {
+    // Use setTimeout to ensure all React useEffect hooks have run
+    setTimeout(() => {
+      console.log('[Modal] Running delayed updateButtonStates after React mount');
       this.updateButtonStates();
-    });
+    }, 100);
 
     // If sideCart is enabled, create a wrapper for modal + sideCart
     if (this.options.sideCart?.enabled) {
@@ -733,6 +757,7 @@ export class Modal implements ModalInstance {
       const isCompleted = stepNum < this.currentStep;
       const isValid = this.validateStep(index);
       const showError = isCompleted && !isValid;
+      const missingFields = showError ? this.getMissingRequiredFields(index) : [];
 
       const stepEl = doc.createElement('div');
       stepEl.setAttribute('data-step-indicator', String(stepNum));
@@ -745,27 +770,95 @@ export class Modal implements ModalInstance {
         cursor: ${this.options.progress!.allowStepNavigation ? 'pointer' : 'default'};
       `;
 
-      // Step circle
-      const circle = doc.createElement('div');
+      // Step circle with Popover for error state
+      const circleWrapper = doc.createElement('div');
       const bgColor = isCurrent ? '#0078d4' : showError ? '#d13438' : isCompleted ? '#107c10' : '#f3f2f1';
       const textColor = isCurrent || isCompleted || showError ? '#ffffff' : '#605e5c';
       const borderColor = isCurrent ? '#0078d4' : showError ? '#d13438' : isCompleted ? '#107c10' : '#d2d0ce';
       
-      circle.style.cssText = `
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        font-size: 14px;
-        background: ${bgColor};
-        color: ${textColor};
-        border: 2px solid ${borderColor};
-      `;
-      circle.textContent = showError ? '!' : isCompleted ? '✓' : String(stepNum);
-      stepEl.appendChild(circle);
+      if (showError && missingFields.length > 0) {
+        // Use React Popover for error state
+        const PopoverContent = () => {
+          const trigger = React.createElement(
+            PopoverTrigger,
+            { disableButtonEnhancement: true },
+            React.createElement('div', {
+              onClick: (e: any) => e.stopPropagation(), // Prevent navigation on click
+              style: {
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '600',
+                fontSize: '14px',
+                background: bgColor,
+                color: textColor,
+                border: `2px solid ${borderColor}`,
+                cursor: 'help'
+              }
+            }, '!')
+          );
+
+          const surface = React.createElement(
+            PopoverSurface,
+            { style: { maxWidth: '280px', padding: '12px' } },
+            React.createElement('div', null,
+              React.createElement('div', { 
+                style: { 
+                  fontWeight: '600', 
+                  marginBottom: '8px',
+                  color: '#d13438'
+                } 
+              }, 'Missing Required Fields:'),
+              React.createElement('ul', { 
+                style: { 
+                  margin: '0', 
+                  paddingLeft: '20px',
+                  fontSize: '13px',
+                  lineHeight: '1.6'
+                } 
+              }, ...missingFields.map(field => 
+                React.createElement('li', { key: field }, field)
+              ))
+            )
+          );
+
+          return React.createElement(
+            Popover,
+            { 
+              positioning: 'below', 
+              withArrow: true, 
+              openOnHover: true,
+              mouseLeaveDelay: 0,
+              children: [trigger, surface] 
+            }
+          );
+        };
+
+        mountFluentComponent(circleWrapper, React.createElement(PopoverContent), defaultTheme);
+      } else {
+        // Regular circle without Popover
+        const circle = doc.createElement('div');
+        circle.style.cssText = `
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          font-size: 14px;
+          background: ${bgColor};
+          color: ${textColor};
+          border: 2px solid ${borderColor};
+        `;
+        circle.textContent = showError ? '!' : isCompleted ? '✓' : String(stepNum);
+        circleWrapper.appendChild(circle);
+      }
+      
+      stepEl.appendChild(circleWrapper);
 
       // Step label
       if (step.label) {
@@ -805,46 +898,24 @@ export class Modal implements ModalInstance {
   }
 
   private updateStepIndicator(): void {
-    if (!this.stepIndicator) return;
+    if (!this.stepIndicator || !this.stepIndicator.parentElement) return;
 
-    this.options.progress!.steps!.forEach((_step, index) => {
-      const stepNum = index + 1;
-      const isCurrent = stepNum === this.currentStep;
-      const isCompleted = stepNum < this.currentStep;
-      const isValid = this.validateStep(index);
-      const showError = isCompleted && !isValid;
-
-      const stepEl = this.stepIndicator!.querySelector(`[data-step-indicator="${stepNum}"]`) as HTMLElement;
-      if (!stepEl) return;
-
-      const circle = stepEl.querySelector('div') as HTMLElement;
-      if (circle) {
-        const bgColor = isCurrent ? '#0078d4' : showError ? '#d13438' : isCompleted ? '#107c10' : '#f3f2f1';
-        const textColor = isCurrent || isCompleted || showError ? '#ffffff' : '#605e5c';
-        const borderColor = isCurrent ? '#0078d4' : showError ? '#d13438' : isCompleted ? '#107c10' : '#d2d0ce';
-        
-        circle.style.background = bgColor;
-        circle.style.color = textColor;
-        circle.style.borderColor = borderColor;
-        circle.textContent = showError ? '!' : isCompleted ? '✓' : String(stepNum);
-      }
-
-      const label = stepEl.querySelector('div:last-child') as HTMLElement;
-      if (label && label !== circle) {
-        label.style.color = isCurrent ? '#0078d4' : showError ? '#d13438' : '#605e5c';
-        label.style.fontWeight = isCurrent ? '600' : '400';
-      }
-    });
-
-    // Update connector lines
-    const connectors = this.stepIndicator!.querySelectorAll('div[style*="height: 2px"]');
-    connectors.forEach((connector, index) => {
-      const isValid = this.validateStep(index);
-      const isCompleted = index + 1 < this.currentStep;
-      const showError = isCompleted && !isValid;
-      const connectorColor = showError ? '#d13438' : isCompleted ? '#107c10' : '#d2d0ce';
-      (connector as HTMLElement).style.background = connectorColor;
-    });
+    // Store the next sibling (first step panel) to maintain correct position
+    const nextSibling = this.stepIndicator.nextSibling;
+    const parent = this.stepIndicator.parentElement;
+    
+    // Remove old indicator
+    parent.removeChild(this.stepIndicator);
+    
+    // Create new indicator with updated state (including Popovers)
+    this.stepIndicator = this.createStepIndicator();
+    
+    // Insert at the same position (before the first step panel)
+    if (nextSibling) {
+      parent.insertBefore(this.stepIndicator, nextSibling);
+    } else {
+      parent.appendChild(this.stepIndicator);
+    }
 
     // Update button states based on validation
     this.updateButtonStates();
@@ -1461,17 +1532,66 @@ export class Modal implements ModalInstance {
             const isRequired = this.fieldRequiredMap.get(field.id) || false;
             const isEmpty = !value || value === '' || (Array.isArray(value) && value.length === 0);
             
+            // Check if required field is empty
             if (isRequired && isEmpty) {
               this.fieldValidationErrors.set(field.id, 'Required field is empty');
               if (showError && touched) {
                 setValidationState('error');
                 setValidationMessage('This field is required');
               }
-            } else {
-              this.fieldValidationErrors.delete(field.id);
-              setValidationState('none');
-              setValidationMessage('');
+              return;
             }
+            
+            // Format validation for specific field types (only if not empty)
+            if (!isEmpty && value) {
+              const fieldType = field.type || 'text';
+              
+              // Email validation
+              if (fieldType === 'email') {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(String(value))) {
+                  this.fieldValidationErrors.set(field.id, 'Invalid email format');
+                  if (showError && touched) {
+                    setValidationState('error');
+                    setValidationMessage('Please enter a valid email address');
+                  }
+                  return;
+                }
+              }
+              
+              // URL validation
+              if (fieldType === 'url') {
+                try {
+                  new URL(String(value));
+                } catch {
+                  this.fieldValidationErrors.set(field.id, 'Invalid URL format');
+                  if (showError && touched) {
+                    setValidationState('error');
+                    setValidationMessage('Please enter a valid URL (e.g., https://example.com)');
+                  }
+                  return;
+                }
+              }
+              
+              // Phone validation (flexible - allows various formats)
+              if (fieldType === 'tel') {
+                const phoneRegex = /^[\d\s\-\(\)\+\.]+$/;
+                const digitCount = String(value).replace(/\D/g, '').length;
+                if (!phoneRegex.test(String(value)) || digitCount < 7) {
+                  this.fieldValidationErrors.set(field.id, 'Invalid phone format');
+                  if (showError && touched) {
+                    setValidationState('error');
+                    setValidationMessage('Please enter a valid phone number');
+                  }
+                  return;
+                }
+              }
+            }
+            
+            // All validations passed
+            this.fieldValidationErrors.delete(field.id);
+            setValidationState('none');
+            setValidationMessage('');
           };
 
           // Validate on mount (without showing error)
@@ -1495,12 +1615,14 @@ export class Modal implements ModalInstance {
             validationState: validationState,
             validationMessage: validationMessage,
             onChange: (value: string | number) => {
+              console.log(`[Field ${field.id}] onChange triggered with value:`, value, `(type: ${typeof value})`);
               setTouched(true);
               setInputValue(value);
               this.fieldValues.set(field.id, value);
               field.value = value;
               validateField(value, true);
               this.updateFieldVisibility(field.id);
+              console.log(`[Field ${field.id}] Calling updateButtonStates...`);
               this.updateButtonStates();
             },
             onFocus: () => {
@@ -1657,11 +1779,9 @@ export class Modal implements ModalInstance {
     this.options.buttons.forEach((btn) => {
       if (!btn.requiresValidation) return;
 
-      const buttonElement = this.buttonElements.get(btn);
-      if (!buttonElement) return;
-
-      const fluentButton = buttonElement.querySelector('button');
-      if (!fluentButton) return;
+      // Use React state setter instead of DOM manipulation
+      const setDisabled = this.buttonDisabledSetters.get(btn);
+      if (!setDisabled) return;
 
       // Check if all required fields are valid
       let isValid = true;
@@ -1688,7 +1808,7 @@ export class Modal implements ModalInstance {
       }
 
       console.log(`[updateButtonStates] Setting ${btn.label} button disabled state to:`, !isValid);
-      fluentButton.disabled = !isValid;
+      setDisabled(!isValid); // Set React state, which updates Fluent UI Button's disabled prop
     });
   }
 
@@ -1745,25 +1865,36 @@ export class Modal implements ModalInstance {
       buttonStyle.borderColor = '#d13438';
     }
 
-    // Use Fluent UI Button component via React
-    const ButtonComponent = React.createElement(Button, {
-      appearance: appearance,
-      onClick: async () => {
-        const result = await btn.callback();
+    // Use state for disabled to allow dynamic updates
+    const ButtonWrapper = () => {
+      const [isDisabled, setIsDisabled] = React.useState(false);
 
-        if (result !== false && !btn.preventClose) {
-          if (this.resolvePromise) {
-            this.resolvePromise({ button: btn, data: this.getFieldValues() });
+      // Store setter for external updates
+      React.useEffect(() => {
+        this.buttonDisabledSetters.set(btn, setIsDisabled);
+        return () => { this.buttonDisabledSetters.delete(btn); };
+      }, []);
+
+      return React.createElement(Button, {
+        appearance: appearance,
+        disabled: isDisabled,
+        onClick: async () => {
+          const result = await btn.callback();
+
+          if (result !== false && !btn.preventClose) {
+            if (this.resolvePromise) {
+              this.resolvePromise({ button: btn, data: this.getFieldValues() });
+            }
+            this.close();
           }
-          this.close();
-        }
-      },
-      children: btn.label,
-      style: buttonStyle
-    });
+        },
+        children: btn.label,
+        style: buttonStyle
+      });
+    };
 
     // Mount the Fluent UI button
-    mountFluentComponent(buttonContainer, ButtonComponent, defaultTheme);
+    mountFluentComponent(buttonContainer, React.createElement(ButtonWrapper), defaultTheme);
 
     if (btn.setFocus) {
       setTimeout(() => {
@@ -2016,15 +2147,12 @@ export class Modal implements ModalInstance {
     const step = this.options.progress.steps[stepIndex];
     if (!step?.fields) return true;
 
-    console.log(`[validateStep] Validating step ${stepIndex + 1} with ${step.fields.length} fields`);
-
     // Check all required fields in this step
     for (const field of step.fields) {
       // Skip hidden fields - if visibleWhen is false, don't validate
       if (field.visibleWhen) {
         const isVisible = this.evaluateVisibilityCondition(field.visibleWhen);
         if (!isVisible) {
-          console.log(`[validateStep] Skipping hidden field: ${field.id}`);
           continue; // Skip this field
         }
       }
@@ -2042,18 +2170,53 @@ export class Modal implements ModalInstance {
 
       if (isRequired) {
         const value = this.getFieldValue(field.id);
-        console.log(`[validateStep] Required field ${field.id} value:`, value);
         // Empty values: null, undefined, empty string, empty array
         if (value === null || value === undefined || value === '' || 
             (Array.isArray(value) && value.length === 0)) {
-          console.log(`[validateStep] ❌ Field ${field.id} is required but empty`);
           return false;
         }
       }
     }
 
-    console.log(`[validateStep] ✅ Step ${stepIndex + 1} is valid`);
     return true;
+  }
+
+  /**
+   * Get list of missing required fields for a step
+   */
+  private getMissingRequiredFields(stepIndex: number): string[] {
+    if (!this.options.progress?.steps) return [];
+    
+    const step = this.options.progress.steps[stepIndex];
+    if (!step?.fields) return [];
+
+    const missingFields: string[] = [];
+
+    for (const field of step.fields) {
+      // Skip hidden fields
+      if (field.visibleWhen) {
+        const isVisible = this.evaluateVisibilityCondition(field.visibleWhen);
+        if (!isVisible) continue;
+      }
+
+      // Determine if field is required
+      let isRequired = false;
+      if (field.requiredWhen) {
+        isRequired = this.evaluateVisibilityCondition(field.requiredWhen);
+      } else {
+        isRequired = field.required || false;
+      }
+
+      if (isRequired) {
+        const value = this.getFieldValue(field.id);
+        if (value === null || value === undefined || value === '' || 
+            (Array.isArray(value) && value.length === 0)) {
+          missingFields.push(field.label || field.id);
+        }
+      }
+    }
+
+    return missingFields;
   }
 
   getFieldValue(fieldId: string): any {

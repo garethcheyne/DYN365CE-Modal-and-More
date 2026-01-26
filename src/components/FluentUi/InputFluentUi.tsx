@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Input, Textarea, Field } from '@fluentui/react-components';
+import { Input, Textarea, Field, Tooltip } from '@fluentui/react-components';
+import { Info16Regular } from '@fluentui/react-icons';
 import type { InputProps, TextareaOnChangeData } from '@fluentui/react-components';
 
 interface InputFluentUiProps {
@@ -103,11 +104,20 @@ export const InputFluentUi: React.FC<InputFluentUiProps> = ({
     // If no label, force vertical orientation for full width
     const effectiveOrientation = !label ? 'vertical' : orientation;
 
+    // Create label with tooltip icon if tooltip is provided
+    const labelContent = label && tooltip ? (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span>{label}</span>
+            <Tooltip content={tooltip} relationship="label">
+                <Info16Regular style={{ color: '#605e5c', cursor: 'help' }} />
+            </Tooltip>
+        </span>
+    ) : label;
+
     return (
         <Field
-            label={label}
+            label={labelContent}
             required={required}
-            hint={tooltip}
             orientation={effectiveOrientation}
             validationState={validationState}
             validationMessage={validationMessage}

@@ -5,7 +5,8 @@
 
 import React from 'react';
 import { DatePicker } from '@fluentui/react-datepicker-compat';
-import { Field } from '@fluentui/react-components';
+import { Field, Tooltip } from '@fluentui/react-components';
+import { Info16Regular } from '@fluentui/react-icons';
 
 interface DatePickerFluentUiProps {
   id?: string;
@@ -33,11 +34,20 @@ export const DatePickerFluentUi: React.FC<DatePickerFluentUiProps> = ({
   // If no label, force vertical orientation for full width
   const effectiveOrientation = !label ? 'vertical' : orientation;
   
+  // Create label with tooltip icon if tooltip is provided
+  const labelContent = label && tooltip ? (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+      <span>{label}</span>
+      <Tooltip content={tooltip} relationship="label">
+        <Info16Regular style={{ color: '#605e5c', cursor: 'help' }} />
+      </Tooltip>
+    </span>
+  ) : label;
+  
   return (
     <Field
-      label={label}
+      label={labelContent}
       required={required}
-      hint={tooltip}
       orientation={effectiveOrientation}
       style={{ marginBottom: '8px' }}
     >

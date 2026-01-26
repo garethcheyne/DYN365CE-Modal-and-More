@@ -5,7 +5,8 @@
  */
 
 import React, { useState } from 'react';
-import { Dropdown, Option, Field, Button } from '@fluentui/react-components';
+import { Dropdown, Option, Field, Button, Tooltip } from '@fluentui/react-components';
+import { Info16Regular } from '@fluentui/react-icons';
 import type { DropdownProps } from '@fluentui/react-components';
 
 interface DropdownFluentUiProps {
@@ -58,11 +59,20 @@ export const DropdownFluentUi: React.FC<DropdownFluentUiProps> = ({
         // If no label, force vertical orientation for full width
         const effectiveOrientation = !label ? 'vertical' : orientation;
         
+        // Create label with tooltip icon if tooltip is provided
+        const labelContent = label && tooltip ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <span>{label}</span>
+                <Tooltip content={tooltip} relationship="label">
+                    <Info16Regular style={{ color: '#605e5c', cursor: 'help' }} />
+                </Tooltip>
+            </span>
+        ) : label;
+        
         return (
             <Field
-                label={label}
+                label={labelContent}
                 required={required}
-                hint={tooltip}
                 orientation={effectiveOrientation}
                 style={{ marginBottom: '8px' }}
             >
@@ -102,11 +112,20 @@ export const DropdownFluentUi: React.FC<DropdownFluentUiProps> = ({
     // If no label, force vertical orientation for full width
     const effectiveOrientation = !label ? 'vertical' : orientation;
     
+    // Create label with tooltip icon if tooltip is provided
+    const labelContent = label && tooltip ? (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span>{label}</span>
+            <Tooltip content={tooltip} relationship="label">
+                <Info16Regular style={{ color: '#605e5c', cursor: 'help' }} />
+            </Tooltip>
+        </span>
+    ) : label;
+    
     return (
         <Field
-            label={label}
+            label={labelContent}
             required={required}
-            hint={tooltip}
             orientation={effectiveOrientation}
             style={{ marginBottom: '8px' }}
         >

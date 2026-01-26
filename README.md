@@ -20,31 +20,31 @@ Stop wrestling with custom HTML and CSS. This library provides production-ready 
 <table>
   <tr>
     <td width="50%">
-      <img src="./assets/screenshots/modal-wizard.png" alt="Wizard Modal with Step Indicators" />
+      <img src="https://raw.githubusercontent.com/garethcheyne/DYN365CE-Modal-and-More/main/assets/screenshots/modal-wizard.png" alt="Wizard Modal with Step Indicators" />
       <p align="center"><strong>Wizard Modal</strong><br/>Visual step indicators with validation states</p>
     </td>
     <td width="50%">
-      <img src="./assets/screenshots/modal-form.png" alt="Form Modal with Validation" />
-      <p align="center"><strong>Form Modal</strong><br/>Conditional fields and validation</p>
+      <img src="https://raw.githubusercontent.com/garethcheyne/DYN365CE-Modal-and-More/main/assets/screenshots/modal-tabs.png" alt="Tabbed Modal" />
+      <p align="center"><strong>Tabbed Modal</strong><br/>Organize complex forms with tabs</p>
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <img src="./assets/screenshots/modal-tabs.png" alt="Tabbed Modal" />
-      <p align="center"><strong>Tabbed Modal</strong><br/>Organize complex forms with tabs</p>
+      <img src="https://raw.githubusercontent.com/garethcheyne/DYN365CE-Modal-and-More/main/assets/screenshots/modal-step-invalid.png" alt="Step Validation Popover" />
+      <p align="center"><strong>Step Validation</strong><br/>Hover over error indicators to see missing required fields</p>
     </td>
     <td width="50%">
-      <img src="./assets/screenshots/toast-notifications.png" alt="Toast Notifications" />
+      <img src="https://raw.githubusercontent.com/garethcheyne/DYN365CE-Modal-and-More/main/assets/screenshots/toast-notifications.png" alt="Toast Notifications" />
       <p align="center"><strong>Toast Notifications</strong><br/>Success, error, warning, and info messages</p>
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <img src="./assets/screenshots/lookup-inline.png" alt="Inline Lookup Dropdown" />
+      <img src="https://raw.githubusercontent.com/garethcheyne/DYN365CE-Modal-and-More/main/assets/screenshots/lookup-inline.png" alt="Inline Lookup Dropdown" />
       <p align="center"><strong>Inline Lookup</strong><br/>D365-native dropdown with entity icons</p>
     </td>
     <td width="50%">
-      <img src="./assets/screenshots/lookup-modal.png" alt="Modal Dialog Lookup" />
+      <img src="https://raw.githubusercontent.com/garethcheyne/DYN365CE-Modal-and-More/main/assets/screenshots/lookup-modal.png" alt="Modal Dialog Lookup" />
       <p align="center"><strong>Lookup Modal</strong><br/>Full-screen selection with table and filters</p>
     </td>
   </tr>

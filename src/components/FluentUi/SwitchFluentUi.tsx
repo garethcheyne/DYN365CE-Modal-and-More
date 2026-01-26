@@ -4,7 +4,8 @@
  */
 
 import React from 'react';
-import { Switch, Field } from '@fluentui/react-components';
+import { Switch, Field, Tooltip } from '@fluentui/react-components';
+import { Info16Regular } from '@fluentui/react-icons';
 
 interface SwitchFluentUiProps {
   id?: string;
@@ -26,10 +27,19 @@ export const SwitchFluentUi: React.FC<SwitchFluentUiProps> = ({
   // If no label, force vertical orientation for full width
   const effectiveOrientation = !label ? 'vertical' : orientation;
   
+  // Create label with tooltip icon if tooltip is provided
+  const labelContent = label && tooltip ? (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+      <span>{label}</span>
+      <Tooltip content={tooltip} relationship="label">
+        <Info16Regular style={{ color: '#605e5c', cursor: 'help' }} />
+      </Tooltip>
+    </span>
+  ) : label;
+  
   return (
     <Field
-      label={label}
-      hint={tooltip}
+      label={labelContent}
       orientation={effectiveOrientation}
       style={{ marginBottom: '8px' }}
     >

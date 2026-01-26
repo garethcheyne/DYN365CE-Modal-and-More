@@ -290,6 +290,7 @@ declare class Modal implements ModalInstance {
     private fieldVisibilityMap;
     private fieldRequiredMap;
     private fieldValidationErrors;
+    private buttonDisabledSetters;
     private currentStep;
     private totalSteps;
     private stepPanels;
@@ -357,6 +358,10 @@ declare class Modal implements ModalInstance {
      * Validate if a step has all required fields filled
      */
     private validateStep;
+    /**
+     * Get list of missing required fields for a step
+     */
+    private getMissingRequiredFields;
     getFieldValue(fieldId: string): any;
     getFieldValues(): Record<string, any>;
     setFieldValue(fieldId: string, value: any): void;

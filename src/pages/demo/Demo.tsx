@@ -679,35 +679,99 @@ export const Demo: React.FC = () => {
     ];
 
     const modal = new uiLib.Modal({
-      title: '🧙 Wizard Demo - Multi-Step Form',
-      message: 'This is the parent modal message that appears above the step indicators. It stays visible throughout the entire wizard.',
-      content: '<div style="padding: 12px; background: #f3f2f1; border-radius: 4px; margin-bottom: 8px;"><strong>Modal Content:</strong> You can also add HTML content at the modal level. This is useful for instructions that apply to all steps.</div>',
+      title: '🧙 Complete Showcase - All Features',
+      message: 'This wizard demonstrates EVERY field type, validation pattern, and feature available in the UI Library.',
+      content: '<div style="padding: 12px; background: #f3f2f1; border-radius: 4px; margin-bottom: 8px;"><strong>📚 Feature Coverage:</strong> Text inputs, numbers, dates, switches, checkboxes, sliders, dropdowns, lookups, tables, file uploads, address autocomplete, D365 option sets, conditional visibility, conditional validation, and more!</div>',
       size: 'large',
       draggable: true,
       progress: {
         enabled: true,
         type: 'steps-left',
         currentStep: 1,
-        totalSteps: 5,
+        totalSteps: 8,
         allowStepNavigation: true,
         steps: [
           {
             id: 'step1',
-            label: 'Basic Info',
-            message: 'Step 1: Please provide basic company information below.',
-            content: '<small style="color: #605e5c;">All fields with asterisk (*) are required.</small>',
+            label: 'Text Inputs',
+            message: 'Text Input Variations - All HTML5 input types with validation',
+            content: '<div style="padding: 10px; background: #f3f2f1; border-radius: 4px; margin-bottom: 12px;"><strong>🔤 Demonstrating:</strong> text, email, tel, password, url, and search input types. Notice the <code>required</code> validation (red border when empty and touched), <code>placeholder</code> text, and <code>tooltip</code> on hover.</div>',
             fields: [
-              { id: 'companyName', label: 'Company Name', type: 'text', required: true, placeholder: 'Enter company name', value: 'Contoso Ltd' },
-              { id: 'industry', label: 'Industry', type: 'select', options: ['Technology', 'Manufacturing', 'Retail', 'Healthcare', 'Finance'], value: 'Technology' },
-              { id: 'website', label: 'Website', type: 'text', placeholder: 'https://example.com', value: 'https://contoso.com' },
-              { id: 'phone', label: 'Phone', type: 'text', placeholder: '+1 (555) 123-4567' }
+              { id: 'fullName', label: 'Full Name', type: 'text', required: true, placeholder: 'John Smith', tooltip: 'Enter your full legal name' },
+              { id: 'emailAddress', label: 'Email', type: 'email', required: true, placeholder: 'john@example.com' },
+              { id: 'phoneNumber', label: 'Phone', type: 'tel', placeholder: '+1 (555) 123-4567' },
+              { id: 'websiteUrl', label: 'Website', type: 'url', placeholder: 'https://example.com' },
+              { id: 'password', label: 'Password', type: 'password', required: true, placeholder: 'Enter secure password' },
+              { id: 'searchQuery', label: 'Search', type: 'search', placeholder: 'Type to search...' }
             ]
           },
           {
             id: 'step2',
-            label: 'Address Lookup Test',
-            message: 'Step 2: Test lookup field with auto-population of related fields.',
-            content: '<small style="color: #605e5c;">Select an account from the lookup. The fields below will auto-populate.</small>',
+            label: 'Numbers & Dates',
+            message: 'Numeric Inputs, Date Pickers, and Range Sliders',
+            content: '<div style="padding: 10px; background: #f3f2f1; border-radius: 4px; margin-bottom: 12px;"><strong>🔢 Demonstrating:</strong> <code>type="number"</code> with validation, <code>type="date"</code> for date selection, and <code>type="range"</code> sliders with <code>showValue</code> display. Sliders use <code>extraAttributes</code> for min/max/step values.</div>',
+            fields: [
+              { id: 'age', label: 'Age', type: 'number', required: true, placeholder: 'Enter age', value: 30 },
+              { id: 'salary', label: 'Annual Salary ($)', type: 'number', placeholder: '50000' },
+              { id: 'birthDate', label: 'Birth Date', type: 'date', required: true },
+              { id: 'startDate', label: 'Start Date', type: 'date' },
+              { id: 'priority', label: 'Priority Level', type: 'range', value: 5, showValue: true, extraAttributes: { min: 1, max: 10, step: 1 } },
+              { id: 'completion', label: 'Completion %', type: 'range', value: 75, showValue: true, extraAttributes: { min: 0, max: 100, step: 5 } }
+            ]
+          },
+          {
+            id: 'step3',
+            label: 'Switches & Checkboxes',
+            message: 'Boolean Inputs - Modern Switches vs Native D365 Checkboxes',
+            content: '<div style="padding: 10px; background: #f3f2f1; border-radius: 4px; margin-bottom: 12px;"><strong>✅ Demonstrating:</strong> <code>type="switch"</code> for modern toggle switches (Fluent UI) and <code>type="checkbox"</code> for native D365-style checkboxes. Both support <code>required</code> validation and <code>tooltip</code> hints.</div>',
+            fields: [
+              { id: 'isActive', label: 'Account Active', type: 'switch', value: true, tooltip: 'Toggle to activate/deactivate' },
+              { id: 'sendEmail', label: 'Send Email Notifications', type: 'switch', value: false },
+              { id: 'termsAccepted', label: 'Accept Terms & Conditions', type: 'checkbox', required: true },
+              { id: 'newsletterOptIn', label: 'Subscribe to Newsletter', type: 'checkbox' },
+              { id: 'privacyConsent', label: 'Privacy Policy Consent', type: 'checkbox', required: true }
+            ]
+          },
+          {
+            id: 'step4',
+            label: 'Dropdowns & Option Sets',
+            message: 'Static Dropdowns vs Auto-Fetched D365 Option Sets with Badge Display',
+            content: '<div style="padding: 10px; background: #f3f2f1; border-radius: 4px; margin-bottom: 12px;"><strong>📋 Demonstrating:</strong> Standard <code>type="select"</code> with hardcoded <code>options</code> array, AND <code>optionSet</code> property that automatically fetches option set metadata from Dynamics 365 Web API. The Industry Code field uses <code>displayMode="badges"</code> to show options as clickable badges instead of a dropdown!</div>',
+            fields: [
+              { id: 'country', label: 'Country', type: 'select', required: true, options: ['USA', 'Canada', 'UK', 'Australia', 'New Zealand'], placeholder: 'Select country' },
+              { id: 'department', label: 'Department', type: 'select', displayMode: 'badges', options: ['Sales', 'Marketing', 'Engineering', 'HR', 'Finance'] },
+              { 
+                id: 'accountCategory', 
+                label: 'Account Category (D365)', 
+                type: 'select',
+                optionSet: {
+                  entityName: 'account',
+                  attributeName: 'accountcategorycode',
+                  includeNull: true,
+                  sortByLabel: true
+                },
+                tooltip: 'Fetched from Dynamics 365 option set - dropdown style'
+              },
+              { 
+                id: 'industryCode', 
+                label: 'Industry Code (D365 Badges)', 
+                type: 'select',
+                displayMode: 'badges',
+                optionSet: {
+                  entityName: 'account',
+                  attributeName: 'industrycode',
+                  includeNull: true,
+                  sortByLabel: true
+                },
+                tooltip: 'Fetched from Dynamics 365 option set - badge display mode'
+              }
+            ]
+          },
+          {
+            id: 'step5',
+            label: 'D365 Lookup',
+            message: 'Dynamics 365 Entity Lookup with Auto-Population',
+            content: '<div style="padding: 10px; background: #f3f2f1; border-radius: 4px; margin-bottom: 12px;"><strong>🔍 Demonstrating:</strong> <code>type="lookup"</code> with inline D365-style dropdown that searches entities. Uses <code>lookupColumns</code> to specify which attributes to fetch and display. The <code>onChange</code> callback auto-populates related fields below using <code>modal.setFieldValue()</code>.</div>',
             fields: [
               {
                 id: 'accountLookup',
@@ -716,78 +780,46 @@ export const Demo: React.FC = () => {
                 entityName: 'account',
                 lookupColumns: [
                   { attribute: 'name', label: 'Account Name' },
-                  { attribute: 'accountnumber', label: 'Account Number' },
+                  { attribute: 'accountnumber', label: 'Number' },
                   { attribute: 'emailaddress1', label: 'Email' },
-                  { attribute: 'telephone1', label: 'Phone' },
-                  { attribute: 'address1_city', label: 'City' },
-                  { attribute: 'address1_stateorprovince', label: 'State' }
+                  { attribute: 'telephone1', label: 'Phone' }
                 ],
+                placeholder: 'Search for account...',
                 onChange: function (value) {
-                  console.debug(...uiLib.UILIB, '🔍 Lookup onChange triggered:', value);
                   if (value && value.id) {
-                    console.debug(...uiLib.UILIB, '📋 Record data:', value.record);
-                    modal.setFieldValue('accountName', value.record?.name || 'N/A');
-                    modal.setFieldValue('accountNumber', value.record?.accountnumber || 'N/A');
-                    modal.setFieldValue('email', value.record?.emailaddress1 || 'N/A');
-                    modal.setFieldValue('phone', value.record?.telephone1 || 'N/A');
-                    modal.setFieldValue('city', value.record?.address1_city || 'N/A');
-                    modal.setFieldValue('state', value.record?.address1_stateorprovince || 'N/A');
+                    modal.setFieldValue('accName', value.record?.name || '');
+                    modal.setFieldValue('accNumber', value.record?.accountnumber || '');
+                    modal.setFieldValue('accEmail', value.record?.emailaddress1 || '');
+                    modal.setFieldValue('accPhone', value.record?.telephone1 || '');
                   } else {
-                    console.debug(...uiLib.UILIB, '❌ Lookup cleared');
-                    modal.setFieldValue('accountName', '');
-                    modal.setFieldValue('accountNumber', '');
-                    modal.setFieldValue('email', '');
-                    modal.setFieldValue('phone', '');
-                    modal.setFieldValue('city', '');
-                    modal.setFieldValue('state', '');
+                    modal.setFieldValue('accName', '');
+                    modal.setFieldValue('accNumber', '');
+                    modal.setFieldValue('accEmail', '');
+                    modal.setFieldValue('accPhone', '');
                   }
                 }
               },
-              { id: 'accountName', label: '→ Account Name', type: 'text', readOnly: true, placeholder: 'Will auto-populate...' },
-              { id: 'accountNumber', label: '→ Account Number', type: 'text', readOnly: true, placeholder: 'Will auto-populate...' },
-              { id: 'email', label: '→ Email', type: 'text', readOnly: true, placeholder: 'Will auto-populate...' },
-              { id: 'phone', label: '→ Phone', type: 'text', readOnly: true, placeholder: 'Will auto-populate...' },
-              { id: 'city', label: '→ City', type: 'text', readOnly: true, placeholder: 'Will auto-populate...' },
-              { id: 'state', label: '→ State', type: 'text', readOnly: true, placeholder: 'Will auto-populate...' }
+              { id: 'accName', label: '→ Name', type: 'text', readOnly: true, placeholder: 'Auto-populated' },
+              { id: 'accNumber', label: '→ Number', type: 'text', readOnly: true, placeholder: 'Auto-populated' },
+              { id: 'accEmail', label: '→ Email', type: 'email', readOnly: true, placeholder: 'Auto-populated' },
+              { id: 'accPhone', label: '→ Phone', type: 'tel', readOnly: true, placeholder: 'Auto-populated' }
             ]
           },
           {
-            id: 'step3',
-            label: 'Business Details',
-            message: 'Step 3: Tell us more about your business operations.',
-            content: '<small style="color: #605e5c;">This information helps us tailor our services to your needs.</small>',
-            fields: [
-              { id: 'revenue', label: 'Annual Revenue', type: 'number', required: true, placeholder: 'Enter revenue (required)' },
-              { id: 'employees', label: 'Number of Employees', type: 'number', required: true, value: 250 },
-              { id: 'foundedDate', label: 'Founded Date', type: 'date' },
-              { id: 'publiclyTraded', label: 'Publicly Traded', type: 'switch', value: true },
-              { id: 'satisfactionScore', label: 'Customer Satisfaction', type: 'range', value: 85, showValue: true, extraAttributes: { min: 0, max: 100, step: 5 } },
-              {
-                id: 'businessAddress',
-                label: 'Business Address',
-                type: 'addressLookup',
-                placeholder: 'Search for address...',
-                addressLookup: {
-                  provider: 'google',
-                  componentRestrictions: { country: ['nz', 'au'] }
-                }
-              }
-            ]
-          },
-          {
-            id: 'step3',
-            label: 'Product Selection',
-            message: 'Step 4: Select the products you are interested in.',
-            content: '<small style="color: #605e5c;">You can select multiple products from the table below.</small>',
+            id: 'step6',
+            label: 'Data Table',
+            message: 'Interactive Data Table with Sorting and Multi-Selection',
+            content: '<div style="padding: 10px; background: #f3f2f1; border-radius: 4px; margin-bottom: 12px;"><strong>📊 Demonstrating:</strong> <code>type="table"</code> with sortable columns (click headers), multi-row selection, and <code>onRowSelect</code> callback. Uses <code>tableColumns</code> for column config and <code>data</code> array for rows. Table fields use <code>selectionMode</code> property: "none", "single", or "multiple".</div>',
             fields: [
               {
                 id: 'productTable',
+                label: 'Select Products',
                 type: 'table',
                 tableColumns: [
-                  { id: 'product', header: 'Product Name', visible: true, sortable: true, width: '250px' },
-                  { id: 'category', header: 'Category', visible: true, sortable: true, width: '180px' },
-                  { id: 'price', header: 'Price ($)', visible: true, sortable: true, width: '120px' },
-                  { id: 'stock', header: 'In Stock', visible: true, sortable: true, width: '100px' }
+                  { id: 'product', header: 'Product', visible: true, sortable: true, width: '250px' },
+                  { id: 'category', header: 'Category', visible: true, sortable: true, width: '150px' },
+                  { id: 'price', header: 'Price', visible: true, sortable: true, width: '100px', align: 'right' },
+                  { id: 'stock', header: 'Stock', visible: true, sortable: true, width: '100px', align: 'right' }
                 ],
                 data: productData,
                 selectionMode: 'multiple'
@@ -795,57 +827,106 @@ export const Demo: React.FC = () => {
             ]
           },
           {
-            id: 'step4',
-            label: 'Preferences',
-            message: 'Step 5: Configure your communication preferences and upload supporting documents.',
-            content: '<small style="color: #605e5c;">These preferences can be changed later in your account settings.</small>',
+            id: 'step7',
+            label: 'Address Lookup Test',
+            message: 'Address Autocomplete with Google/Azure Maps API Integration',
+            content: '<div style="padding: 12px; background: #fff4ce; border-radius: 4px; border-left: 4px solid #ffb900; margin-bottom: 12px;"><strong>🗺️ Demonstrating:</strong> <code>type="addressLookup"</code> with Google Maps or Azure Maps autocomplete. <strong>⚠️ Testing Instructions:</strong> Enter your API key below to enable address search. The key is <strong>only used in your browser</strong> for this session - NOT stored or transmitted to any server. Address fields use <code>visibleWhen</code> conditional visibility to appear only after API key is entered.</div>',
+            fields: [
+              { 
+                id: 'mapsProvider', 
+                label: 'Maps Provider', 
+                type: 'select', 
+                options: ['google', 'azure'], 
+                value: 'google',
+                required: true,
+                tooltip: 'Choose between Google Maps or Azure Maps API'
+              },
+              { 
+                id: 'mapsApiKey', 
+                label: 'API Key', 
+                type: 'password', 
+                required: true, 
+                placeholder: 'Enter your Maps API key',
+                tooltip: 'Your API key is only used in your browser - not stored or sent to any server'
+              },
+              {
+                id: 'testAddressLookup',
+                label: 'Search Address',
+                type: 'addressLookup',
+                placeholder: 'Start typing an address...',
+                addressLookup: {
+                  provider: '{{mapsProvider}}' as any,
+                  apiKey: '{{mapsApiKey}}',
+                  componentRestrictions: { country: ['nz', 'au', 'us', 'gb'] },
+                  fields: {
+                    street: 'street',
+                    city: 'city',
+                    state: 'state',
+                    postalCode: 'postalCode',
+                    country: 'country',
+                    latitude: 'lat',
+                    longitude: 'lng'
+                  },
+                  onSelect: (address) => {
+                    console.log('Selected address:', address);
+                  }
+                },
+                visibleWhen: { field: 'mapsApiKey', operator: 'truthy' }
+              },
+              { id: 'street', label: '→ Street', type: 'text', readOnly: true, visibleWhen: { field: 'mapsApiKey', operator: 'truthy' } },
+              { id: 'city', label: '→ City', type: 'text', readOnly: true, visibleWhen: { field: 'mapsApiKey', operator: 'truthy' } },
+              { id: 'state', label: '→ State', type: 'text', readOnly: true, visibleWhen: { field: 'mapsApiKey', operator: 'truthy' } },
+              { id: 'postalCode', label: '→ Postal Code', type: 'text', readOnly: true, visibleWhen: { field: 'mapsApiKey', operator: 'truthy' } },
+              { id: 'country', label: '→ Country', type: 'text', readOnly: true, visibleWhen: { field: 'mapsApiKey', operator: 'truthy' } },
+              { id: 'lat', label: '→ Latitude', type: 'text', readOnly: true, visibleWhen: { field: 'mapsApiKey', operator: 'truthy' } },
+              { id: 'lng', label: '→ Longitude', type: 'text', readOnly: true, visibleWhen: { field: 'mapsApiKey', operator: 'truthy' } }
+            ]
+          },
+          {
+            id: 'step8',
+            label: 'Files & Advanced',
+            message: 'File Uploads, Text Areas, and Conditional Validation',
+            content: '<div style="padding: 10px; background: #f3f2f1; border-radius: 4px; margin-bottom: 12px;"><strong>📎 Demonstrating:</strong> <code>type="file"</code> with drag-and-drop, file size/type restrictions, and <code>fileUpload</code> configuration. Also <code>type="textarea"</code> with <code>rows</code> setting. Toggle "Requires Manager Approval" to see <code>visibleWhen</code> (conditional visibility) and <code>requiredWhen</code> (conditional validation) - the approval fields only appear AND become required when the switch is ON.</div>',
             fields: [
               {
-                id: 'allowMarketing',
-                label: 'Allow Marketing Communications',
-                type: 'switch',
-                value: true,
-                tooltip: 'Toggle to show/hide marketing preference options'
-              },
-              {
-                id: 'attachments',
-                label: 'Supporting Documents',
+                id: 'documents',
+                label: 'Upload Documents',
                 type: 'file',
                 fileUpload: {
-                  accept: '.pdf,.doc,.docx',
-                  maxFiles: 3,
-                  maxSize: 10485760, // 10MB
+                  accept: '.pdf,.doc,.docx,.xls,.xlsx',
+                  maxFiles: 5,
+                  maxSize: 10485760,
                   multiple: true,
-                  dragDropText: 'Drop business documents here',
-                  browseText: 'or click to browse (.pdf, .doc, .docx)',
-                  onFilesSelected: (files) => {
-                    console.log('Documents selected:', files);
-                  }
+                  dragDropText: 'Drag and drop files here',
+                  browseText: 'or click to browse',
+                  onFilesSelected: (files) => console.log('Files:', files)
                 }
               },
-              {
-                id: 'emailNotifications',
-                label: 'Email Notifications',
-                type: 'switch',
-                value: true,
-                visibleWhen: { field: 'allowMarketing', operator: 'truthy' }
-              },
-              {
-                id: 'smsAlerts',
-                label: 'SMS Alerts',
-                type: 'switch',
+              { id: 'description', label: 'Description', type: 'textarea', required: true, rows: 4, placeholder: 'Enter detailed description...' },
+              { 
+                id: 'needsApproval', 
+                label: 'Requires Manager Approval', 
+                type: 'switch', 
                 value: false,
-                visibleWhen: { field: 'allowMarketing', operator: 'truthy' }
+                tooltip: 'Toggle to show approval fields'
               },
               {
-                id: 'newsletter',
-                label: 'Marketing Newsletter',
-                type: 'switch',
-                value: true,
-                visibleWhen: { field: 'allowMarketing', operator: 'truthy' }
+                id: 'approverName',
+                label: 'Approver Name',
+                type: 'text',
+                requiredWhen: { field: 'needsApproval', operator: 'truthy' },
+                visibleWhen: { field: 'needsApproval', operator: 'truthy' },
+                placeholder: 'Enter manager name'
               },
-              { id: 'language', label: 'Preferred Language', type: 'select', required: true, options: ['English', 'Spanish', 'French', 'German', 'Chinese'], value: 'English' },
-              { id: 'notes', label: 'Additional Notes (Required)', type: 'textarea', required: true, rows: 3, placeholder: 'Please provide some notes...' }
+              {
+                id: 'approverEmail',
+                label: 'Approver Email',
+                type: 'email',
+                requiredWhen: { field: 'needsApproval', operator: 'truthy' },
+                visibleWhen: { field: 'needsApproval', operator: 'truthy' },
+                placeholder: 'manager@example.com'
+              },
+              { id: 'comments', label: 'Additional Comments', type: 'textarea', rows: 3, placeholder: 'Optional feedback...' }
             ]
           }
         ]
@@ -854,34 +935,35 @@ export const Demo: React.FC = () => {
         new uiLib.Button('Cancel', () => { }),
         new uiLib.Button('⬅️ Previous', () => {
           modal.previousStep();
-          return false; // Don't close modal
+          return false;
         }),
         new uiLib.Button('Next ➡️', () => {
           modal.nextStep();
-          return false; // Don't close modal
-        }),
+          return false;
+        }, true),
         new uiLib.Button({
           label: 'Finish',
           callback: () => {
             const allData = modal.getFieldValues();
-            const selectedProducts = modal.getFieldValue('productTable');
+            const selectedProducts = modal.getFieldValue('productTable') || [];
 
             console.log('📦 Complete Wizard Data:', allData);
             console.log('✅ Selected Products:', selectedProducts);
 
             const summary = {
               ...allData,
-              selectedProducts: selectedProducts
+              selectedProducts: selectedProducts,
+              productCount: selectedProducts.length
             };
 
             uiLib.ModalHelpers.alert(
-              '🎉 Wizard Completed!',
+              '🎉 Complete Showcase Finished!',
               formatJsonWithStyle(summary)
             );
 
             uiLib.Toast.success({
-              title: '🎉 Wizard Completed!',
-              message: `Company: ${allData.companyName || 'N/A'} | ${selectedProducts.length} product(s) selected`,
+              title: '🎉 All Features Tested!',
+              message: `${selectedProducts.length} product(s) selected | ${allData.documents?.length || 0} file(s) uploaded`,
               duration: 6000,
               sound: true
             });
