@@ -102,19 +102,19 @@ const Card: React.FC<CardProps> = ({ title, badge, description, children, code }
   const [showCode, setShowCode] = useState(false);
 
   return (
-    <div className="d365-card">
-      <div className="d365-card__header">
-        <h2 className="d365-card__title">
+    <div className="ui-lib-d365-card">
+      <div className="ui-lib-d365-card__header">
+        <h2 className="ui-lib-d365-card__title">
           {title}
           {badge && (
-            <span className={`d365-card__badge d365-card__badge--${badge}`}>
+            <span className={`ui-lib-d365-card__badge ui-lib-d365-card__badge--${badge}`}>
               {badge}
             </span>
           )}
         </h2>
       </div>
-      <div className="d365-card__body">
-        <p className="d365-card__description">{description}</p>
+      <div className="ui-lib-d365-card__body">
+        <p className="ui-lib-d365-card__description">{description}</p>
         {children}
         {code && (
           <div style={{ marginTop: '16px' }}>
@@ -149,8 +149,8 @@ interface SectionProps {
 }
 
 const Section: React.FC<SectionProps> = ({ title, children }) => (
-  <div className="d365-section">
-    <h3 className="d365-section__title">{title}</h3>
+  <div className="ui-lib-d365-section">
+    <h3 className="ui-lib-d365-section__title">{title}</h3>
     {children}
   </div>
 );
@@ -593,6 +593,86 @@ export const Demo: React.FC = () => {
     modal.show();
   };
 
+  // Product Validation Dialog - Real-world Example
+  const showProductValidationDialog = () => {
+    // Mock product issues data - simplified without HTML first
+    const mockIssues = [
+      {
+        id: 1,
+        status: '1',
+        product: 'Surface Laptop 5',
+        reason: 'Product is inactive and must be activated or replaced'
+      },
+      {
+        id: 2,
+        status: '2',
+        product: 'Azure Cloud Services',
+        reason: 'Product is not synchronized with Business Central'
+      },
+      {
+        id: 3,
+        status: '3',
+        product: '[SAMPLE] Placeholder Product',
+        reason: 'Placeholder product must be replaced with actual product'
+      }
+    ];
+
+    const modal = new uiLib.Modal({
+      title: 'Product Validation Required',
+      message: 'You cannot win this quote because the following products have issues. Please review and resolve before proceeding.',
+      size: { width: 800, height: 450 },
+      fields: [
+        {
+          id: 'productsTable',
+          type: 'table',
+          tableColumns: [
+            {
+              id: 'status',
+              header: 'Status',
+              visible: true,
+              sortable: false,
+              width: '80px',
+              align: 'center'
+            },
+            {
+              id: 'product',
+              header: 'Product',
+              visible: true,
+              sortable: false,
+              width: '40%'
+            },
+            {
+              id: 'reason',
+              header: 'Reason',
+              visible: true,
+              sortable: false,
+              width: 'auto'
+            }
+          ],
+          data: mockIssues,
+          selectionMode: 'none'
+        }
+      ],
+      buttons: [
+        new uiLib.Button({
+          label: 'Notify Product Manager',
+          callback: () => {
+            uiLib.Toast.success({ title: 'Notification Sent', message: 'Product manager has been notified' });
+            return true;
+          },
+          id: 'notifyBtn'
+        }),
+        new uiLib.Button({
+          label: 'Close',
+          callback: () => true,
+          setFocus: true,
+          id: 'closeBtn'
+        })
+      ]
+    });
+    modal.show();
+  };
+
   // File Upload Demo with Drag & Drop
   const showFileUploadDemo = () => {
     const modal = new uiLib.Modal({
@@ -740,9 +820,9 @@ export const Demo: React.FC = () => {
             fields: [
               { id: 'country', label: 'Country', type: 'select', required: true, options: ['USA', 'Canada', 'UK', 'Australia', 'New Zealand'], placeholder: 'Select country' },
               { id: 'department', label: 'Department', type: 'select', displayMode: 'badges', options: ['Sales', 'Marketing', 'Engineering', 'HR', 'Finance'] },
-              { 
-                id: 'accountCategory', 
-                label: 'Account Category (D365)', 
+              {
+                id: 'accountCategory',
+                label: 'Account Category (D365)',
                 type: 'select',
                 optionSet: {
                   entityName: 'account',
@@ -752,9 +832,9 @@ export const Demo: React.FC = () => {
                 },
                 tooltip: 'Fetched from Dynamics 365 option set - dropdown style'
               },
-              { 
-                id: 'industryCode', 
-                label: 'Industry Code (D365 Badges)', 
+              {
+                id: 'industryCode',
+                label: 'Industry Code (D365 Badges)',
                 type: 'select',
                 displayMode: 'badges',
                 optionSet: {
@@ -832,20 +912,20 @@ export const Demo: React.FC = () => {
             message: 'Address Autocomplete with Google/Azure Maps API Integration',
             content: '<div style="padding: 12px; background: #fff4ce; border-radius: 4px; border-left: 4px solid #ffb900; margin-bottom: 12px;"><strong>🗺️ Demonstrating:</strong> <code>type="addressLookup"</code> with Google Maps or Azure Maps autocomplete. <strong>⚠️ Testing Instructions:</strong> Enter your API key below to enable address search. The key is <strong>only used in your browser</strong> for this session - NOT stored or transmitted to any server. Address fields use <code>visibleWhen</code> conditional visibility to appear only after API key is entered.</div>',
             fields: [
-              { 
-                id: 'mapsProvider', 
-                label: 'Maps Provider', 
-                type: 'select', 
-                options: ['google', 'azure'], 
+              {
+                id: 'mapsProvider',
+                label: 'Maps Provider',
+                type: 'select',
+                options: ['google', 'azure'],
                 value: 'google',
                 required: true,
                 tooltip: 'Choose between Google Maps or Azure Maps API'
               },
-              { 
-                id: 'mapsApiKey', 
-                label: 'API Key', 
-                type: 'password', 
-                required: true, 
+              {
+                id: 'mapsApiKey',
+                label: 'API Key',
+                type: 'password',
+                required: true,
                 placeholder: 'Enter your Maps API key',
                 tooltip: 'Your API key is only used in your browser - not stored or sent to any server'
               },
@@ -903,10 +983,10 @@ export const Demo: React.FC = () => {
                 }
               },
               { id: 'description', label: 'Description', type: 'textarea', required: true, rows: 4, placeholder: 'Enter detailed description...' },
-              { 
-                id: 'needsApproval', 
-                label: 'Requires Manager Approval', 
-                type: 'switch', 
+              {
+                id: 'needsApproval',
+                label: 'Requires Manager Approval',
+                type: 'switch',
                 value: false,
                 tooltip: 'Toggle to show approval fields'
               },
@@ -993,14 +1073,14 @@ export const Demo: React.FC = () => {
 
   return (
     <Layout currentPage="demo" version={typeof PACKAGE_VERSION !== 'undefined' ? PACKAGE_VERSION : undefined}>
-      <div className="d365-page-title">
-        <h1 className="d365-page-title__heading">Interactive Demo</h1>
-        <p className="d365-page-title__subtitle">
+      <div className="ui-lib-d365-page-title">
+        <h1 className="ui-lib-d365-page-title__heading">Interactive Demo</h1>
+        <p className="ui-lib-d365-page-title__subtitle">
           Explore all the UI components available in the err403 UI Library for Dynamics 365 CE
         </p>
       </div>
 
-      <div className="d365-card-grid">
+      <div className="ui-lib-d365-card-grid">
         {/* Toast Notifications */}
         <Card
           title="Toast Notifications"
@@ -1036,16 +1116,16 @@ uiLib.Toast.info({
 });`}
         >
           <Section title="Basic Toasts">
-            <div className="d365-btn-group">
-              <button className="d365-btn d365-btn--success" onClick={showSuccessToast}>Success</button>
-              <button className="d365-btn d365-btn--error" onClick={showErrorToast}>Error</button>
-              <button className="d365-btn d365-btn--warning" onClick={showWarnToast}>Warning</button>
-              <button className="d365-btn d365-btn--primary" onClick={showInfoToast}>Info</button>
+            <div className="ui-lib-d365-btn-group">
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--success" onClick={showSuccessToast}>Success</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--error" onClick={showErrorToast}>Error</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--warning" onClick={showWarnToast}>Warning</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showInfoToast}>Info</button>
             </div>
           </Section>
           <Section title="With Sound">
-            <div className="d365-btn-group">
-              <button className="d365-btn d365-btn--success" onClick={showToastWithSound}>Success + Sound</button>
+            <div className="ui-lib-d365-btn-group">
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--success" onClick={showToastWithSound}>Success + Sound</button>
             </div>
           </Section>
         </Card>
@@ -1065,14 +1145,14 @@ console.warn(...uiLib.WAR, "Warning message");
 console.error(...uiLib.ERR, "Error message", new Error("Sample"));`}
         >
           <Section title="Log Types">
-            <div className="d365-btn-group">
-              <button className="d365-btn d365-btn--primary" onClick={logTrace}>Log TRACE</button>
-              <button className="d365-btn d365-btn--warning" onClick={logWarning}>Log WAR</button>
-              <button className="d365-btn d365-btn--error" onClick={logError}>Log ERR</button>
+            <div className="ui-lib-d365-btn-group">
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={logTrace}>Log TRACE</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--warning" onClick={logWarning}>Log WAR</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--error" onClick={logError}>Log ERR</button>
             </div>
           </Section>
-          <div className="d365-note d365-note--info">
-            <span className="d365-note__icon">ℹ️</span>
+          <div className="ui-lib-d365-note ui-lib-d365-note--info">
+            <span className="ui-lib-d365-note__icon">ℹ️</span>
             <span>Open the browser console (F12) to see styled log outputs.</span>
           </div>
         </Card>
@@ -1167,32 +1247,32 @@ const uploadModal = new uiLib.Modal({
 });`}
         >
           <Section title="Basic Modals">
-            <div className="d365-btn-group">
-              <button className="d365-btn d365-btn--primary" onClick={showAlertSuccess}>✅ Success Alert</button>
-              <button className="d365-btn d365-btn--primary" onClick={showAlertInfo}>ℹ️ Info Alert</button>
-              <button className="d365-btn d365-btn--primary" onClick={showAlertWarning}>⚠️ Warning Alert</button>
-              <button className="d365-btn d365-btn--primary" onClick={showAlertError}>❌ Error Alert</button>
+            <div className="ui-lib-d365-btn-group">
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showAlertSuccess}>✅ Success Alert</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showAlertInfo}>ℹ️ Info Alert</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showAlertWarning}>⚠️ Warning Alert</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showAlertError}>❌ Error Alert</button>
             </div>
-            <div className="d365-btn-group" style={{ marginTop: '12px' }}>
-              <button className="d365-btn d365-btn--secondary" onClick={showConfirmSuccess}>✅ Success Confirm</button>
-              <button className="d365-btn d365-btn--secondary" onClick={showConfirmWarning}>⚠️ Warning Confirm</button>
-              <button className="d365-btn d365-btn--secondary" onClick={showConfirmError}>❌ Error Confirm</button>
-              <button className="d365-btn d365-btn--secondary" onClick={showConfirmModal}>❓ Question Confirm</button>
+            <div className="ui-lib-d365-btn-group" style={{ marginTop: '12px' }}>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showConfirmSuccess}>✅ Success Confirm</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showConfirmWarning}>⚠️ Warning Confirm</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showConfirmError}>❌ Error Confirm</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showConfirmModal}>❓ Question Confirm</button>
             </div>
           </Section>
           <Section title="Form Modals">
-            <div className="d365-btn-group">
-              <button className="d365-btn d365-btn--primary" onClick={showSimpleForm}>Simple Form</button>
-              <button className="d365-btn d365-btn--primary" onClick={showAllFieldTypes}>All Field Types</button>
-              <button className="d365-btn d365-btn--primary d365-btn--highlight" onClick={showAddressLookupForm}>📍 Address Lookup</button>
-              <button className="d365-btn d365-btn--primary d365-btn--highlight" onClick={showFileUploadDemo}>📎 File Upload</button>
+            <div className="ui-lib-d365-btn-group">
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showSimpleForm}>Simple Form</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showAllFieldTypes}>All Field Types</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showAddressLookupForm}>📍 Address Lookup</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showFileUploadDemo}>📎 File Upload</button>
             </div>
           </Section>
           <Section title="Advanced Features">
-            <div className="d365-btn-group">
-              <button className="d365-btn d365-btn--secondary" onClick={showTabsModal}>Tabs</button>
-              <button className="d365-btn d365-btn--secondary" onClick={showDraggableModal}>Draggable</button>
-              <button className="d365-btn d365-btn--secondary d365-btn--highlight" onClick={showComprehensiveDemo}>🎯 Complete Showcase</button>
+            <div className="ui-lib-d365-btn-group">
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showTabsModal}>Tabs</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showDraggableModal}>Draggable</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary ui-lib-d365-btn--highlight" onClick={showComprehensiveDemo}>🎯 Complete Showcase</button>
             </div>
           </Section>
         </Card>
@@ -1224,13 +1304,13 @@ uiLib.Lookup.open({
 });`}
         >
           <Section title="Lookup Types">
-            <div className="d365-btn-group">
-              <button className="d365-btn d365-btn--primary" onClick={showSimpleLookup}>Simple Lookup</button>
-              <button className="d365-btn d365-btn--primary" onClick={showMultiSelectLookup}>Multi-Select</button>
+            <div className="ui-lib-d365-btn-group">
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showSimpleLookup}>Simple Lookup</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showMultiSelectLookup}>Multi-Select</button>
             </div>
           </Section>
-          <div className="d365-note d365-note--warning">
-            <span className="d365-note__icon">⚠️</span>
+          <div className="ui-lib-d365-note ui-lib-d365-note--warning">
+            <span className="ui-lib-d365-note__icon">⚠️</span>
             <span>Lookup uses mock data in demo. In D365, it fetches real entity records.</span>
           </div>
         </Card>
@@ -1240,7 +1320,7 @@ uiLib.Lookup.open({
           title="Table Component"
           badge="ready"
           description="Display tabular data with sortable columns and row selection."
-          code={`// Table as a field in modals
+          code={`// Simple table in modal
 const modal = new uiLib.Modal({
   title: 'Product Catalog',
   size: 'large',
@@ -1248,7 +1328,6 @@ const modal = new uiLib.Modal({
     {
       id: 'productsTable',
       type: 'table',
-      label: 'Products',
       tableColumns: [
         { id: 'name', header: 'Product Name', visible: true, sortable: true, width: '250px' },
         { id: 'category', header: 'Category', visible: true, sortable: true, width: '150px' },
@@ -1268,14 +1347,48 @@ const modal = new uiLib.Modal({
   ]
 });
 
-// Get selected rows
-const selected = modal.getFieldValue('productsTable');
-console.log('Selected:', selected);`}
+// Real-world example: Product Validation Dialog
+const validationModal = new uiLib.Modal({
+  title: 'Product Validation Required',
+  message: 'The following products have issues that must be resolved.',
+  size: { width: 800, height: 450 },
+  fields: [
+    {
+      id: 'productsTable',
+      type: 'table',
+      data: [
+        {
+          id: 1,
+          status: '⛔',
+          product: 'Surface Laptop 5',
+          reason: 'Product is inactive and must be activated'
+        },
+        {
+          id: 2,
+          status: '🚫',
+          product: 'Azure Services',
+          reason: 'Not synchronized with Business Central'
+        }
+      ],
+      tableColumns: [
+        { id: 'status', header: 'Status', visible: true, width: '80px', align: 'center' },
+        { id: 'product', header: 'Product', visible: true, sortable: true },
+        { id: 'reason', header: 'Reason', visible: true, sortable: true }
+      ],
+      selectionMode: 'none'
+    }
+  ],
+  buttons: [
+    new uiLib.Button({ label: 'Notify Manager', callback: () => true }),
+    new uiLib.Button({ label: 'Close', callback: () => true, setFocus: true })
+  ]
+});`}
         >
           <Section title="Table Types">
-            <div className="d365-btn-group">
-              <button className="d365-btn d365-btn--primary" onClick={showSimpleTable}>Simple Table</button>
-              <button className="d365-btn d365-btn--primary" onClick={showTableWithSelection}>With Selection</button>
+            <div className="ui-lib-d365-btn-group">
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showSimpleTable}>Simple Table</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showTableWithSelection}>With Selection</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showProductValidationDialog}>🎯 Real-World Example</button>
             </div>
           </Section>
         </Card>

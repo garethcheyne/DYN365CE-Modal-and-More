@@ -24,6 +24,7 @@ export interface ModalOptions {
     buttonAlignment?: ButtonAlignment;
     autoSave?: boolean;
     autoSaveKey?: string;
+    debug?: boolean; // Enable debug console logging
     progress?: ProgressConfig;
     sideCart?: SideCartConfig;
     fields?: FieldConfig[];
@@ -273,7 +274,7 @@ export interface ModalResponse {
 }
 
 export interface ModalInstance {
-    show(): void;
+    show(): Promise<void>;
     showAsync(): Promise<ModalResponse>;
     close(): void;
     setLoading(loading: boolean, message?: string): void;

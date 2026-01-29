@@ -57,23 +57,23 @@ export const HowTo: React.FC = () => {
   return (
     <Layout currentPage="howto" version={typeof PACKAGE_VERSION !== 'undefined' ? PACKAGE_VERSION : undefined}>
       {loading && (
-        <div className="d365-docs">
-          <div className="d365-loading">
-            <div className="d365-loading__spinner"></div>
+        <div className="ui-lib-d365-docs">
+          <div className="ui-lib-d365-loading">
+            <div className="ui-lib-d365-loading__spinner"></div>
             <span>Loading documentation...</span>
           </div>
         </div>
       )}
 
       {error && (
-        <div className="d365-docs">
-          <div className="d365-note d365-note--error">
-            <span className="d365-note__icon">X</span>
+        <div className="ui-lib-d365-docs">
+          <div className="ui-lib-d365-note ui-lib-d365-note--error">
+            <span className="ui-lib-d365-note__icon">X</span>
             <div>
               <strong>Error Loading Documentation</strong>
               <p style={{ margin: '8px 0 0 0' }}>{error}</p>
               <button
-                className="d365-btn d365-btn--primary"
+                className="ui-lib-d365-btn ui-lib-d365-btn--primary"
                 style={{ marginTop: '12px' }}
                 onClick={() => window.location.reload()}
               >
@@ -85,7 +85,7 @@ export const HowTo: React.FC = () => {
       )}
 
       {!loading && !error && (
-        <div className="d365-docs">
+        <div className="ui-lib-d365-docs">
           <Markdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
@@ -97,7 +97,7 @@ export const HowTo: React.FC = () => {
                 </a>
               ),
               // Code blocks - react-markdown wraps in pre > code
-              // CSS handles styling via .d365-docs pre and .d365-docs code:not(pre code)
+              // CSS handles styling via .ui-lib-d365-docs pre and .ui-lib-d365-docs code:not(pre code)
               code: ({ className, children, node, ...props }) => {
                 // Check if this is inside a <pre> (code block) or inline
                 const isInline = !className && !node?.position;

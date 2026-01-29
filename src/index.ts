@@ -13,63 +13,13 @@ import { Logger, TRACE, BUG, WAR, ERR, UILIB } from './components/Logger/Logger'
 import { theme } from './styles/theme';
 import { initializeFluentProvider, d365Theme, FluentProvider } from './providers/FluentProvider';
 
-/**
- * Automatically load the CSS file based on the script's location
- */
-function loadCSS(): boolean {
-    const cssId = 'ui-lib-styles';
-    
-    // Check if CSS is already loaded
-    if (document.getElementById(cssId)) {
-        console.debug(...TRACE, 'uiLib CSS already loaded');
-        return true;
-    }
-    
-    try {
-        // Find the current script tag to determine the base path
-        const scripts = document.getElementsByTagName('script');
-        let scriptSrc = '';
-        
-        // Look for ui-lib.min.js script
-        for (let i = 0; i < scripts.length; i++) {
-            const src = scripts[i].src;
-            if (src && src.includes('ui-lib.min.js')) {
-                scriptSrc = src;
-                break;
-            }
-        }
-        
-        if (scriptSrc) {
-            // Replace .js with .css to get the CSS file path
-            const cssPath = scriptSrc.replace('ui-lib.min.js', 'ui-lib.styles.css');
-            
-            // Create and append the link element
-            const link = document.createElement('link');
-            link.id = cssId;
-            link.rel = 'stylesheet';
-            link.type = 'text/css';
-            link.href = cssPath;
-            
-            document.head.appendChild(link);
-            
-            console.debug(...TRACE, 'uiLib CSS loaded from:', cssPath);
-            return true;
-        } else {
-            console.debug(...TRACE, 'uiLib: Could not determine script location for CSS auto-loading');
-            return false;
-        }
-    } catch (error) {
-        console.error(...ERR, 'uiLib: Error loading CSS:', error);
-        return false;
-    }
-}
+
 
 /**
  * Health state of the UI library
  */
 export interface HealthState {
     loaded: boolean;
-    cssLoaded: boolean;
     inWindow: boolean;
     version: string;
     timestamp: string;
@@ -89,9 +39,6 @@ export function init(executionContext?: any): HealthState {
         timestamp: new Date().toISOString()
     });
     
-    // Load CSS automatically
-    const cssLoaded = loadCSS();
-    
     // Initialize Fluent UI provider for consistent theming
     initializeFluentProvider();
     
@@ -106,7 +53,6 @@ export function init(executionContext?: any): HealthState {
     
     const health: HealthState = {
         loaded: true,
-        cssLoaded,
         inWindow,
         version: PACKAGE_VERSION,
         timestamp: new Date().toISOString(),

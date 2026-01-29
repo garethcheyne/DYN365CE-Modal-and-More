@@ -76,6 +76,9 @@ export class Modal implements ModalInstance {
   private modalStartY: number = 0;
   private isFullscreen: boolean = false;
   private fieldSetters: Map<string, (value: any) => void> = new Map(); // React state setters
+  private debug: boolean = false; // Debug mode flag
+  private pendingReactMounts: Array<() => void> = []; // Queue for React mounts to execute after show()
+  private initPromise: Promise<void>; // Promise that resolves when modal initialization is complete
 
   constructor(options: ModalOptions) {
     this.options = {
@@ -86,8 +89,15 @@ export class Modal implements ModalInstance {
       buttonAlignment: 'right',
       autoSave: false,
       size: 'medium',
+      debug: false,
       ...options
     };
+
+    this.debug = this.options.debug || false;
+
+    if (this.debug) {
+      console.log('[Modal Debug] Constructor called with options:', this.options);
+    }
 
     // Extract width/height from size object if provided
     if (typeof this.options.size === 'object' && this.options.size !== null) {
@@ -99,7 +109,16 @@ export class Modal implements ModalInstance {
       }
     }
 
-    this.initModal();
+    this.initPromise = this.initModal();
+  }
+
+  /**
+   * Debug logging helper
+   */
+  private log(...args: any[]): void {
+    if (this.debug) {
+      console.log('[Modal Debug]', ...args);
+    }
   }
 
   /**
@@ -336,7 +355,7 @@ export class Modal implements ModalInstance {
     // Update button states after React components mount
     // Use setTimeout to ensure all React useEffect hooks have run
     setTimeout(() => {
-      console.log('[Modal] Running delayed updateButtonStates after React mount');
+      this.log('Running delayed updateButtonStates after React mount');
       this.updateButtonStates();
     }, 100);
 
@@ -582,45 +601,46 @@ export class Modal implements ModalInstance {
     const doc = getTargetDocument();
     this.body = doc.createElement('div');
 
-    // Check if wizard mode is enabled
-    const isWizard = this.options.progress?.enabled && this.options.progress?.steps && this.options.progress.steps.length > 0;
+    // Check if wizard mode is enabled (has steps)
+    const hasSteps = this.options.progress?.enabled && this.options.progress?.steps && this.options.progress.steps.length > 0;
 
-    if (isWizard) {
+    // Use the same body styling for both wizard and non-wizard modes
+    this.body.style.cssText = `
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+    `;
+
+    // Add modal message if provided
+    if (this.options.message) {
+      const messageEl = doc.createElement('p');
+      messageEl.textContent = this.options.message;
+      messageEl.style.cssText = `
+        margin: 0 0 ${theme.spacing.m} 0;
+        color: ${theme.colors.modal.textSecondary};
+        font-size: ${theme.typography.fontSize.body};
+      `;
+      this.body.appendChild(messageEl);
+    }
+
+    // Add modal content if provided
+    if (this.options.content) {
+      const contentEl = doc.createElement('div');
+      contentEl.innerHTML = this.options.content;
+      contentEl.style.cssText = `
+        margin-bottom: ${theme.spacing.m};
+      `;
+      this.body.appendChild(contentEl);
+    }
+
+    if (hasSteps) {
+      // Wizard mode: add step indicator
       this.totalSteps = this.options.progress!.steps!.length;
       this.currentStep = this.options.progress!.currentStep || 1;
 
-      this.body.style.cssText = `
-        flex: 1;
-        overflow: auto;
-        padding: 20px;
-        background: #ffffff;
-        display: flex;
-        flex-direction: column;
-      `;
-
-      // Add modal message if provided (ABOVE step indicator)
-      if (this.options.message) {
-        const messageEl = doc.createElement('p');
-        messageEl.textContent = this.options.message;
-        messageEl.style.cssText = `
-          margin: 0 0 ${theme.spacing.m} 0;
-          color: ${theme.colors.modal.textSecondary};
-          font-size: ${theme.typography.fontSize.body};
-        `;
-        this.body.appendChild(messageEl);
-      }
-
-      // Add modal content if provided (ABOVE step indicator)
-      if (this.options.content) {
-        const contentEl = doc.createElement('div');
-        contentEl.innerHTML = this.options.content;
-        contentEl.style.cssText = `
-          margin-bottom: ${theme.spacing.m};
-        `;
-        this.body.appendChild(contentEl);
-      }
-
-      // Create step indicator
       this.stepIndicator = this.createStepIndicator();
       this.body.appendChild(this.stepIndicator);
 
@@ -668,72 +688,28 @@ export class Modal implements ModalInstance {
         this.stepPanels.push(panel);
         this.body.appendChild(panel);
       }
-    } else {
-      // Regular modal (non-wizard)
-      const sectionCount =
-        (this.options.message ? 1 : 0) +
-        (this.options.content ? 1 : 0) +
-        (this.options.fields && this.options.fields.length > 0 ? 1 : 0);
+    } else if (this.options.fields && this.options.fields.length > 0) {
+      // Non-wizard mode: treat as single-step wizard internally (same code path)
+      this.totalSteps = 1;
+      this.currentStep = 1;
 
-      const needsSectionStyling = sectionCount > 1;
-
-      this.body.style.cssText = `
+      const panel = doc.createElement('div');
+      panel.setAttribute('data-step', '1');
+      panel.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: ${theme.spacing.m};
         flex: 1;
-        overflow: auto;
-        padding: 20px;
-        background: #ffffff;
+        padding-top: ${theme.spacing.m};
       `;
 
-      if (this.options.message) {
-        const messageEl = doc.createElement('p');
-        messageEl.textContent = this.options.message;
-        messageEl.style.cssText = `
-          margin: 0 0 ${needsSectionStyling ? theme.spacing.m : '0'} 0;
-          color: ${theme.colors.modal.textSecondary};
-          font-size: ${theme.typography.fontSize.body};
-          ${needsSectionStyling ? `
-            padding: ${theme.spacing.l};
-            border-radius: ${theme.borderRadius.medium};
-            box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
-          ` : ''}
-        `;
-        this.body.appendChild(messageEl);
+      for (const field of this.options.fields) {
+        const fieldEl = await this.createField(field);
+        if (fieldEl) panel.appendChild(fieldEl);
       }
 
-      if (this.options.content) {
-        const contentEl = doc.createElement('div');
-        contentEl.innerHTML = this.options.content;
-        contentEl.style.cssText = `
-          ${needsSectionStyling ? `
-            padding: ${theme.spacing.l};
-            border-radius: ${theme.borderRadius.medium};
-            box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
-          ` : ''}
-          margin-bottom: ${this.options.fields && this.options.fields.length > 0 ? theme.spacing.m : '0'};
-        `;
-        this.body.appendChild(contentEl);
-      }
-
-      if (this.options.fields && this.options.fields.length > 0) {
-        const fieldsContainer = doc.createElement('div');
-        fieldsContainer.style.cssText = `
-          display: flex;
-          flex-direction: column;
-          gap: ${theme.spacing.m};
-          ${needsSectionStyling ? `
-            padding: ${theme.spacing.l};
-            border-radius: ${theme.borderRadius.medium};
-            box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px, rgba(0, 0, 0, 0.14) 0px 2px 4px;
-          ` : ''}
-        `;
-
-        for (const field of this.options.fields) {
-          const fieldEl = await this.createField(field);
-          if (fieldEl) fieldsContainer.appendChild(fieldEl);
-        }
-
-        this.body.appendChild(fieldsContainer);
-      }
+      this.stepPanels.push(panel);
+      this.body.appendChild(panel);
     }
   }
 
@@ -1404,7 +1380,8 @@ export class Modal implements ModalInstance {
 
         return container;
       case 'table':
-        // Use Fluent UI DataGrid component
+        this.log('Creating table field:', field.id);
+
         const tableWrapper = doc.createElement('div');
         tableWrapper.setAttribute('data-field-id', field.id);
         tableWrapper.style.cssText = `
@@ -1414,22 +1391,56 @@ export class Modal implements ModalInstance {
           ${labelPosition === 'left' ? 'flex: 1;' : ''}
         `;
 
-        // Store field reference for dynamic updates
-        const tableFieldRef = field;
+        // Create a deep copy to preserve the field config in closure (especially tableColumns)
+        const tableFieldRef: FieldConfig = {
+          ...field,
+          tableColumns: field.tableColumns ? [...field.tableColumns.map(col => ({ ...col }))] : [],
+          data: field.data ? [...field.data] : []
+        };
+
+        this.log('Table field config captured:', { 
+          id: tableFieldRef.id, 
+          hasColumns: !!tableFieldRef.tableColumns, 
+          columnCount: tableFieldRef.tableColumns?.length,
+          hasData: !!tableFieldRef.data,
+          dataCount: tableFieldRef.data?.length 
+        });
 
         // Create table component with state management
         const TableWrapper = () => {
+          // Debug: Log what we received
+          console.log('[TableWrapper] Received tableFieldRef:', {
+            id: tableFieldRef?.id,
+            type: tableFieldRef?.type,
+            hasTableColumns: !!tableFieldRef?.tableColumns,
+            tableColumnsIsArray: Array.isArray(tableFieldRef?.tableColumns),
+            columnCount: tableFieldRef?.tableColumns?.length,
+            tableColumns: tableFieldRef?.tableColumns,
+            hasData: !!tableFieldRef?.data,
+            dataCount: tableFieldRef?.data?.length
+          });
+
+          // Validate config before rendering
+          if (!tableFieldRef || !tableFieldRef.tableColumns || tableFieldRef.tableColumns.length === 0) {
+            console.error('[Modal] TableWrapper: tableColumns missing or empty!', {
+              tableFieldRef: tableFieldRef,
+              originalField: field
+            });
+            return React.createElement('div', { 
+              style: { padding: '20px', textAlign: 'center', color: '#a4262c' } 
+            }, 'Error: Table configuration missing column definitions');
+          }
+
           const [tableConfig, setTableConfig] = React.useState(tableFieldRef);
-          
-          // Expose update method to parent
+
+          // Expose update method for setFieldValue
           React.useEffect(() => {
-            // Store update function in fieldValues for setFieldValue to use
             const updateData = (newData: any[]) => {
               tableFieldRef.data = newData;
               setTableConfig({ ...tableFieldRef });
             };
             this.fieldValues.set(field.id + '_updateData', updateData);
-            
+
             return () => {
               this.fieldValues.delete(field.id + '_updateData');
             };
@@ -1446,7 +1457,16 @@ export class Modal implements ModalInstance {
           });
         };
 
-        mountFluentComponent(tableWrapper, React.createElement(TableWrapper), defaultTheme);
+        // Defer React mount until after show() appends element to DOM
+        // This is critical for cross-document rendering in D365 iframes
+        // Pass wrapper directly instead of querying DOM later
+        this.log('Queueing table React mount for:', field.id);
+        this.pendingReactMounts.push(() => {
+          this.log('Mounting table component for:', field.id);
+          mountFluentComponent(tableWrapper, React.createElement(TableWrapper), defaultTheme);
+          this.log('Table mounted successfully:', field.id);
+        });
+
         container.appendChild(tableWrapper);
 
         // Store initial empty selection
@@ -1998,7 +2018,10 @@ export class Modal implements ModalInstance {
     }
   }
 
-  show(): void {
+  async show(): Promise<void> {
+    // Wait for modal initialization to complete before showing
+    await this.initPromise;
+
     console.debug(...UILIB, 'Modal.show()', {
       version: PACKAGE_VERSION,
       title: this.options.title,
@@ -2015,13 +2038,23 @@ export class Modal implements ModalInstance {
       doc.body.appendChild(this.overlay);
       doc.body.appendChild(this.container);
       doc.body.style.overflow = 'hidden';
+      this.log('Modal displayed');
+
+      // Execute pending React mounts now that modal is in DOM
+      if (this.pendingReactMounts.length > 0) {
+        this.log('Executing', this.pendingReactMounts.length, 'pending React mounts');
+        this.pendingReactMounts.forEach(mountFn => mountFn());
+        this.pendingReactMounts = [];
+      }
+    } else {
+      console.error('[Modal] Failed to display: overlay or container is null');
     }
   }
 
-  showAsync(): Promise<ModalResponse> {
-    return new Promise((resolve) => {
+  async showAsync(): Promise<ModalResponse> {
+    return new Promise(async (resolve) => {
       this.resolvePromise = resolve;
-      this.show();
+      await this.show();
     });
   }
 

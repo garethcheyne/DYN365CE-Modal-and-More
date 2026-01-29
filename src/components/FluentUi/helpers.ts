@@ -2,7 +2,7 @@
  * Fluent UI Helper Utilities
  */
 
-import { React, createRoot, type Root } from './React';
+import { React, createRoot, flushSync, type Root } from './React';
 import { FluentProvider, defaultTheme, type Theme } from './Provider';
 import { createDOMRenderer, RendererProvider } from '@fluentui/react-components';
 import { getTargetDocument } from '../../utils/dom';
@@ -67,7 +67,10 @@ export function mountFluentComponent(
   const root = createRoot(container);
   // Get the owner document of the container to ensure styles go to the same document
   const targetDoc = container.ownerDocument || getTargetDocument();
-  root.render(createFluentProvider(component, theme, targetDoc));
+  // Use flushSync to force synchronous DOM updates - critical for cross-document rendering
+  flushSync(() => {
+    root.render(createFluentProvider(component, theme, targetDoc));
+  });
   return root;
 }
 

@@ -26,27 +26,27 @@ interface TestCardProps {
 }
 
 const TestCard: React.FC<TestCardProps> = ({ title, description, tests, logs, onClear }) => (
-  <div className="d365-card">
-    <div className="d365-card__header">
-      <h2 className="d365-card__title">{title}</h2>
-      <button className="d365-btn d365-btn--ghost d365-btn--small" onClick={onClear}>
+  <div className="ui-lib-d365-card">
+    <div className="ui-lib-d365-card__header">
+      <h2 className="ui-lib-d365-card__title">{title}</h2>
+      <button className="ui-lib-d365-btn ui-lib-d365-btn--ghost ui-lib-d365-btn--small" onClick={onClear}>
         Clear
       </button>
     </div>
-    <div className="d365-card__body">
-      {description && <p className="d365-card__description">{description}</p>}
-      <div className="d365-test-grid">
+    <div className="ui-lib-d365-card__body">
+      {description && <p className="ui-lib-d365-card__description">{description}</p>}
+      <div className="ui-lib-d365-test-grid">
         {tests.map((test, i) => (
-          <button key={i} className="d365-btn d365-btn--primary" onClick={test.handler}>
+          <button key={i} className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={test.handler}>
             {test.label}
           </button>
         ))}
       </div>
-      <div className="d365-console">
+      <div className="ui-lib-d365-console">
         {logs.length === 0 && <span style={{ color: '#6a6a6a' }}>Results will appear here...</span>}
         {logs.map((log) => (
-          <div key={log.id} className={`d365-console__line d365-console__line--${log.status}`}>
-            <span className="d365-console__time">[{log.time}]</span>
+          <div key={log.id} className={`ui-lib-d365-console__line ui-lib-d365-console__line--${log.status}`}>
+            <span className="ui-lib-d365-console__time">[{log.time}]</span>
             <span>{log.message}</span>
           </div>
         ))}
@@ -495,19 +495,19 @@ export const Tests: React.FC = () => {
 
   return (
     <Layout currentPage="tests" version={typeof PACKAGE_VERSION !== 'undefined' ? PACKAGE_VERSION : undefined}>
-      <div className="d365-page-title">
-        <h1 className="d365-page-title__heading">Test Suite</h1>
-        <p className="d365-page-title__subtitle">
+      <div className="ui-lib-d365-page-title">
+        <h1 className="ui-lib-d365-page-title__heading">Test Suite</h1>
+        <p className="ui-lib-d365-page-title__subtitle">
           Automated and manual tests for the err403 UI Library components
         </p>
       </div>
 
-      <div className="d365-note d365-note--info" style={{ marginBottom: '24px' }}>
-        <span className="d365-note__icon">ℹ️</span>
+      <div className="ui-lib-d365-note ui-lib-d365-note--info" style={{ marginBottom: '24px' }}>
+        <span className="ui-lib-d365-note__icon">ℹ️</span>
         <span>Click the buttons below to run individual tests. Results appear in the console below each section.</span>
       </div>
 
-      <div className="d365-card-grid">
+      <div className="ui-lib-d365-card-grid">
         <TestCard
           title="Toast Component Tests"
           tests={toastTests}

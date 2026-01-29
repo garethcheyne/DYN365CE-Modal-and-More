@@ -66,6 +66,7 @@ interface ModalOptions {
     buttonAlignment?: ButtonAlignment;
     autoSave?: boolean;
     autoSaveKey?: string;
+    debug?: boolean;
     progress?: ProgressConfig;
     sideCart?: SideCartConfig;
     fields?: FieldConfig[];
@@ -243,7 +244,7 @@ interface ModalResponse {
     data: Record<string, any>;
 }
 interface ModalInstance {
-    show(): void;
+    show(): Promise<void>;
     showAsync(): Promise<ModalResponse>;
     close(): void;
     setLoading(loading: boolean, message?: string): void;
@@ -304,7 +305,14 @@ declare class Modal implements ModalInstance {
     private modalStartY;
     private isFullscreen;
     private fieldSetters;
+    private debug;
+    private pendingReactMounts;
+    private initPromise;
     constructor(options: ModalOptions);
+    /**
+     * Debug logging helper
+     */
+    private log;
     /**
      * Initialize modal asynchronously (for D365 option set fetching)
      */
@@ -346,7 +354,7 @@ declare class Modal implements ModalInstance {
     private stopDrag;
     private handleEscapeKey;
     private toggleFullscreen;
-    show(): void;
+    show(): Promise<void>;
     showAsync(): Promise<ModalResponse>;
     close(): void;
     setLoading(loading: boolean, message?: string): void;
@@ -727,7 +735,6 @@ declare const d365Theme: Theme;
  */
 interface HealthState {
     loaded: boolean;
-    cssLoaded: boolean;
     inWindow: boolean;
     version: string;
     timestamp: string;

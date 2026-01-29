@@ -47,4 +47,7 @@ export * from './Accordion';
 export * from './Table';
 export * from './DataGrid';
 export * from './Toolbar';
-export { Slider, Label, SearchBox } from '@fluentui/react-components';
+export { Slider, Label, SearchBox, Skeleton, SkeletonItem } from '@fluentui/react-components';
+
+// Skeleton Components
+export { TableSkeleton } from './TableSkeleton';

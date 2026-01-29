@@ -60,12 +60,15 @@ interface TableRow {
 const useStyles = makeStyles({
   container: {
     maxHeight: '400px',
+    width: '100%',
     overflow: 'auto',
     backgroundColor: tokens.colorNeutralBackground1,
     padding: '8px',
+    boxSizing: 'border-box',
   },
   dataGrid: {
-    minWidth: '100%',
+    width: '100%',
+    tableLayout: 'auto',
     backgroundColor: tokens.colorNeutralBackground1,
     '& .fui-DataGridHeader': {
       backgroundColor: 'transparent',
@@ -86,14 +89,14 @@ const useStyles = makeStyles({
       borderRight: 'none',
       textTransform: 'none',
       letterSpacing: 'normal',
-      borderBottom: `2px solid transparent`,  // Transparent border by default
+      border: `2px solid transparent`,  // Transparent border by default (prevents size shift)
       '&:hover': {
         backgroundColor: 'transparent',  // No background change
-        border: `2px solid #0078d4`,  // Blue border on hover (D365 style)
+        border: '2px solid #0078d4',  // Change border color only (D365 style)
       },
       '&:active, &:focus': {
         backgroundColor: 'transparent',  // No background change
-        border: `2px solid #0078d4`,  // Blue border when active (D365 style)
+        border: '2px solid #0078d4',  // Change border color only (D365 style)
       },
     },
     '& .fui-DataGridCell': {
@@ -151,6 +154,16 @@ const useStyles = makeStyles({
 
 export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectionChange }) => {
   const styles = useStyles();
+
+  // Safety check: Ensure config has required properties
+  if (!config || !config.tableColumns || config.tableColumns.length === 0) {
+    console.error('[TableFluentUi] Missing or empty tableColumns in config:', config);
+    return (
+      <div style={{ padding: '20px', textAlign: 'center', color: '#a4262c' }}>
+        Error: Table configuration is missing column definitions
+      </div>
+    );
+  }
 
   const [data, setData] = useState<TableRow[]>(
     (config.data || []).map((row, index) => ({ ...row, _index: index }))
@@ -377,6 +390,15 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     return filtered;
   }, [data, columnFilters]);
 
+  // Helper function to strip HTML tags from a string
+  const stripHtmlTags = (html: string): string => {
+    if (!html) return html;
+    // Create a temporary div element to parse HTML
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  };
+
   // Group data if groupByColumn is set
   const displayData = useMemo(() => {
     if (!groupByColumn) return filteredData;
@@ -385,7 +407,13 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     const groups = new Map<string, TableRow[]>();
     filteredData.forEach(row => {
       const groupValue = row[groupByColumn];
-      const groupKey = groupValue != null ? String(groupValue) : '(Blank)';
+      let groupKey = groupValue != null ? String(groupValue) : '(Blank)';
+      
+      // Strip HTML tags from group key to group by actual text content
+      if (groupKey !== '(Blank)' && groupKey.includes('<')) {
+        groupKey = stripHtmlTags(groupKey);
+      }
+      
       if (!groups.has(groupKey)) {
         groups.set(groupKey, []);
       }
@@ -665,6 +693,15 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
 
   // Define columns
   const columns: TableColumnDefinition<TableRow>[] = useMemo(() => {
+    // Debug: Log what we're working with
+    console.log('[TableFluentUi] Building columns from config:', {
+      hasConfig: !!config,
+      hasTableColumns: !!config?.tableColumns,
+      isArray: Array.isArray(config?.tableColumns),
+      length: config?.tableColumns?.length,
+      tableColumns: config?.tableColumns
+    });
+
     const cols: TableColumnDefinition<TableRow>[] = [];
 
     // Data columns
@@ -745,7 +782,12 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
               </TableCellLayout>
             );
           },
-          compare: column.sortable !== false ? (a: TableRow, b: TableRow) => {
+          // ALWAYS provide compare function to avoid Fluent UI context errors
+          // Even for non-sortable columns, DataGrid expects a compare function
+          compare: (a: TableRow, b: TableRow) => {
+            // If column is explicitly non-sortable, return 0 (no change in order)
+            if (column.sortable === false) return 0;
+
             const aVal = a[column.id];
             const bVal = b[column.id];
 
@@ -761,9 +803,14 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
 
             // Number comparison
             return Number(aVal) - Number(bVal);
-          } : undefined,
+          },
         })
       );
+    });
+
+    console.log('[TableFluentUi] Built columns array:', {
+      count: cols.length,
+      columnIds: cols.map(c => c.columnId)
     });
 
     return cols;
@@ -777,16 +824,35 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     );
   }
 
+  // Safety check before rendering DataGrid
+  console.log('[TableFluentUi] About to render DataGrid with:', {
+    hasColumns: !!columns,
+    columnsLength: columns?.length,
+    isArray: Array.isArray(columns),
+    columns: columns,
+    hasSortableColumns: columns?.some(c => c.compare !== undefined)
+  });
+
+  if (!columns || columns.length === 0) {
+    console.error('[TableFluentUi] Columns is empty or undefined before DataGrid render!');
+    return (
+      <div style={{ padding: '20px', textAlign: 'center', color: '#a4262c' }}>
+        Error: Table columns became undefined
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       <DataGrid
         items={displayData}
-        columns={columns as any}
+        columns={columns}
         sortable={!groupByColumn}
         resizableColumns
         columnSizingOptions={columnSizingOptions}
         selectionMode={config.selectionMode === 'none' ? undefined : config.selectionMode === 'multiple' ? 'multiselect' : 'single'}
         selectedItems={Array.from(selectedRows)}
+        key={`datagrid-${config.tableColumns?.length || 0}-${data.length}`}
         onSelectionChange={(_, data) => {
           const newSelectedIndexes = new Set<number>();
           const selectedItemsArray = Array.from(data.selectedItems);
