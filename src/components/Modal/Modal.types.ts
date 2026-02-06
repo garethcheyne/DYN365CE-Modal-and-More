@@ -47,6 +47,9 @@ export interface StepConfig {
     description?: string;
     message?: string;        // Step-specific message (appears below step indicator)
     content?: string;        // Step-specific HTML content (appears below step indicator)
+    size?: { width?: number | string; height?: number | string }; // Step-specific modal size (object format)
+    width?: number | string; // Step-specific modal width (direct property)
+    height?: number | string; // Step-specific modal height (direct property)
     completed?: boolean;
     fields?: FieldConfig[];
     validate?: () => boolean;
@@ -67,7 +70,8 @@ export interface TableColumn {
     header: string;
     visible?: boolean;
     sortable?: boolean;
-    width?: string;
+    width?: string;              // Fixed width (e.g., '120px', '120', or '20%')
+    minWidth?: string;           // Minimum width, allows stretching (e.g., '100px', '100')
     align?: 'left' | 'center' | 'right';
 }
 
@@ -76,7 +80,12 @@ export interface FieldConfig {
     label?: string;
     labelPosition?: 'left' | 'top';
     orientation?: 'horizontal' | 'vertical'; // Field orientation for Fluent UI Field component
-    type?: string;
+    type?: 'text' | 'email' | 'number' | 'date' | 'textarea' | 'select' | 'checkbox' | 'switch' | 'lookup' | 'file' | 'addressLookup' | 'table' | 'range' | 'custom' | 'group' | string;
+    // Group-specific properties
+    border?: boolean;           // Show border with rounded corners (for type: 'group')
+    content?: string;           // Description/content text below the title (for type: 'group')
+    collapsible?: boolean;      // Make group collapsible (for type: 'group')
+    defaultCollapsed?: boolean; // Start collapsed if collapsible (for type: 'group')
     value?: any;
     placeholder?: string;
     disabled?: boolean;
@@ -194,7 +203,7 @@ export interface ModalButtonConfig {
     isDestructive?: boolean;
     id?: string;
     requiresValidation?: boolean;  // If true, button is disabled until all required fields are valid
-    validateAllSteps?: boolean;    // If true (in wizards), validates ALL steps instead of just current step
+    validateAllSteps?: boolean;    // For wizards: defaults to true (validates ALL steps). Set to false to only validate current step.
 }
 
 export class ModalButton {

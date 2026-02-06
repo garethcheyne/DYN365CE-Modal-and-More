@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Input, Textarea, Field, Tooltip } from '@fluentui/react-components';
 import { Info16Regular } from '@fluentui/react-icons';
 import type { InputProps, TextareaOnChangeData } from '@fluentui/react-components';
+import { useSharedStyles } from './sharedStyles';
 
 interface InputFluentUiProps {
     id?: string;
@@ -47,6 +48,7 @@ export const InputFluentUi: React.FC<InputFluentUiProps> = ({
     onBlur,
     onFocus,
 }) => {
+    const sharedStyles = useSharedStyles();
     const [value, setValue] = useState<string | number>(externalValue);
 
     // Sync with external value changes (for setFieldValue support)
@@ -106,10 +108,10 @@ export const InputFluentUi: React.FC<InputFluentUiProps> = ({
 
     // Create label with tooltip icon if tooltip is provided
     const labelContent = label && tooltip ? (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        <span className={sharedStyles.labelWithTooltip}>
             <span>{label}</span>
             <Tooltip content={tooltip} relationship="label">
-                <Info16Regular style={{ color: '#605e5c', cursor: 'help' }} />
+                <Info16Regular className={sharedStyles.tooltipIcon} />
             </Tooltip>
         </span>
     ) : label;
@@ -121,7 +123,7 @@ export const InputFluentUi: React.FC<InputFluentUiProps> = ({
             orientation={effectiveOrientation}
             validationState={validationState}
             validationMessage={validationMessage}
-            style={{ marginBottom: '8px' }}
+            className={sharedStyles.field}
         >
             {fieldContent}
         </Field>

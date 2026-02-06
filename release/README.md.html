@@ -443,23 +443,23 @@ new uiLib.Button({
   id: 'submitBtn'
 })
 
-// Works in wizards - validates current step
+// In wizards: validates ALL steps by default
+new uiLib.Button({
+  label: 'Apply Changes',
+  callback: () => { /* submit */ },
+  requiresValidation: true,  // ⚡ Validates ALL steps (default in wizards)
+  setFocus: true,
+  id: 'applyBtn'
+})
+
+// To validate only current step (e.g., for Next button)
 new uiLib.Button({
   label: 'Next',
   callback: () => { wizard.nextStep(); return false; },
-  requiresValidation: true,  // ⚡ Validates current step only
+  requiresValidation: true,
+  validateAllSteps: false,   // ⚡ Only validates CURRENT step
   setFocus: true,
   id: 'nextBtn'
-})
-
-// Finish button - validates ALL steps
-new uiLib.Button({
-  label: 'Finish',
-  callback: () => { /* submit */ },
-  requiresValidation: true,  // ⚡ Validates form
-  validateAllSteps: true,    // ⚡ Checks ALL wizard steps
-  setFocus: true,
-  id: 'finishBtn'
 })
 
 // Respects: hidden fields (visibleWhen), conditional requirements (requiredWhen)
@@ -568,7 +568,8 @@ function runAccountSetupWizard() {
         label: 'Next', 
         callback: () => { modal.nextStep(); return false; },
         setFocus: true,
-        requiresValidation: true,  // Disabled until current step is valid
+        requiresValidation: true,
+        validateAllSteps: false,   // Only validate current step for Next button
         id: 'nextBtn'
       }),
       new uiLib.Button({ 
@@ -584,8 +585,7 @@ function runAccountSetupWizard() {
           return true; // Close modal
         },
         setFocus: true,
-        requiresValidation: true,  // Disabled until all fields are valid
-        validateAllSteps: true,    // Validates ALL steps, not just current
+        requiresValidation: true,  // Validates ALL steps by default in wizards
         id: 'finishBtn'
       })
     ]
@@ -1311,7 +1311,132 @@ modal.setFieldValue('productsTable', dataWithStyledValues);
 // HTML in cells will be rendered - you'll see styled, colored text
 ```
 
-### Example 14: Form with Tabs
+### Example 14: Field Groups
+
+Organize related fields visually with groups - supports titles, descriptions, borders, and collapsible sections:
+
+```javascript
+function createContactWithGroups() {
+  var modal = new uiLib.Modal({
+    title: 'New Contact',
+    size: 'large',
+    fields: [
+      // Simple group with title and description (no border)
+      {
+        id: 'personalInfoGroup',
+        type: 'group',
+        label: 'Personal Information',
+        content: 'Enter the contact\'s basic details below.',
+        fields: [
+          { id: 'firstName', label: 'First Name', type: 'text', required: true },
+          { id: 'lastName', label: 'Last Name', type: 'text', required: true },
+          { id: 'email', label: 'Email', type: 'email' },
+          { id: 'phone', label: 'Phone', type: 'text' }
+        ]
+      },
+
+      // Group with border (card-style section)
+      {
+        id: 'addressGroup',
+        type: 'group',
+        label: 'Address Details',
+        content: 'Physical address information.',
+        border: true,
+        fields: [
+          { id: 'street', label: 'Street', type: 'text' },
+          { id: 'city', label: 'City', type: 'text' },
+          { id: 'state', label: 'State/Province', type: 'text' },
+          { id: 'postalCode', label: 'Postal Code', type: 'text' }
+        ]
+      },
+
+      // Collapsible group with border
+      {
+        id: 'preferencesGroup',
+        type: 'group',
+        label: 'Communication Preferences',
+        content: 'Configure notification settings.',
+        border: true,
+        collapsible: true,
+        defaultCollapsed: false,
+        fields: [
+          { id: 'emailNotifications', label: 'Email Notifications', type: 'switch', value: true },
+          { id: 'smsNotifications', label: 'SMS Notifications', type: 'switch', value: false },
+          { id: 'newsletter', label: 'Subscribe to Newsletter', type: 'checkbox' }
+        ]
+      },
+
+      // Collapsible group - starts collapsed
+      {
+        id: 'advancedGroup',
+        type: 'group',
+        label: 'Advanced Options',
+        border: true,
+        collapsible: true,
+        defaultCollapsed: true,
+        fields: [
+          { id: 'notes', label: 'Notes', type: 'textarea', rows: 3 },
+          { id: 'tags', label: 'Tags', type: 'text', placeholder: 'Comma-separated tags' }
+        ]
+      }
+    ],
+    buttons: [
+      new uiLib.Button({ label: 'Cancel', callback: () => {}, id: 'cancelBtn' }),
+      new uiLib.Button({
+        label: 'Create Contact',
+        callback: function() {
+          var data = modal.getFieldValues();
+          console.log('Contact data:', data);
+          uiLib.Toast.success({ message: 'Contact created!' });
+          return true;
+        },
+        setFocus: true,
+        requiresValidation: true,
+        id: 'createBtn'
+      })
+    ]
+  });
+
+  modal.show();
+}
+```
+
+**Group Properties:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | string | Unique identifier for the group |
+| `type` | 'group' | Must be 'group' |
+| `label` | string | Optional title displayed at top of group |
+| `content` | string | Optional description text below title |
+| `border` | boolean | Show border with rounded corners (card-style) |
+| `collapsible` | boolean | Allow group to be collapsed/expanded |
+| `defaultCollapsed` | boolean | Start collapsed if collapsible is true |
+| `fields` | FieldConfig[] | Array of nested field configurations |
+
+**Group Variations:**
+
+```javascript
+// 1. Simple title with divider (no border)
+{ type: 'group', label: 'Section Title', fields: [...] }
+
+// 2. Title + description with divider
+{ type: 'group', label: 'Title', content: 'Description text', fields: [...] }
+
+// 3. Bordered card-style section
+{ type: 'group', label: 'Title', border: true, fields: [...] }
+
+// 4. Collapsible section
+{ type: 'group', label: 'Title', border: true, collapsible: true, fields: [...] }
+
+// 5. Starts collapsed
+{ type: 'group', label: 'Title', border: true, collapsible: true, defaultCollapsed: true, fields: [...] }
+
+// 6. Just border, no title (anonymous group)
+{ type: 'group', border: true, fields: [...] }
+```
+
+### Example 15: Form with Tabs
 
 Organize complex forms with tabs:
 
@@ -1997,6 +2122,55 @@ new uiLib.Modal({
   - browseText: Custom browse button text
   - onFilesSelected: Callback when files are selected
 - 'custom' - Custom HTML with render() function
+- 'group' - Field grouping container (use nested fields array)
+  - label: Group title (optional)
+  - content: Description text below title (optional)
+  - border: Show border with rounded corners (optional)
+  - collapsible: Make group collapsible (optional)
+  - defaultCollapsed: Start collapsed if collapsible (optional)
+  - fields: Array of nested FieldConfig objects
+
+// Example: Field Group (organizing related fields)
+// Simple group with title and divider
+{
+  id: 'personalInfo',
+  type: 'group',
+  label: 'Personal Information',
+  content: 'Enter your basic details below.',
+  fields: [
+    { id: 'firstName', label: 'First Name', type: 'text', required: true },
+    { id: 'lastName', label: 'Last Name', type: 'text', required: true },
+    { id: 'email', label: 'Email', type: 'email' }
+  ]
+}
+
+// Group with border (card-style)
+{
+  id: 'addressGroup',
+  type: 'group',
+  label: 'Address',
+  content: 'Physical address information.',
+  border: true,
+  fields: [
+    { id: 'street', label: 'Street', type: 'text' },
+    { id: 'city', label: 'City', type: 'text' },
+    { id: 'postalCode', label: 'Postal Code', type: 'text' }
+  ]
+}
+
+// Collapsible group
+{
+  id: 'advancedOptions',
+  type: 'group',
+  label: 'Advanced Options',
+  border: true,
+  collapsible: true,
+  defaultCollapsed: true,
+  fields: [
+    { id: 'notes', label: 'Notes', type: 'textarea', rows: 3 },
+    { id: 'tags', label: 'Tags', type: 'text' }
+  ]
+}
 
 // Example: Dropdown with badge display mode
 { 

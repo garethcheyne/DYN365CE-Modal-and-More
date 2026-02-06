@@ -14,6 +14,7 @@ export * from './helpers';
 
 // Styling
 export { makeStyles, tokens } from '@fluentui/react-components';
+export { useSharedStyles, useLookupStyles } from './sharedStyles';
 
 // Custom React Components
 export { SwitchFluentUi } from './SwitchFluentUi';
@@ -25,6 +26,7 @@ export { DropdownFluentUi } from './DropdownFluentUi';
 export { AddressLookupFluentUi } from './AddressLookupFluentUi';
 export { LookupFluentUi } from './LookupFluentUi';
 export { FileUploadFluentUi } from './FileUploadFluentUi';
+export { FieldGroupFluentUi } from './FieldGroupFluentUi';
 
 // Components (organized by category)
 export * from './Button';

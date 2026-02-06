@@ -320,6 +320,10 @@ export class Lookup {
       return row;
     });
 
+    // Store reference to this for closure
+    const self = this;
+    let currentModal: Modal | null = null;
+
     // Create modal fields
     const fields = [
       {
@@ -328,7 +332,24 @@ export class Lookup {
         placeholder: 'Search...',
         value: this.searchTerm,
         label: 'Search',
-        labelPosition: 'top' as const
+        labelPosition: 'top' as const,
+        onChange: (value: string) => {
+          // Update search term and filter records
+          self.searchTerm = value;
+          self.filterRecords();
+
+          // Update table data in the modal
+          if (currentModal) {
+            const updatedTableData = self.filteredRecords.map(record => {
+              const row: any = { _id: record[primaryIdAttr] };
+              self.options.columns.forEach(col => {
+                row[col] = formatValue(record[col]);
+              });
+              return row;
+            });
+            currentModal.setFieldValue('table', updatedTableData);
+          }
+        }
       },
       {
         id: 'table',
@@ -363,6 +384,8 @@ export class Lookup {
       allowEscapeClose: true
     });
 
+    // Store reference for the onChange handler
+    currentModal = modal;
     Lookup.activeModal = modal;
     modal.show();
   }

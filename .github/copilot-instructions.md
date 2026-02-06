@@ -86,20 +86,61 @@ if (typeof uiLib !== "undefined") {
 Simple notification system matching D365's native toast style.
 
 ```javascript
-// Success, error, warning, info toasts
+// Object syntax (recommended)
 uiLib.Toast.success({
   title: "Saved!",
   message: "Record updated",
-  sound: true,
+  duration: 6000,  // milliseconds (default: 6000)
+  sound: true,     // play notification sound
 });
-uiLib.Toast.error({ title: "Error", message: "Failed to save" });
-uiLib.Toast.warn({ title: "Warning", message: "Check fields" });
-uiLib.Toast.info({ title: "Info", message: "Processing..." });
+
+// Shorthand syntax (title, message, duration)
+uiLib.Toast.success("Saved!", "Record updated", 5000);
+uiLib.Toast.error("Error", "Failed to save");
+uiLib.Toast.warn("Warning", "Check fields");
+uiLib.Toast.info("Info", "Processing...");
+
+// Returns instance with close() method
+const toast = uiLib.Toast.info({ title: "Processing...", duration: 0 }); // duration: 0 = stays until closed
+// ... later
+toast.close(); // Programmatically dismiss the toast
 ```
+
+**Toast Types:** `success`, `error`, `warn`, `info`, `default`
+
+**Toast Options:**
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `title` | string | required | Toast title |
+| `message` | string | `''` | Optional message body |
+| `duration` | number | `6000` | Auto-dismiss time in ms (0 = manual close) |
+| `sound` | boolean | `false` | Play notification sound |
 
 ### 2. Modal Dialogs (`uiLib.Modal`)
 
 Professional modal system with forms, wizards, tabs, and conditional visibility.
+
+**Quick Helpers (for simple dialogs):**
+
+```javascript
+// ModalHelpers - with type parameter for icons
+await uiLib.ModalHelpers.alert('Title', 'Message');
+await uiLib.ModalHelpers.alert('Success!', '<b>Record saved</b>', 'success'); // with HTML and icon
+const confirmed = await uiLib.ModalHelpers.confirm('Delete?', 'Are you sure?', 'warning');
+const name = await uiLib.ModalHelpers.prompt('Enter Name', 'What is your name?', 'default');
+
+// Static Modal methods - simpler syntax, no type parameter
+await uiLib.Modal.alert('Title', 'Message');
+const confirmed = await uiLib.Modal.confirm('Delete?', 'Are you sure?');
+const modal = uiLib.Modal.open({ title: 'Form', fields: [...] }); // Creates, shows, and returns instance
+```
+
+**Difference between ModalHelpers and Modal static methods:**
+| Method | `ModalHelpers.alert()` | `Modal.alert()` |
+|--------|------------------------|-----------------|
+| Icon parameter | Yes (`'success'`, `'warning'`, etc.) | No (uses default) |
+| Options override | Yes (4th parameter) | Yes (3rd parameter) |
+| Returns | `Promise<void>` | `Promise<void>` |
 
 **Features:**
 
@@ -140,9 +181,21 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
   onChange: (value) => {
     console.log('Field value changed:', value);
     // Trigger side effects, update other fields, fetch data, etc.
-    // For lookup fields: value is array of { id, name, entityType, record }
-    // For tables: value is array of selected rows
-    // For other fields: value is the field's current value
+    // Called automatically when field value changes
+    //
+    // Value types by field type:
+    // - text/email/tel/password/url/search: string
+    // - number: number
+    // - textarea: string
+    // - date: Date | null
+    // - select: string
+    // - checkbox/switch: boolean
+    // - lookup: { id, name, subtitle, entityType, record } | null
+    // - file: File[]
+    // - addressLookup: { formattedAddress, street, city, state, postalCode, country, latitude, longitude }
+    // - range/slider: number
+    // - table: Use onRowSelect callback instead
+    //
     // Return value is ignored
   },
 
@@ -158,11 +211,18 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
 
 **Available Field Types:**
 
-- `text`, `email`, `tel`, `password`, `url`, `search` - Text inputs
-- `number` - Number input
+- `text` - Standard single-line text input
+- `email` - Email input with validation hint
+- `tel` - Telephone number input (mobile keyboard on touch devices)
+- `password` - Password input (masked characters)
+- `url` - URL input with validation hint
+- `search` - Search input with clear button
+- `number` - Number input with increment/decrement
 - `textarea` - Multi-line text (use `rows` property)
 - `date` - Date picker
 - `select` - Dropdown (use `options` array)
+  - `options`: Array of strings or objects `[{ label: 'Display', value: 'stored' }]`
+  - `displayMode`: `'dropdown'` (default) or `'badges'` (pill-style buttons)
 - `lookup` - Inline D365-style dropdown lookup (entityName, lookupColumns, filters)
   - `lookupColumns`: Array of columns to fetch and display
     - String format: ['line1', 'city', 'postalcode'] - shows values only
@@ -182,7 +242,18 @@ Professional modal system with forms, wizards, tabs, and conditional visibility.
   - Use `onRowSelect` callback for selection changes
 - `addressLookup` - Address autocomplete with Google/Azure Maps
 - `file` - File upload with drag-and-drop hot zone (use `fileUpload` configuration)
-- `custom` - Custom HTML (use `render()` function)
+- `custom` - Custom HTML or render function
+  - Use `html` property for HTML strings: `{ type: 'custom', html: '<div>...</div>' }`
+  - Use `render` property for dynamic content: `{ type: 'custom', render: () => element }`
+  - ❌ NOT `content` property - that's for groups/tabs only
+  - ❌ NOT `type: 'html'` - no such type exists
+- `group` - Field grouping container for organizing related fields
+  - `label` - Optional group title
+  - `content` - Optional description text below title
+  - `border` - Show border with rounded corners (card-style)
+  - `collapsible` - Allow group to be collapsed/expanded
+  - `defaultCollapsed` - Start collapsed if collapsible is true
+  - `fields` - Array of nested FieldConfig objects
 
 **Wizard Pattern:**
 
@@ -254,6 +325,39 @@ new uiLib.Modal({
 │ Step Content (per-step)    │ ← Changes per step
 │ [Form Fields]              │
 └────────────────────────────┘
+```
+
+**Step-Specific Modal Sizing:**
+
+Each wizard step can have its own modal size, allowing forms to expand or contract based on content:
+
+```javascript
+progress: {
+  enabled: true,
+  steps: [
+    {
+      id: 'step1',
+      label: 'Basic Info',
+      width: 500,          // Small modal for simple form
+      height: 400,
+      fields: [...]
+    },
+    {
+      id: 'step2',
+      label: 'Details',
+      size: { width: 800, height: 600 },  // Object format also supported
+      fields: [...]
+    },
+    {
+      id: 'step3',
+      label: 'Review',
+      width: 900,          // Wider for table display
+      height: 700,
+      fields: [...]
+    }
+  ]
+}
+// Modal automatically resizes when navigating between steps
 ```
 
 **Wizard Step Indicators:**
@@ -363,6 +467,90 @@ fields: [
 ];
 ```
 
+**Input Field Variants Example:**
+
+```javascript
+fields: [
+  // Standard text input
+  { id: 'name', label: 'Full Name', type: 'text', required: true },
+
+  // Email with built-in validation
+  { id: 'email', label: 'Email', type: 'email', placeholder: 'user@example.com' },
+
+  // Phone number (shows numeric keyboard on mobile)
+  { id: 'phone', label: 'Phone', type: 'tel', placeholder: '+1 (555) 123-4567' },
+
+  // Password (masked input)
+  { id: 'password', label: 'Password', type: 'password', required: true },
+
+  // URL input
+  { id: 'website', label: 'Website', type: 'url', placeholder: 'https://example.com' },
+
+  // Search input (has clear button)
+  { id: 'search', label: 'Search', type: 'search', placeholder: 'Search records...' },
+
+  // Number with min/max constraints
+  {
+    id: 'quantity',
+    label: 'Quantity',
+    type: 'number',
+    value: 1,
+    extraAttributes: { min: 1, max: 100, step: 1 }
+  },
+
+  // Range slider
+  {
+    id: 'rating',
+    label: 'Rating',
+    type: 'range',
+    value: 50,
+    showValue: true,  // Shows current value next to slider
+    extraAttributes: { min: 0, max: 100, step: 5 }
+  }
+];
+```
+
+**Select Field Display Modes:**
+
+```javascript
+fields: [
+  // Standard dropdown (default displayMode)
+  {
+    id: 'country',
+    label: 'Country',
+    type: 'select',
+    options: ['USA', 'Canada', 'UK', 'Australia'],
+    required: true
+  },
+
+  // Dropdown with object options (label/value pairs)
+  {
+    id: 'status',
+    label: 'Status',
+    type: 'select',
+    displayMode: 'dropdown',  // Default
+    options: [
+      { label: 'Draft', value: 'draft' },
+      { label: 'In Review', value: 'review' },
+      { label: 'Published', value: 'published' }
+    ]
+  },
+
+  // Badges display mode (pill-style buttons)
+  {
+    id: 'priority',
+    label: 'Priority',
+    type: 'select',
+    displayMode: 'badges',  // Shows options as clickable pill buttons
+    options: ['Low', 'Medium', 'High', 'Critical'],
+    value: 'Medium'  // Pre-selected value
+  }
+];
+
+// Getting value returns a single string
+const priority = modal.getFieldValue('priority');  // 'Medium'
+```
+
 **D365 Option Set Auto-Fetch Example:**
 
 ```javascript
@@ -393,6 +581,85 @@ fields: [
 // - Populates dropdown with options
 // - Uses attribute display name as label
 // - Handles both local and global option sets
+```
+
+**Field Group Example:**
+
+```javascript
+// Organize related fields with visual grouping
+fields: [
+  // Simple group with title and divider (no border)
+  {
+    id: "personalInfoGroup",
+    type: "group",
+    label: "Personal Information",
+    content: "Enter basic contact details below.",
+    fields: [
+      { id: "firstName", label: "First Name", type: "text", required: true },
+      { id: "lastName", label: "Last Name", type: "text", required: true },
+      { id: "email", label: "Email", type: "email" },
+    ],
+  },
+
+  // Group with border (card-style section)
+  {
+    id: "addressGroup",
+    type: "group",
+    label: "Address Details",
+    content: "Physical address information.",
+    border: true,
+    fields: [
+      { id: "street", label: "Street", type: "text" },
+      { id: "city", label: "City", type: "text" },
+      { id: "postalCode", label: "Postal Code", type: "text" },
+    ],
+  },
+
+  // Collapsible group (starts expanded)
+  {
+    id: "preferencesGroup",
+    type: "group",
+    label: "Preferences",
+    border: true,
+    collapsible: true,
+    defaultCollapsed: false,
+    fields: [
+      {
+        id: "notifications",
+        label: "Enable Notifications",
+        type: "switch",
+        value: true,
+      },
+      { id: "newsletter", label: "Subscribe to Newsletter", type: "checkbox" },
+    ],
+  },
+
+  // Collapsible group (starts collapsed)
+  {
+    id: "advancedGroup",
+    type: "group",
+    label: "Advanced Options",
+    border: true,
+    collapsible: true,
+    defaultCollapsed: true,
+    fields: [
+      { id: "notes", label: "Notes", type: "textarea", rows: 3 },
+      { id: "tags", label: "Tags", type: "text" },
+    ],
+  },
+];
+
+// Group Variations:
+// 1. Simple: { type: 'group', label: 'Title', fields: [...] }
+// 2. With description: { type: 'group', label: 'Title', content: 'Description', fields: [...] }
+// 3. With border: { type: 'group', label: 'Title', border: true, fields: [...] }
+// 4. Collapsible: { type: 'group', label: 'Title', border: true, collapsible: true, fields: [...] }
+// 5. Starts collapsed: { type: 'group', label: 'Title', collapsible: true, defaultCollapsed: true, fields: [...] }
+
+// Groups support:
+// - Conditional visibility with visibleWhen (hide entire group based on other field values)
+// - Nested fields with all field types (including nested groups)
+// - Both bordered (card-style) and non-bordered (divider) layouts
 ```
 
 **File Upload Example:**
@@ -526,7 +793,13 @@ fields: [
         width: "250px",
         align: "left",
       },
-      { id: "price", header: "Price ($)", visible: true, sortable: true, align: "right" },
+      {
+        id: "price",
+        header: "Price ($)",
+        visible: true,
+        sortable: true,
+        align: "right",
+      },
     ],
     data: [
       { id: 1, product: "Product A", price: 100 },
@@ -536,12 +809,15 @@ fields: [
   },
 ];
 
-// Table features:
-// - Sortable columns (click headers)
-// - Row selection (none, single, multiple)
-// - Column visibility control
-// - Custom column widths
-// - onRowSelect callback
+// Table features (all built-in, no configuration needed):
+// - Sortable columns (click headers to sort)
+// - Row selection (none, single, multiple) with select-all checkbox
+// - Column filtering (right-click header → Filter with Equals, Contains, Greater Than, etc.)
+// - Column grouping (right-click header → Group By to group rows)
+// - Group expand/collapse (click group headers)
+// - Column visibility toggle (right-click header → Show/Hide Columns)
+// - Custom column widths (width for fixed, minWidth for flexible)
+// - onRowSelect callback for selection changes
 // - Dynamic data updates via setFieldValue()
 // - HTML rendering in cells (automatically detects and renders HTML)
 
@@ -598,10 +874,10 @@ new uiLib.Modal({
       lookupColumns: [
         { attribute: "line1", label: "Address" },
         { attribute: "city", label: "City" },
-        { attribute: "postalcode", label: "Postal Code" }
+        { attribute: "postalcode", label: "Postal Code" },
       ], // Shows: "Address: 123 Main St" (line 1), "City: Auckland" (line 2)
       placeholder: "Search addresses...",
-    }
+    },
   ],
 });
 // - Inline dropdown appears below the field
@@ -617,20 +893,33 @@ new uiLib.Modal({
 // Inline lookup supports ONE entity at a time. For Customer-type fields (Account OR Contact),
 // use conditional visibility with separate lookups:
 [
-  { id: 'customerType', label: 'Type', type: 'select', options: ['Account', 'Contact'] },
-  { 
-    id: 'accountLookup', 
-    type: 'lookup', 
-    entityName: 'account',
-    visibleWhen: { field: 'customerType', operator: 'equals', value: 'Account' }
+  {
+    id: "customerType",
+    label: "Type",
+    type: "select",
+    options: ["Account", "Contact"],
   },
-  { 
-    id: 'contactLookup', 
-    type: 'lookup', 
-    entityName: 'contact',
-    visibleWhen: { field: 'customerType', operator: 'equals', value: 'Contact' }
-  }
-]
+  {
+    id: "accountLookup",
+    type: "lookup",
+    entityName: "account",
+    visibleWhen: {
+      field: "customerType",
+      operator: "equals",
+      value: "Account",
+    },
+  },
+  {
+    id: "contactLookup",
+    type: "lookup",
+    entityName: "contact",
+    visibleWhen: {
+      field: "customerType",
+      operator: "equals",
+      value: "Contact",
+    },
+  },
+];
 // For true multi-entity search across tables simultaneously, use Modal Dialog Lookup instead.
 ```
 
@@ -638,14 +927,50 @@ new uiLib.Modal({
 
 ```javascript
 new uiLib.Lookup({
-  entityName: "account",
-  multiple: true,
-  columns: ["name", "telephone1", "emailaddress1"], // Same 'columns' parameter
-  filters: "statecode eq 0",
-  onSelect: (records) => {
-    /* handle selection */
+  entity: "account",                    // Entity logical name
+  columns: ["name", "telephone1", "emailaddress1"],  // Columns to display
+  columnLabels: {                       // Custom column headers (optional)
+    name: "Account Name",
+    telephone1: "Phone",
+    emailaddress1: "Email"
   },
+  filters: "statecode eq 0",            // OData filter
+  orderBy: [                            // Sort order (optional)
+    { attribute: "name", descending: false },
+    { attribute: "createdon", descending: true }
+  ],
+  searchFields: ["name", "accountnumber"],  // Fields to search (defaults to columns)
+  additionalSearchFields: ["description"],   // Extra search fields (not displayed)
+  defaultSearchTerm: "",                // Pre-populate search box
+  multiSelect: true,                    // Allow selecting multiple records
+  pageSize: 50,                         // Records per page (default: 50)
+  showPagination: true,                 // Show pagination controls
+  allowClear: true,                     // Show clear selection button
+  title: "Select Account",              // Modal title (optional)
+  width: 800,                           // Modal width (optional)
+  height: 600,                          // Modal height (optional)
+  onSelect: (records) => {
+    // records: [{ id, name, entityType, attributes: { name, telephone1, ... } }]
+    console.log("Selected:", records);
+  },
+  onCancel: () => {
+    console.log("Lookup cancelled");
+  }
 }).show();
+```
+
+**Lookup Result Object:**
+```javascript
+{
+  id: "guid-here",           // Record GUID
+  name: "Contoso Ltd",       // Primary name attribute value
+  entityType: "account",     // Entity logical name
+  attributes: {              // All fetched columns
+    name: "Contoso Ltd",
+    telephone1: "555-1234",
+    emailaddress1: "info@contoso.com"
+  }
+}
 ```
 
 ### 4. Table (`uiLib.Table`)
@@ -687,6 +1012,34 @@ fields: [
 ];
 ```
 
+### 5. Logger Utilities (`uiLib.TRACE`, `uiLib.WAR`, `uiLib.ERR`)
+
+Styled console logging for debugging with colored output:
+
+```javascript
+// Trace/Debug logging (purple badge)
+console.log(...uiLib.TRACE, 'Debug message', { data: 'value' });
+
+// Warning logging (orange badge)
+console.warn(...uiLib.WAR, 'Warning message', { issue: 'details' });
+
+// Error logging (red badge)
+console.error(...uiLib.ERR, 'Error message', error);
+
+// Library-specific logging (purple badge)
+console.log(...uiLib.UILIB, 'UI library event', { action: 'modal opened' });
+
+// Also available via Logger object
+const { TRACE, WAR, ERR, UILIB } = uiLib.Logger;
+console.log(...TRACE, 'Using Logger object');
+```
+
+**Output appearance in browser console:**
+- `TRACE` - Purple background badge: `[TRACE] Debug message`
+- `WAR` - Orange background badge: `[WAR] Warning message`
+- `ERR` - Red background badge: `[ERR] Error message`
+- `UILIB` - Purple background badge: `[uiLib] Library event`
+
 ## File Structure
 
 ### Source Code (`src/`)
@@ -697,6 +1050,7 @@ fields: [
 - `components/Lookup/Lookup.ts` - Lookup dialog
 - `components/FluentUi/*.tsx` - React wrapper components for Fluent UI
 - `components/FluentUi/AddressLookupFluentUi.tsx` - Address autocomplete with Google/Azure Maps
+- `components/FluentUi/FieldGroupFluentUi.tsx` - Field grouping with collapsible sections
 - `index.ts` - Main entry point, global API, and init() function
 
 ### Build Outputs (`build/` and `release/`)
@@ -851,22 +1205,64 @@ Visual indicators with circles, checkmarks, exclamation marks, and connector lin
 
 React components wrap Fluent UI v9 components:
 
-- `CheckboxFluentUi.tsx` - Switch component
+- `CheckboxFluentUi.tsx` - Checkbox component
+- `SwitchFluentUi.tsx` - Switch/toggle component
 - `DatePickerFluentUi.tsx` - DatePicker
-- `DropdownFluentUi.tsx` - Dropdown
-- `InputFluentUi.tsx` - Input fields
-- `TableFluentUi.tsx` - DataGrid
+- `DropdownFluentUi.tsx` - Dropdown/Select
+- `InputFluentUi.tsx` - Input and textarea fields
+- `TableFluentUi.tsx` - DataGrid with sorting and selection
+- `LookupFluentUi.tsx` - D365-style inline lookup
+- `AddressLookupFluentUi.tsx` - Address autocomplete
+- `FileUploadFluentUi.tsx` - File upload with drag-drop
+- `FieldGroupFluentUi.tsx` - Field grouping with collapsible sections
 - All use `appearance="filled-darker"` for D365 style
 
 ## When Making Changes
 
+### Styling Best Practices (Fluent UI v9)
+
+**Use `makeStyles` and `tokens` instead of inline styles:**
+
+```javascript
+// ❌ BAD - Hardcoded inline styles
+<div style={{ color: '#605e5c', padding: '8px' }}>
+
+// ✅ GOOD - Use Fluent UI tokens and makeStyles
+import { makeStyles, tokens } from '@fluentui/react-components';
+
+const useStyles = makeStyles({
+  container: {
+    color: tokens.colorNeutralForeground2,
+    padding: tokens.spacingVerticalM,
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+  }
+});
+
+// In component:
+const styles = useStyles();
+<div className={styles.container}>
+```
+
+**Common tokens to use:**
+- Colors: `tokens.colorNeutralForeground1`, `tokens.colorBrandBackground`
+- Spacing: `tokens.spacingVerticalS`, `tokens.spacingHorizontalM`
+- Typography: `tokens.fontSizeBase300`, `tokens.fontWeightSemibold`
+- Borders: `tokens.borderRadiusMedium`, `tokens.strokeWidthThin`
+
+**Note:** Some existing components use inline styles for historical reasons. When modifying these files, prefer migrating to `makeStyles` + `tokens`.
+
 ### Adding New Field Types
 
-1. Add type to `FieldConfig['type']` in `Modal.types.ts`
-2. Add case to `createField()` in `Modal.ts`
-3. Create React wrapper in `components/FluentUi/` if needed
-4. Update README.md with example
-5. Add to demo page with code example
+1. Add type to `FieldConfig['type']` union in `Modal.types.ts`
+2. Add any type-specific properties to `FieldConfig` interface
+3. Add case handler to `createField()` in `Modal.ts` (around line 1018)
+4. Create React wrapper component in `components/FluentUi/` if needed
+5. Export component from `components/FluentUi/index.ts`
+6. Import component in `Modal.ts`
+7. Update README.md with example and property documentation
+8. Update copilot-instructions.md with complete documentation
+9. Add to demo page with interactive example
 
 ### Adding New Modal Features
 
@@ -881,6 +1277,109 @@ React components wrap Fluent UI v9 components:
 1. **README.md** - User-facing documentation with examples
 2. **Demo page** - Interactive examples with copy-paste code
 3. **This file** - AI agent guide with architecture details
+
+## Critical API Rules
+
+### Tabs Must Use `asTabs` Pattern
+
+**❌ WRONG - Top-level `tabs` property does not exist:**
+
+```javascript
+new uiLib.Modal({
+  title: "My Modal",
+  tabs: [{ id: "tab1", label: "Tab 1", content: "<p>HTML content</p>" }],
+});
+```
+
+**✅ CORRECT - Use `fields` array with `asTabs: true`:**
+
+```javascript
+new uiLib.Modal({
+  title: 'My Modal',
+  fields: [
+    {
+      id: 'myTabs',
+      asTabs: true,
+      fields: [
+        {
+          id: 'tab1',
+          label: 'Tab 1',
+          content: '<p>HTML content goes here</p>',  // HTML content
+          fields: [...]  // Optional: additional form fields
+        },
+        {
+          id: 'tab2',
+          label: 'Tab 2',
+          content: '<div>More HTML</div>'
+        }
+      ]
+    }
+  ],
+  buttons: [...]
+});
+```
+
+**Tab Content Display:**
+
+- Each tab can have `content` (HTML string) or `html` property
+- Content appears at the top of the tab panel
+- Form `fields` (if provided) appear below the content
+- Content uses `innerHTML`, so full HTML is supported
+
+### Buttons Must Use Constructor
+
+**❌ WRONG - Plain objects are not supported:**
+
+```javascript
+buttons: [
+  {
+    label: "Submit",
+    type: "primary",
+    onClick: (modal) => {
+      modal.close();
+    },
+  },
+];
+```
+
+**✅ CORRECT - Use `new uiLib.Button()` constructor:**
+
+```javascript
+buttons: [
+  new uiLib.Button({
+    label: "Submit",
+    callback: () => true, // Return true to close modal
+    setFocus: true, // Makes button primary/blue (not 'type: primary')
+    id: "submitBtn", // Explicit ID recommended
+  }),
+];
+```
+
+**Button Properties:**
+
+- ❌ `onClick` - Does not exist
+- ✅ `callback` - Function that receives modal instance, returns boolean
+- ❌ `type: 'primary'` - Does not exist
+- ✅ `setFocus: true` - Makes button primary/blue
+- ✅ Return `true` from callback to close modal automatically
+- ✅ Return `false` to keep modal open (or manually close)
+
+**Button Constructor Styles:**
+
+```javascript
+// Object style (recommended - self-documenting)
+new uiLib.Button({
+  label: "Save",
+  callback: () => true,
+  setFocus: true,
+  preventClose: false,
+  isDestructive: false,
+  id: "saveBtn",
+});
+
+// Positional parameters (backward compatible)
+new uiLib.Button("Save", () => true, true, false, false, "saveBtn");
+```
 
 ## Common Patterns
 
@@ -906,7 +1405,7 @@ const modal = new uiLib.Modal({
         return true; // Close modal
       },
       setFocus: true,
-      requiresValidation: true,  // ⚡ Auto-disabled until email and phone filled
+      requiresValidation: true, // ⚡ Auto-disabled until email and phone filled
       id: "submitBtn",
     }),
   ],
@@ -1021,13 +1520,13 @@ uiLib.ModalHelpers.alert('Form Data', formatJsonWithStyle(data));
 const wizard = new uiLib.Modal({
   progress: { enabled: true, currentStep: 1, steps: [...] },
   buttons: [
-    new uiLib.Button({ 
-      label: 'Previous', 
+    new uiLib.Button({
+      label: 'Previous',
       callback: () => { wizard.previousStep(); return false; },
       id: 'prevBtn'
     }),
-    new uiLib.Button({ 
-      label: 'Next', 
+    new uiLib.Button({
+      label: 'Next',
       callback: () => {
         wizard.nextStep();
         return false;
@@ -1035,14 +1534,126 @@ const wizard = new uiLib.Modal({
       setFocus: true,
       id: 'nextBtn'
     }),
-    new uiLib.Button({ 
-      label: 'Finish', 
+    new uiLib.Button({
+      label: 'Finish',
       callback: () => { submitForm(); },
       setFocus: true,
       id: 'finishBtn'
     })
   ]
 });
+```
+
+### Loading Overlay with Progress Bar
+
+The loading overlay supports both **spinner mode** (indeterminate) and **progress bar mode** (determinate) for showing operation progress:
+
+**Spinner Mode (Simple Loading):**
+
+```javascript
+modal.setLoading(true, "Processing...");
+await performOperation();
+modal.setLoading(false);
+```
+
+**Progress Bar Mode (Import/Export Operations):**
+
+```javascript
+const modal = new uiLib.Modal({
+  title: 'Import Records',
+  fields: [...],
+  buttons: [
+    new uiLib.Button({
+      label: 'Start Import',
+      callback: async function() {
+        const records = getRecordsToImport();
+
+        // Show initial progress
+        modal.setLoading(true, {
+          message: 'Starting import...',
+          progress: 0
+        });
+
+        // Import with progress updates
+        for (let i = 0; i < records.length; i++) {
+          const percent = Math.round(((i + 1) / records.length) * 100);
+
+          modal.setLoading(true, {
+            message: `Importing record ${i + 1} of ${records.length}...`,
+            progress: percent
+          });
+
+          await importRecord(records[i]);
+        }
+
+        // Hide loading overlay
+        modal.setLoading(false);
+        uiLib.Toast.success({ message: `Imported ${records.length} records` });
+
+        return true; // Close modal
+      },
+      setFocus: true,
+      id: 'importBtn'
+    })
+  ]
+});
+```
+
+**API Signatures:**
+
+```javascript
+// Spinner mode (string message)
+modal.setLoading(true, "Loading...");
+
+// Progress bar mode (object with progress)
+modal.setLoading(true, {
+  message: "Importing...", // Optional message
+  progress: 45, // Progress percentage (0-100)
+});
+
+// Hide overlay
+modal.setLoading(false);
+```
+
+**Features:**
+
+- **Smooth transitions**: Progress bar animates with 0.3s ease
+- **Percentage display**: Shows rounded progress (e.g., "45%")
+- **Theme styling**: Uses D365 primary blue for progress fill
+- **High visibility**: Overlay background at 95% opacity
+- **Inside modal**: Renders at z-index 10 within modal container
+
+**Common Use Cases:**
+
+```javascript
+// Batch record updates
+for (let i = 0; i < records.length; i++) {
+  modal.setLoading(true, {
+    message: `Updating ${i + 1}/${records.length}...`,
+    progress: (i / records.length) * 100,
+  });
+  await updateRecord(records[i]);
+}
+
+// File upload progress
+const onUploadProgress = (percent) => {
+  modal.setLoading(true, {
+    message: "Uploading file...",
+    progress: percent,
+  });
+};
+
+// Multi-step process
+modal.setLoading(true, { message: "Step 1: Validating...", progress: 25 });
+await validate();
+
+modal.setLoading(true, { message: "Step 2: Processing...", progress: 50 });
+await process();
+
+modal.setLoading(true, { message: "Step 3: Finalizing...", progress: 75 });
+await finalize();
+
+modal.setLoading(false);
 ```
 
 ### Dynamic Field Updates
@@ -1071,12 +1682,12 @@ const modal = new uiLib.Modal({
   fields: [...],
   buttons: [
     new uiLib.Button({ label: 'Cancel', callback: () => true, id: 'cancelBtn' }),
-    new uiLib.Button({ 
-      label: 'Submit', 
+    new uiLib.Button({
+      label: 'Submit',
       callback: function() {
         // Process...
-      }, 
-      setFocus: true, 
+      },
+      setFocus: true,
       id: 'submitBtn'
     })
   ]
@@ -1147,7 +1758,7 @@ new uiLib.Button({
   preventClose: false, // Optional - if true, button won't close modal automatically
   isDestructive: false, // Optional - if true, button appears red (warning/danger style)
   requiresValidation: true, // Optional - if true, button is disabled until all required fields are valid
-  validateAllSteps: true, // Optional - if true (in wizards), validates ALL steps instead of just current
+  validateAllSteps: false, // Optional - for wizards: set to false to validate only current step (default: validates ALL steps)
   id: "saveBtn", // Optional but STRONGLY RECOMMENDED - unique identifier
 });
 
@@ -1170,7 +1781,7 @@ new uiLib.Button(
   isDestructive: boolean,  // Red danger/warning style
   id?: string,             // Optional unique identifier (RECOMMENDED)
   requiresValidation?: boolean,  // Optional - disable button until all required fields are valid
-  validateAllSteps?: boolean     // Optional - validate ALL wizard steps instead of just current
+  validateAllSteps?: boolean     // Optional - for wizards: false = current step only (default: ALL steps)
 )
 ```
 
@@ -1183,7 +1794,11 @@ const modal = new uiLib.Modal({
   title: "Save Record",
   fields: [{ id: "name", label: "Name", type: "text", required: true }],
   buttons: [
-    new uiLib.Button({ label: "Cancel", callback: () => true, id: "cancelBtn" }),
+    new uiLib.Button({
+      label: "Cancel",
+      callback: () => true,
+      id: "cancelBtn",
+    }),
     new uiLib.Button({
       label: "Save",
       callback: async function () {
@@ -1222,24 +1837,24 @@ const modal = new uiLib.Modal({
 const wizard = new uiLib.Modal({
   progress: { enabled: true, currentStep: 1, steps: [...] },
   buttons: [
-    new uiLib.Button({ 
-      label: 'Previous', 
+    new uiLib.Button({
+      label: 'Previous',
       callback: () => { wizard.previousStep(); return false; },
       id: 'prevBtn'
     }),
-    new uiLib.Button({ 
-      label: 'Next', 
+    new uiLib.Button({
+      label: 'Next',
       callback: () => { wizard.nextStep(); return false; },
       setFocus: true,
-      requiresValidation: true,  // Disabled until current step is valid
+      requiresValidation: true,
+      validateAllSteps: false,  // Only validate current step for Next button
       id: 'nextBtn'
     }),
-    new uiLib.Button({ 
-      label: 'Finish', 
+    new uiLib.Button({
+      label: 'Finish',
       callback: () => { submitForm(); },
       setFocus: true,
-      requiresValidation: true,  // Disabled until all steps are valid
-      validateAllSteps: true,    // Validates ALL steps, not just current
+      requiresValidation: true,  // Validates ALL steps (default in wizards)
       id: 'finishBtn'
     })
   ]
@@ -1258,6 +1873,390 @@ if (currentStep === 1) {
   wizard.getButton('prevBtn').show();
   wizard.getButton('nextBtn').hide();
   wizard.getButton('finishBtn').show();
+}
+```
+
+## D365 Integration Patterns
+
+### Reading Form Data into Modal
+
+```javascript
+function showEditModal(executionContext) {
+  const formContext = executionContext.getFormContext();
+
+  // Get current form values
+  const accountName = formContext.getAttribute('name').getValue();
+  const phone = formContext.getAttribute('telephone1').getValue();
+  const industry = formContext.getAttribute('industrycode').getValue();
+
+  const modal = new uiLib.Modal({
+    title: 'Edit Account',
+    fields: [
+      { id: 'name', label: 'Account Name', type: 'text', value: accountName, required: true },
+      { id: 'phone', label: 'Phone', type: 'tel', value: phone },
+      { id: 'industry', label: 'Industry', type: 'select', optionSet: { entityName: 'account', attributeName: 'industrycode' }, value: industry }
+    ],
+    buttons: [
+      new uiLib.Button({ label: 'Cancel', callback: () => true, id: 'cancelBtn' }),
+      new uiLib.Button({
+        label: 'Save',
+        callback: () => {
+          // Write back to form
+          formContext.getAttribute('name').setValue(modal.getFieldValue('name'));
+          formContext.getAttribute('telephone1').setValue(modal.getFieldValue('phone'));
+          formContext.getAttribute('industrycode').setValue(modal.getFieldValue('industry'));
+          return true;
+        },
+        setFocus: true,
+        id: 'saveBtn'
+      })
+    ]
+  });
+  modal.show();
+}
+```
+
+### Creating Records with Web API
+
+```javascript
+async function createRecordFromModal() {
+  const modal = new uiLib.Modal({
+    title: 'Create Contact',
+    fields: [
+      { id: 'firstname', label: 'First Name', type: 'text', required: true },
+      { id: 'lastname', label: 'Last Name', type: 'text', required: true },
+      { id: 'email', label: 'Email', type: 'email' }
+    ],
+    buttons: [
+      new uiLib.Button({ label: 'Cancel', callback: () => true, id: 'cancelBtn' }),
+      new uiLib.Button({
+        label: 'Create',
+        callback: async function() {
+          const data = modal.getFieldValues();
+
+          modal.setLoading(true, 'Creating contact...');
+
+          try {
+            const result = await Xrm.WebApi.createRecord('contact', {
+              firstname: data.firstname,
+              lastname: data.lastname,
+              emailaddress1: data.email
+            });
+
+            uiLib.Toast.success({ title: 'Success', message: 'Contact created' });
+            return true; // Close modal
+          } catch (error) {
+            uiLib.Toast.error({ title: 'Error', message: error.message });
+            modal.setLoading(false);
+            return false; // Keep modal open
+          }
+        },
+        setFocus: true,
+        requiresValidation: true,
+        id: 'createBtn'
+      })
+    ]
+  });
+  modal.show();
+}
+```
+
+### Batch Updates with Progress Bar
+
+```javascript
+async function updateMultipleRecords(recordIds) {
+  const modal = new uiLib.Modal({
+    title: 'Batch Update',
+    message: `Update ${recordIds.length} records?`,
+    buttons: [
+      new uiLib.Button({ label: 'Cancel', callback: () => true, id: 'cancelBtn' }),
+      new uiLib.Button({
+        label: 'Update All',
+        callback: async function() {
+          for (let i = 0; i < recordIds.length; i++) {
+            const percent = Math.round(((i + 1) / recordIds.length) * 100);
+
+            modal.setLoading(true, {
+              message: `Updating ${i + 1} of ${recordIds.length}...`,
+              progress: percent
+            });
+
+            try {
+              await Xrm.WebApi.updateRecord('account', recordIds[i], { statuscode: 1 });
+            } catch (error) {
+              uiLib.Toast.error({ title: 'Error', message: `Failed: ${recordIds[i]}` });
+            }
+          }
+
+          uiLib.Toast.success({ title: 'Complete', message: `Updated ${recordIds.length} records` });
+          return true;
+        },
+        setFocus: true,
+        id: 'updateBtn'
+      })
+    ]
+  });
+  modal.show();
+}
+```
+
+### Cascading Lookups (Parent-Child)
+
+```javascript
+const modal = new uiLib.Modal({
+  title: 'Select Contact',
+  fields: [
+    {
+      id: 'account',
+      label: 'Account',
+      type: 'lookup',
+      entityName: 'account',
+      lookupColumns: ['name', 'accountnumber'],
+      onChange: (value) => {
+        // When account changes, update contact filter
+        if (value && value.id) {
+          // Store account ID for contact filter
+          modal.setFieldValue('_accountFilter', value.id);
+        }
+      }
+    },
+    {
+      id: '_accountFilter',
+      type: 'text',
+      visibleWhen: { field: '_never', operator: 'truthy' } // Hidden field to store filter
+    },
+    {
+      id: 'contact',
+      label: 'Contact',
+      type: 'lookup',
+      entityName: 'contact',
+      lookupColumns: ['fullname', 'emailaddress1'],
+      filters: '_parentcustomerid_value eq ${accountId}', // Dynamic filter
+      visibleWhen: { field: 'account', operator: 'truthy' }
+    }
+  ]
+});
+```
+
+### Error Handling Pattern
+
+```javascript
+async function safeWebApiCall(operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    // Handle common D365 errors
+    if (error.message?.includes('0x80040216')) {
+      uiLib.Toast.error({ title: 'Duplicate', message: 'A record with this value already exists' });
+    } else if (error.message?.includes('0x80040220')) {
+      uiLib.Toast.error({ title: 'Permission', message: 'You do not have permission for this action' });
+    } else if (error.message?.includes('0x80048306')) {
+      uiLib.Toast.error({ title: 'Required', message: 'Required fields are missing' });
+    } else {
+      uiLib.Toast.error({ title: 'Error', message: error.message || 'An unknown error occurred' });
+    }
+    throw error; // Re-throw for caller to handle
+  }
+}
+
+// Usage
+try {
+  await safeWebApiCall(() => Xrm.WebApi.createRecord('contact', data));
+} catch (error) {
+  // Error already shown via Toast
+  modal.setLoading(false);
+  return false;
+}
+```
+
+## Complete Modal Options Reference
+
+```javascript
+new uiLib.Modal({
+  // Basic options
+  id: 'myModal',                    // Optional unique ID
+  title: 'Modal Title',             // Required
+  message: 'Text message',          // Optional - plain text
+  content: '<div>HTML</div>',       // Optional - HTML content
+  customContent: htmlElement,       // Optional - DOM element
+  icon: 'INFO',                     // Optional - INFO, SUCCESS, WARNING, ERROR, QUESTION
+
+  // Size options
+  size: 'medium',                   // small | medium | large | fullscreen | { width, height }
+  width: 800,                       // Optional - override width
+  height: 600,                      // Optional - override height
+  padding: 20,                      // Optional - inner padding
+
+  // Behavior options
+  preventClose: false,              // Prevent closing via buttons
+  allowDismiss: true,               // Click outside to close
+  allowEscapeClose: true,           // Press Escape to close
+  draggable: true,                  // Make modal draggable by header
+  buttonAlignment: 'right',         // left | center | right | space-between
+
+  // Auto-save (persist field values)
+  autoSave: true,                   // Enable auto-save to localStorage
+  autoSaveKey: 'myFormData',        // Key for localStorage
+
+  // Debug mode
+  debug: true,                      // Enable console logging
+
+  // Wizard/Progress configuration
+  progress: {
+    enabled: true,
+    type: 'steps-left',             // bar | steps-left | steps-right | step
+    currentStep: 1,
+    totalSteps: 3,
+    allowStepNavigation: true,      // Click steps to navigate
+    steps: [
+      {
+        id: 'step1',
+        label: 'Step 1',
+        name: 'Step Name',
+        description: 'Step description',
+        message: 'Step-specific message',
+        content: '<small>Step HTML</small>',
+        fields: [...]
+      }
+    ]
+  },
+
+  // Side cart (side panel)
+  sideCart: {
+    enabled: true,
+    attached: true,                 // Attached to modal
+    position: 'right',              // left | right
+    width: 300,
+    content: '<div>HTML</div>',
+    imageUrl: 'path/to/image.png',
+    backgroundColor: '#f3f2f1'
+  },
+
+  // Fields and buttons
+  fields: [...],
+  buttons: [...]
+});
+```
+
+## Modal Instance Methods
+
+```javascript
+const modal = new uiLib.Modal({ ... });
+
+// Display
+modal.show();                                    // Show modal (returns Promise)
+const response = await modal.showAsync();        // Show and wait for close (returns { button, data })
+modal.close();                                   // Close modal programmatically
+
+// Field management
+modal.getFieldValue('fieldId');                  // Get single field value
+modal.getFieldValues();                          // Get all field values as object
+modal.setFieldValue('fieldId', value);           // Update field value
+
+// Validation
+modal.validateCurrentStep();                     // Validate current wizard step
+modal.validateAllFields();                       // Validate all fields
+
+// Wizard navigation
+modal.nextStep();                                // Go to next step
+modal.previousStep();                            // Go to previous step
+modal.goToStep('stepId');                        // Go to specific step by ID
+modal.updateProgress(2);                         // Update progress to step 2
+
+// Button manipulation
+modal.getButton('buttonId').setLabel('Text').disable();
+modal.getButton('buttonId').enable().show();
+
+// Loading state
+modal.setLoading(true, 'Loading...');            // Show spinner with message
+modal.setLoading(true, { message: 'Processing...', progress: 45 }); // Show progress bar at 45%
+modal.setLoading(false);                         // Hide loading overlay
+
+// Side cart
+modal.updateSideCart('<div>New content</div>');
+modal.updateSideCart({ imageUrl: 'path.png' });
+
+// Auto-save
+modal.clearAutoSave();                           // Clear saved form data
+
+// DOM access
+modal.getElement();                              // Get modal container element
+modal.getElement('.my-class');                   // Get element(s) by selector
+
+// Web resource - embed D365 web resource in modal
+modal.showWebResource('err403_/mypage.html');
+modal.showWebResource('err403_/datagrid.htm?data=ProductHistory&id=123', {
+  autoResize: true,              // Auto-resize iframe to content
+  width: 800,                    // Override width
+  height: 600                    // Override height
+});
+
+// Chainable property setters
+modal.title('New Title').message('New message').width(800).height(600);
+```
+
+## Complete Field Configuration Reference
+
+```javascript
+{
+  // Core properties (all field types)
+  id: 'fieldId',                    // Required - unique identifier
+  label: 'Label',                   // Display label
+  type: 'text',                     // Field type (see list below)
+  value: 'initial',                 // Initial value
+  placeholder: 'Hint...',           // Placeholder text
+  tooltip: 'Help text',             // Tooltip on hover
+  disabled: false,                  // Disable field
+  readOnly: false,                  // Read-only mode
+  required: true,                   // Required validation
+
+  // Layout
+  labelPosition: 'left',            // left | top
+  orientation: 'horizontal',        // horizontal | vertical
+
+  // Conditional behavior
+  visibleWhen: { field: 'x', operator: 'equals', value: 'y' },
+  requiredWhen: { field: 'x', operator: 'truthy' },
+
+  // Change callback
+  onChange: (value) => { console.log(value); },
+
+  // Custom validation (in addition to 'required' property)
+  validation: {
+    rules: [
+      { type: 'required', message: 'This field is required' },
+      { type: 'email', message: 'Please enter a valid email address' },
+      { type: 'minLength', value: 3, message: 'Must be at least 3 characters' },
+      { type: 'maxLength', value: 100, message: 'Cannot exceed 100 characters' },
+      { type: 'pattern', value: /^[A-Z]/, message: 'Must start with uppercase letter' },
+      { type: 'custom', validate: (v) => v > 0, message: 'Must be a positive number' },
+      { type: 'custom', validate: (v) => /^\d{3}-\d{4}$/.test(v), message: 'Format: 123-4567' }
+    ],
+    showErrors: true  // Display validation errors below field
+  },
+
+  // Type-specific properties (see field type docs)
+  rows: 4,                          // textarea
+  options: ['A', 'B'],              // select
+  displayMode: 'badges',            // select: dropdown | badges
+  optionSet: { ... },               // select: D365 option set
+  entityName: 'account',            // lookup
+  lookupColumns: [...],             // lookup
+  filters: 'statecode eq 0',        // lookup
+  tableColumns: [...],              // table
+  data: [...],                      // table
+  selectionMode: 'multiple',        // table
+  fileUpload: { ... },              // file
+  addressLookup: { ... },           // addressLookup
+  extraAttributes: { min: 0 },      // range
+  showValue: true,                  // range
+  border: true,                     // group
+  collapsible: true,                // group
+  defaultCollapsed: false,          // group
+  fields: [...],                    // group, tabs
+  asTabs: true,                     // tabs container
+  render: () => element,            // custom
+  html: '<div>HTML</div>'           // custom
 }
 ```
 
@@ -1317,13 +2316,164 @@ if (currentStep === 1) {
 4. **Leverage conditional visibility** (`visibleWhen`) instead of manual DOM manipulation
 5. **Use conditional required** (`requiredWhen`) for dynamic validation
 6. **Use wizard steps** for multi-step forms with `progress.steps`
-6. **Always provide code examples** when documenting features
-7. **Test in demo page** before updating documentation
-8. **Keep README.md and demo page in sync** with actual implementation
-9. **Use TypeScript types** from `Modal.types.ts` for accurate IntelliSense
-10. **Initialize library first** - Always call `uiLib.init()` before using components
-11. **Check health state** - Use returned health object to verify CSS loaded
-12. **Provide explicit button IDs** - Never rely on auto-generated IDs for maintainability
+7. **Use field groups** (`type: 'group'`) to organize related fields visually
+8. **Always provide code examples** when documenting features
+9. **Test in demo page** before updating documentation
+10. **Keep README.md and demo page in sync** with actual implementation
+11. **Use TypeScript types** from `Modal.types.ts` for accurate IntelliSense
+12. **Initialize library first** - Always call `uiLib.init()` before using components
+13. **Check health state** - Use returned health object to verify CSS loaded
+14. **Provide explicit button IDs** - Never rely on auto-generated IDs for maintainability
+15. **Tab content**: Use `content` or `html` property on tab fields to display HTML content above form fields
+16. **Button objects**: Always use `new uiLib.Button()` constructor, never plain objects
+
+### When to Use Field Groups vs Tabs vs Wizard Steps
+
+| Feature                             | Use Case                                                                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Field Groups** (`type: 'group'`)  | Visual organization within a single form - sections like "Personal Info", "Address", "Preferences" |
+| **Tabs** (`asTabs: true`)           | Alternative views of content - user picks which section to see                                     |
+| **Wizard Steps** (`progress.steps`) | Sequential process - user must complete steps in order                                             |
+
+```javascript
+// Field Groups - Visual sections (all visible at once)
+fields: [
+  { type: 'group', label: 'Section 1', fields: [...] },
+  { type: 'group', label: 'Section 2', fields: [...] }
+]
+
+// Tabs - Alternative views (one tab visible at a time)
+fields: [{
+  id: 'tabs',
+  asTabs: true,  // REQUIRED for tabs
+  fields: [
+    {
+      id: 'tab1',
+      label: 'Tab 1',
+      content: '<p>HTML content here</p>',  // Tab content (HTML)
+      fields: [...]  // Optional form fields below content
+    },
+    {
+      id: 'tab2',
+      label: 'Tab 2',
+      content: '<div>More HTML</div>'  // Tab content
+    }
+  ]
+}]
+
+// Wizard - Sequential steps
+progress: {
+  enabled: true,
+  steps: [
+    { label: 'Step 1', fields: [...] },
+    { label: 'Step 2', fields: [...] }
+  ]
+}
+```
+
+### Common Mistakes to Avoid
+
+1. **❌ Using plain button objects** instead of `new uiLib.Button()`
+
+   ```javascript
+   // WRONG:
+   buttons: [{ label: "Close", onClick: () => {} }];
+
+   // CORRECT:
+   buttons: [
+     new uiLib.Button({ label: "Close", callback: () => true, id: "closeBtn" }),
+   ];
+   ```
+
+2. **❌ Using top-level `tabs` property** instead of `fields` with `asTabs: true`
+
+   ```javascript
+   // WRONG:
+   new uiLib.Modal({ tabs: [...] })
+
+   // CORRECT:
+   new uiLib.Modal({ fields: [{ asTabs: true, fields: [...] }] })
+   ```
+
+3. **❌ Using `onClick` on buttons** instead of `callback`
+
+   ```javascript
+   // WRONG:
+   new uiLib.Button({ onClick: () => {} });
+
+   // CORRECT:
+   new uiLib.Button({ callback: () => true });
+   ```
+
+4. **❌ Using `type: 'primary'` on buttons** instead of `setFocus: true`
+
+   ```javascript
+   // WRONG:
+   new uiLib.Button({ type: "primary" });
+
+   // CORRECT:
+   new uiLib.Button({ setFocus: true });
+   ```
+
+5. **❌ Forgetting tab `content` property** when wanting to display HTML in tabs
+
+   ```javascript
+   // WRONG (no content displayed):
+   fields: [{ asTabs: true, fields: [{ label: 'Tab 1', fields: [...] }] }]
+
+   // CORRECT (HTML content + fields):
+   fields: [{ asTabs: true, fields: [{ label: 'Tab 1', content: '<p>HTML</p>', fields: [...] }] }]
+   ```
+
+6. **❌ Using `type: 'html'`** instead of `type: 'custom'` with `html` property
+
+   ```javascript
+   // WRONG:
+   { id: 'summary', type: 'html', content: '<div>HTML</div>' }
+
+   // CORRECT:
+   { id: 'summary', type: 'custom', html: '<div>HTML</div>' }
+   ```
+
+7. **❌ Using `onStepChange` callback** - not supported
+
+   ```javascript
+   // WRONG (callback will be ignored):
+   progress: {
+     enabled: true,
+     onStepChange: (step) => { /* ... */ }  // ❌ Doesn't exist
+   }
+
+   // CORRECT - Handle in button callbacks:
+   buttons: [
+     new uiLib.Button({
+       label: 'Next',
+       callback: () => {
+         modal.nextStep();
+         updateButtonVisibility();  // ✅ Update after navigation
+         return false;
+       }
+     })
+   ]
+   ```
+
+## Unsupported Features
+
+These features do **NOT** exist in the library:
+
+1. **`onStepChange` callback** - No step change event callback
+   - Use button callbacks to handle step transitions
+   - Access current step with `modal.currentStep` (number)
+
+2. **`type: 'html'` field type** - No such type exists
+   - Use `type: 'custom'` with `html` property instead
+
+3. **`webResource` modal option** - Not a constructor property
+   - Use `modal.showWebResource(path)` method instead
+
+4. **`content` property on custom fields** - Not supported
+   - Use `html` or `render` properties instead
+   - `content` is only for groups and tabs
 
 ## Version Management
 
@@ -1345,3 +2495,135 @@ if (currentStep === 1) {
 - **Tests**: http://localhost:5177/pages/tests.html
 - **README**: Complete examples and API reference
 - **TypeScript**: Full IntelliSense support with `.d.ts` files
+
+---
+
+## AI Agent Quick Reference
+
+### Cheat Sheet: Common Patterns
+
+**Simple Alert:**
+```javascript
+await uiLib.ModalHelpers.alert('Title', 'Message');
+```
+
+**Confirmation Dialog:**
+```javascript
+const confirmed = await uiLib.ModalHelpers.confirm('Delete?', 'Are you sure?');
+if (confirmed) { /* proceed */ }
+```
+
+**Toast Notifications:**
+```javascript
+uiLib.Toast.success({ title: 'Done', message: 'Saved!' });
+uiLib.Toast.error({ title: 'Error', message: 'Failed' });
+uiLib.Toast.warn({ title: 'Warning', message: 'Check input' });
+uiLib.Toast.info({ title: 'Info', message: 'Processing...' });
+```
+
+**Form Modal (Most Common):**
+```javascript
+const modal = new uiLib.Modal({
+  title: 'Edit Record',
+  fields: [
+    { id: 'name', label: 'Name', type: 'text', required: true },
+    { id: 'email', label: 'Email', type: 'email' },
+    { id: 'active', label: 'Active', type: 'switch', value: true }
+  ],
+  buttons: [
+    new uiLib.Button({ label: 'Cancel', callback: () => true, id: 'cancelBtn' }),
+    new uiLib.Button({
+      label: 'Save',
+      callback: () => {
+        const data = modal.getFieldValues();
+        console.log(data); // { name: '...', email: '...', active: true }
+        return true; // Close modal
+      },
+      setFocus: true,
+      id: 'saveBtn'
+    })
+  ]
+});
+modal.show();
+```
+
+**Wizard (Multi-Step):**
+```javascript
+const wizard = new uiLib.Modal({
+  title: 'Setup Wizard',
+  progress: {
+    enabled: true,
+    currentStep: 1,
+    steps: [
+      { id: 'step1', label: 'Info', fields: [...] },
+      { id: 'step2', label: 'Details', fields: [...] },
+      { id: 'step3', label: 'Review', fields: [...] }
+    ]
+  },
+  buttons: [
+    new uiLib.Button({ label: 'Back', callback: () => { wizard.previousStep(); return false; }, id: 'backBtn' }),
+    new uiLib.Button({ label: 'Next', callback: () => { wizard.nextStep(); return false; }, setFocus: true, id: 'nextBtn' }),
+    new uiLib.Button({ label: 'Finish', callback: () => true, setFocus: true, id: 'finishBtn' })
+  ]
+});
+wizard.show();
+```
+
+### Field Type Quick Reference
+
+| Type | Use For | Key Properties |
+|------|---------|----------------|
+| `text` | Single-line text | `placeholder`, `required` |
+| `email` | Email addresses | `required`, `validation` |
+| `number` | Numeric input | `extraAttributes: { min, max }` |
+| `textarea` | Multi-line text | `rows` |
+| `date` | Date picker | `startDate`, `endDate` |
+| `select` | Dropdown | `options`, `displayMode` |
+| `checkbox` | Boolean (D365 style) | `value: true/false` |
+| `switch` | Boolean (modern toggle) | `value: true/false` |
+| `lookup` | D365 record selector | `entityName`, `lookupColumns`, `filters` |
+| `table` | Data grid | `tableColumns`, `data`, `selectionMode` |
+| `file` | File upload | `fileUpload: { accept, maxFiles, maxSize }` |
+| `addressLookup` | Address autocomplete | `addressLookup: { provider, apiKey }` |
+| `group` | Field grouping | `fields`, `border`, `collapsible` |
+| `custom` | Custom HTML/render | `html` or `render: () => element` |
+
+### Button Properties Quick Reference
+
+```javascript
+new uiLib.Button({
+  label: 'Save',           // Button text (required)
+  callback: () => true,    // Handler - return true to close (required)
+  setFocus: true,          // Make primary/blue button
+  preventClose: false,     // Keep modal open after click
+  isDestructive: false,    // Make red/danger button
+  requiresValidation: true,// Disable until form valid
+  id: 'saveBtn'            // Unique ID (recommended)
+});
+```
+
+### Conditional Visibility Quick Reference
+
+```javascript
+// Show field when another field equals a value
+visibleWhen: { field: 'type', operator: 'equals', value: 'Business' }
+
+// Show field when another field is truthy (non-empty)
+visibleWhen: { field: 'showAdvanced', operator: 'truthy' }
+
+// Show field when another field is falsy (empty/false)
+visibleWhen: { field: 'useDefault', operator: 'falsy' }
+
+// Available operators: equals, notEquals, contains, greaterThan, lessThan, truthy, falsy
+```
+
+### Critical Rules for AI Agents
+
+1. **Always use `new uiLib.Button()`** - Never plain objects
+2. **Always provide button IDs** - For reliable getButton() lookups
+3. **Use `callback` not `onClick`** - onClick doesn't exist
+4. **Use `setFocus: true` not `type: 'primary'`** - type property doesn't exist
+5. **Tabs use `asTabs: true` in fields array** - Not a top-level `tabs` property
+6. **Custom fields use `html` or `render`** - Not `content` (that's for groups/tabs)
+7. **Return `true` from callback to close** - Return `false` to keep open
+8. **Initialize first**: Call `uiLib.init()` before using components in D365

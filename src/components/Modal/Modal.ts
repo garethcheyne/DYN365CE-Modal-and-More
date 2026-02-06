@@ -37,6 +37,7 @@ import {
   AddressLookupFluentUi,
   LookupFluentUi,
   FileUploadFluentUi,
+  FieldGroupFluentUi,
   Slider,
   Field,
   Popover,
@@ -79,6 +80,7 @@ export class Modal implements ModalInstance {
   private debug: boolean = false; // Debug mode flag
   private pendingReactMounts: Array<() => void> = []; // Queue for React mounts to execute after show()
   private initPromise: Promise<void>; // Promise that resolves when modal initialization is complete
+  private updateButtonStatesTimer: number | null = null; // Debounce timer for button state updates
 
   constructor(options: ModalOptions) {
     this.options = {
@@ -353,11 +355,17 @@ export class Modal implements ModalInstance {
     this.createFooter();
 
     // Update button states after React components mount
-    // Use setTimeout to ensure all React useEffect hooks have run
+    // Use multiple timeouts to ensure all React useEffect hooks have run
+    // First check at 50ms, second at 200ms to catch any delayed renders
     setTimeout(() => {
-      this.log('Running delayed updateButtonStates after React mount');
+      this.log('Running initial updateButtonStates after React mount (50ms)');
       this.updateButtonStates();
-    }, 100);
+    }, 50);
+    
+    setTimeout(() => {
+      this.log('Running delayed updateButtonStates after React mount (200ms)');
+      this.updateButtonStates();
+    }, 200);
 
     // If sideCart is enabled, create a wrapper for modal + sideCart
     if (this.options.sideCart?.enabled) {
@@ -399,6 +407,14 @@ export class Modal implements ModalInstance {
       return {
         width: sizeObj.width || 600, // Default to medium width
         height: sizeObj.height || null
+      };
+    }
+
+    // Check if first step has width defined (for wizard modals)
+    if (this.options.progress?.steps?.[0]?.width) {
+      return {
+        width: this.options.progress.steps[0].width,
+        height: this.options.progress.steps[0].height || null
       };
     }
 
@@ -949,6 +965,19 @@ export class Modal implements ModalInstance {
         padding-top: 12px;
       `;
 
+      // Add content/html if provided
+      if (tab.content) {
+        const contentDiv = doc.createElement('div');
+        contentDiv.innerHTML = tab.content;
+        contentDiv.style.marginBottom = '12px';
+        panel.appendChild(contentDiv);
+      } else if (tab.html) {
+        const htmlDiv = doc.createElement('div');
+        htmlDiv.innerHTML = tab.html;
+        htmlDiv.style.marginBottom = '12px';
+        panel.appendChild(htmlDiv);
+      }
+
       if (tab.fields) {
         for (const field of tab.fields) {
           const fieldEl = await this.createField(field);
@@ -996,6 +1025,63 @@ export class Modal implements ModalInstance {
     return container;
   }
 
+  private async createFieldGroup(field: FieldConfig): Promise<HTMLElement> {
+    const doc = getTargetDocument();
+    const container = doc.createElement('div');
+    container.setAttribute('data-field-id', field.id);
+    container.setAttribute('data-field-group', field.id);
+
+    // Set initial visibility based on visibleWhen condition
+    if (field.visibleWhen) {
+      const isVisible = this.evaluateVisibilityCondition(field.visibleWhen);
+      this.fieldVisibilityMap.set(field.id, isVisible);
+      if (!isVisible) {
+        container.style.display = 'none';
+      }
+    } else {
+      this.fieldVisibilityMap.set(field.id, true);
+    }
+
+    // Create field elements for nested fields
+    const fieldElements: HTMLElement[] = [];
+    if (field.fields) {
+      for (const nestedField of field.fields) {
+        const fieldEl = await this.createField(nestedField);
+        if (fieldEl) {
+          fieldElements.push(fieldEl);
+        }
+      }
+    }
+
+    // Create React wrapper component for the group
+    const GroupWrapper = () => {
+      return React.createElement(
+        FieldGroupFluentUi,
+        {
+          id: field.id,
+          label: field.label,
+          content: field.content,
+          border: field.border,
+          collapsible: field.collapsible,
+          defaultCollapsed: field.defaultCollapsed,
+          // Pass children as a prop
+          children: React.createElement('div', {
+            ref: (el: HTMLDivElement | null) => {
+              if (el && el.childElementCount === 0) {
+                fieldElements.forEach(fieldEl => el.appendChild(fieldEl));
+              }
+            },
+            style: { display: 'contents' }
+          })
+        }
+      );
+    };
+
+    mountFluentComponent(container, React.createElement(GroupWrapper), defaultTheme);
+
+    return container;
+  }
+
   private async createField(field: FieldConfig): Promise<HTMLElement | null> {
     const doc = getTargetDocument();
 
@@ -1025,6 +1111,11 @@ export class Modal implements ModalInstance {
         return container;
       }
       return null;
+    }
+
+    // Handle group fields
+    if (field.type === 'group' && field.fields) {
+      return this.createFieldGroup(field);
     }
 
     const container = doc.createElement('div');
@@ -1199,6 +1290,11 @@ export class Modal implements ModalInstance {
               this.fieldValues.set(field.id, newChecked);
               this.updateFieldVisibility(field.id);
               this.updateButtonStates();
+              
+              // Call user's onChange callback if provided
+              if (field.onChange) {
+                field.onChange(newChecked);
+              }
             }
           });
         };
@@ -1272,6 +1368,11 @@ export class Modal implements ModalInstance {
               validateField(value, true);
               this.updateFieldVisibility(field.id);
               this.updateButtonStates();
+              
+              // Call user's onChange callback if provided
+              if (field.onChange) {
+                field.onChange(value);
+              }
             },
             onFocus: () => {
               setTouched(true);
@@ -1324,6 +1425,11 @@ export class Modal implements ModalInstance {
               field.value = value;
               this.updateFieldVisibility(field.id);
               this.updateButtonStates();
+              
+              // Call user's onChange callback if provided
+              if (field.onChange) {
+                field.onChange(value);
+              }
             }
           });
         };
@@ -1368,6 +1474,11 @@ export class Modal implements ModalInstance {
               this.fieldValues.set(field.id, date);
               this.updateFieldVisibility(field.id);
               this.updateButtonStates();
+              
+              // Call user's onChange callback if provided
+              if (field.onChange) {
+                field.onChange(date);
+              }
             }
           });
         };
@@ -1388,6 +1499,9 @@ export class Modal implements ModalInstance {
           display: flex;
           flex-direction: column;
           width: 100%;
+          max-width: 100%;
+          overflow: hidden;
+          box-sizing: border-box;
           ${labelPosition === 'left' ? 'flex: 1;' : ''}
         `;
 
@@ -1509,6 +1623,11 @@ export class Modal implements ModalInstance {
                   this.fieldValues.set(field.id, data.value);
                   this.updateFieldVisibility(field.id);
                   this.updateButtonStates();
+                  
+                  // Call user's onChange callback if provided
+                  if (field.onChange) {
+                    field.onChange(data.value);
+                  }
                 },
                 style: { flex: 1 }
               }),
@@ -1644,6 +1763,11 @@ export class Modal implements ModalInstance {
               this.updateFieldVisibility(field.id);
               console.log(`[Field ${field.id}] Calling updateButtonStates...`);
               this.updateButtonStates();
+              
+              // Call user's onChange callback if provided
+              if (field.onChange) {
+                field.onChange(value);
+              }
             },
             onFocus: () => {
               setTouched(true);
@@ -1792,8 +1916,30 @@ export class Modal implements ModalInstance {
   /**
    * Update button states based on validation requirements
    * Disables buttons with requiresValidation=true when required fields are invalid
+   * 
+   * For wizards:
+   * - Default behavior (requiresValidation: true): validates ALL steps
+   * - To validate only current step: set validateAllSteps: false explicitly
+   * 
+   * Debounced to prevent validation storms from rapid field updates
    */
   private updateButtonStates(): void {
+    // Clear existing timer
+    if (this.updateButtonStatesTimer !== null) {
+      clearTimeout(this.updateButtonStatesTimer);
+    }
+
+    // Debounce validation by 50ms to prevent storms from rapid updates
+    this.updateButtonStatesTimer = window.setTimeout(() => {
+      this.executeButtonStateUpdate();
+      this.updateButtonStatesTimer = null;
+    }, 50);
+  }
+
+  /**
+   * Execute the actual button state update logic
+   */
+  private executeButtonStateUpdate(): void {
     if (!this.options.buttons || this.options.buttons.length === 0) return;
 
     this.options.buttons.forEach((btn) => {
@@ -1807,9 +1953,12 @@ export class Modal implements ModalInstance {
       let isValid = true;
 
       if (this.options.progress?.enabled && this.options.progress.steps) {
-        // For wizard: validate current step OR all steps based on button config
-        if (btn.validateAllSteps) {
-          // Validate ALL steps for buttons like "Finish"
+        // For wizard: default is to validate ALL steps
+        // Set validateAllSteps: false explicitly to only validate current step
+        const shouldValidateAllSteps = btn.validateAllSteps !== false; // Default to true
+        
+        if (shouldValidateAllSteps) {
+          // Validate ALL steps (default for wizards with requiresValidation)
           isValid = this.options.progress.steps.every((_, index) => {
             const stepValid = this.validateStep(index);
             console.log(`[updateButtonStates] Step ${index + 1} validation:`, stepValid);
@@ -1817,9 +1966,9 @@ export class Modal implements ModalInstance {
           });
           console.log(`[updateButtonStates] ${btn.label} button validation result (all steps):`, isValid);
         } else {
-          // Validate only current step for buttons like "Next"
+          // Validate only current step (when validateAllSteps: false)
           isValid = this.validateStep(this.currentStep - 1);
-          console.log(`[updateButtonStates] ${btn.label} button validation result (current step):`, isValid);
+          console.log(`[updateButtonStates] ${btn.label} button validation result (current step only):`, isValid);
         }
       } else if (this.options.fields) {
         // For regular modal: validate all fields
@@ -2083,10 +2232,22 @@ export class Modal implements ModalInstance {
     }, 200);
   }
 
-  setLoading(loading: boolean, message?: string): void {
+  setLoading(loading: boolean, options?: string | { message?: string; progress?: number }): void {
     const doc = getTargetDocument();
 
     if (loading) {
+      // Parse options
+      let message: string | undefined;
+      let progress: number | undefined;
+      
+      if (typeof options === 'string') {
+        message = options;
+      } else if (options && typeof options === 'object') {
+        message = options.message;
+        progress = options.progress;
+      }
+
+      // Create or update loading overlay
       if (!this.loadingOverlay && this.modal) {
         this.loadingOverlay = doc.createElement('div');
         this.loadingOverlay.style.cssText = `
@@ -2095,38 +2256,99 @@ export class Modal implements ModalInstance {
           left: 0;
           width: 100%;
           height: 100%;
-          background: rgba(255, 255, 255, 0.9);
+          background: rgba(255, 255, 255, 0.95);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: ${theme.spacing.m};
+          gap: 16px;
           z-index: 10;
+          border-radius: 8px;
         `;
 
-        const spinner = doc.createElement('div');
-        spinner.style.cssText = `
-          width: 48px;
-          height: 48px;
-          border: 4px solid ${theme.colors.modal.divider};
-          border-top-color: ${theme.colors.modal.primary};
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        `;
+        this.modal.appendChild(this.loadingOverlay);
+      }
 
-        this.loadingOverlay.appendChild(spinner);
+      // Clear existing content
+      if (this.loadingOverlay) {
+        this.loadingOverlay.innerHTML = '';
 
+        // Show spinner or progress bar
+        if (progress !== undefined && progress >= 0 && progress <= 100) {
+          // Progress bar container
+          const progressContainer = doc.createElement('div');
+          progressContainer.style.cssText = `
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+          `;
+
+          // Progress bar background
+          const progressBar = doc.createElement('div');
+          progressBar.style.cssText = `
+            width: 100%;
+            height: 8px;
+            background: ${theme.colors.modal.divider};
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+          `;
+
+          // Progress bar fill
+          const progressFill = doc.createElement('div');
+          progressFill.style.cssText = `
+            height: 100%;
+            width: ${progress}%;
+            background: ${theme.colors.modal.primary};
+            border-radius: 4px;
+            transition: width 0.3s ease;
+          `;
+          progressFill.setAttribute('data-progress-fill', 'true');
+
+          progressBar.appendChild(progressFill);
+          progressContainer.appendChild(progressBar);
+
+          // Progress percentage text
+          const progressText = doc.createElement('div');
+          progressText.textContent = `${Math.round(progress)}%`;
+          progressText.style.cssText = `
+            color: ${theme.colors.modal.text};
+            font-size: ${theme.typography.fontSize.subtitle};
+            font-weight: 600;
+          `;
+          progressText.setAttribute('data-progress-text', 'true');
+          progressContainer.appendChild(progressText);
+
+          this.loadingOverlay.appendChild(progressContainer);
+        } else {
+          // Spinner (default)
+          const spinner = doc.createElement('div');
+          spinner.style.cssText = `
+            width: 48px;
+            height: 48px;
+            border: 4px solid ${theme.colors.modal.divider};
+            border-top-color: ${theme.colors.modal.primary};
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          `;
+          this.loadingOverlay.appendChild(spinner);
+        }
+
+        // Message
         if (message) {
           const messageEl = doc.createElement('div');
           messageEl.textContent = message;
           messageEl.style.cssText = `
             color: ${theme.colors.modal.text};
             font-size: ${theme.typography.fontSize.body};
+            text-align: center;
+            max-width: 400px;
           `;
+          messageEl.setAttribute('data-loading-message', 'true');
           this.loadingOverlay.appendChild(messageEl);
         }
-
-        this.modal.appendChild(this.loadingOverlay);
       }
     } else {
       if (this.loadingOverlay?.parentElement) {
@@ -2145,6 +2367,43 @@ export class Modal implements ModalInstance {
     this.stepPanels.forEach((panel, index) => {
       panel.style.display = index + 1 === step ? 'flex' : 'none';
     });
+
+    // Apply step-specific width/height if defined
+    if (this.modal && this.options.progress?.steps) {
+      const currentStepConfig = this.options.progress.steps[step - 1];
+      if (currentStepConfig) {
+        // Extract width/height from size object if provided (same as modal constructor)
+        let stepWidth = currentStepConfig.width;
+        let stepHeight = currentStepConfig.height;
+        
+        // Check if size is an object with width/height properties
+        if (typeof (currentStepConfig as any).size === 'object' && (currentStepConfig as any).size !== null) {
+          const sizeObj = (currentStepConfig as any).size;
+          if (sizeObj.width !== undefined) {
+            stepWidth = sizeObj.width;
+          }
+          if (sizeObj.height !== undefined) {
+            stepHeight = sizeObj.height;
+          }
+        }
+        
+        // Apply step-specific width
+        if (stepWidth !== undefined) {
+          const width = typeof stepWidth === 'number' 
+            ? `${stepWidth}px` 
+            : stepWidth;
+          this.modal.style.width = width;
+        }
+        
+        // Apply step-specific height
+        if (stepHeight !== undefined) {
+          const height = typeof stepHeight === 'number' 
+            ? `${stepHeight}px` 
+            : stepHeight;
+          this.modal.style.height = height;
+        }
+      }
+    }
 
     // Update step indicator
     this.updateStepIndicator();
@@ -2180,38 +2439,71 @@ export class Modal implements ModalInstance {
     const step = this.options.progress.steps[stepIndex];
     if (!step?.fields) return true;
 
-    // Check all required fields in this step
-    for (const field of step.fields) {
-      // Skip hidden fields - if visibleWhen is false, don't validate
-      if (field.visibleWhen) {
-        const isVisible = this.evaluateVisibilityCondition(field.visibleWhen);
-        if (!isVisible) {
-          continue; // Skip this field
-        }
-      }
+    console.log(`[validateStep] Validating step ${stepIndex + 1}:`, step.label || step.id);
 
-      // Determine if field is required
-      let isRequired = false;
+    // Recursive function to validate fields (including all nested structures: groups, tabs, etc.)
+    const validateFields = (fields: FieldConfig[], depth: number = 0): boolean => {
+      const indent = '  '.repeat(depth);
       
-      // If requiredWhen is specified, use that condition
-      if (field.requiredWhen) {
-        isRequired = this.evaluateVisibilityCondition(field.requiredWhen);
-      } else {
-        // Otherwise use the static required property
-        isRequired = field.required || false;
-      }
+      for (const field of fields) {
+        console.log(`${indent}[validateStep] Checking field:`, field.id, `type: ${field.type}`);
+        
+        // Skip hidden fields - if visibleWhen is false, don't validate
+        if (field.visibleWhen) {
+          const isVisible = this.evaluateVisibilityCondition(field.visibleWhen);
+          console.log(`${indent}[validateStep] Field ${field.id} visibleWhen:`, field.visibleWhen, `result: ${isVisible}`);
+          if (!isVisible) {
+            console.log(`${indent}[validateStep] Field ${field.id} is hidden, skipping`);
+            continue; // Skip this field
+          }
+        }
 
-      if (isRequired) {
-        const value = this.getFieldValue(field.id);
-        // Empty values: null, undefined, empty string, empty array
-        if (value === null || value === undefined || value === '' || 
-            (Array.isArray(value) && value.length === 0)) {
-          return false;
+        // If this field contains nested fields (group, tabs, or any container), recursively validate
+        if (field.fields && field.fields.length > 0) {
+          console.log(`${indent}[validateStep] Field ${field.id} has ${field.fields.length} nested fields`);
+          if (!validateFields(field.fields, depth + 1)) {
+            console.log(`${indent}[validateStep] Nested field validation failed for ${field.id}`);
+            return false;
+          }
+          // If this is just a container (group, tabs), don't validate the container itself
+          if (field.type === 'group' || field.asTabs) {
+            console.log(`${indent}[validateStep] Field ${field.id} is container, skipping self-validation`);
+            continue;
+          }
+        }
+
+        // Determine if field is required
+        let isRequired = false;
+        
+        // If requiredWhen is specified, use that condition
+        if (field.requiredWhen) {
+          isRequired = this.evaluateVisibilityCondition(field.requiredWhen);
+          console.log(`${indent}[validateStep] Field ${field.id} requiredWhen:`, field.requiredWhen, `result: ${isRequired}`);
+        } else {
+          // Otherwise use the static required property
+          isRequired = field.required || false;
+          console.log(`${indent}[validateStep] Field ${field.id} static required: ${isRequired}`);
+        }
+
+        if (isRequired) {
+          const value = this.getFieldValue(field.id);
+          console.log(`${indent}[validateStep] Field ${field.id} is required, value:`, value, `type: ${typeof value}`);
+          
+          // Empty values: null, undefined, empty string, empty array
+          if (value === null || value === undefined || value === '' || 
+              (Array.isArray(value) && value.length === 0)) {
+            console.log(`${indent}[validateStep] ❌ Field ${field.id} is EMPTY and required!`);
+            return false;
+          }
+          console.log(`${indent}[validateStep] ✅ Field ${field.id} has value`);
         }
       }
-    }
+      return true;
+    };
 
-    return true;
+    const result = validateFields(step.fields);
+    console.log(`[validateStep] Step ${stepIndex + 1} validation result:`, result);
+    return result;
   }
 
   /**
@@ -2225,30 +2517,43 @@ export class Modal implements ModalInstance {
 
     const missingFields: string[] = [];
 
-    for (const field of step.fields) {
-      // Skip hidden fields
-      if (field.visibleWhen) {
-        const isVisible = this.evaluateVisibilityCondition(field.visibleWhen);
-        if (!isVisible) continue;
-      }
+    // Recursive function to collect missing fields (including all nested structures: groups, tabs, etc.)
+    const collectMissingFields = (fields: FieldConfig[]) => {
+      for (const field of fields) {
+        // Skip hidden fields
+        if (field.visibleWhen) {
+          const isVisible = this.evaluateVisibilityCondition(field.visibleWhen);
+          if (!isVisible) continue;
+        }
 
-      // Determine if field is required
-      let isRequired = false;
-      if (field.requiredWhen) {
-        isRequired = this.evaluateVisibilityCondition(field.requiredWhen);
-      } else {
-        isRequired = field.required || false;
-      }
+        // If this field contains nested fields (group, tabs, or any container), recursively check
+        if (field.fields && field.fields.length > 0) {
+          collectMissingFields(field.fields);
+          // If this is just a container (group, tabs), don't validate the container itself
+          if (field.type === 'group' || field.asTabs) {
+            continue;
+          }
+        }
 
-      if (isRequired) {
-        const value = this.getFieldValue(field.id);
-        if (value === null || value === undefined || value === '' || 
-            (Array.isArray(value) && value.length === 0)) {
-          missingFields.push(field.label || field.id);
+        // Determine if field is required
+        let isRequired = false;
+        if (field.requiredWhen) {
+          isRequired = this.evaluateVisibilityCondition(field.requiredWhen);
+        } else {
+          isRequired = field.required || false;
+        }
+
+        if (isRequired) {
+          const value = this.getFieldValue(field.id);
+          if (value === null || value === undefined || value === '' || 
+              (Array.isArray(value) && value.length === 0)) {
+            missingFields.push(field.label || field.id);
+          }
         }
       }
-    }
+    };
 
+    collectMissingFields(step.fields);
     return missingFields;
   }
 

@@ -5,9 +5,10 @@
  */
 
 import React, { useState } from 'react';
-import { Dropdown, Option, Field, Button, Tooltip } from '@fluentui/react-components';
+import { Dropdown, Option, Field, Button, Tooltip, mergeClasses } from '@fluentui/react-components';
 import { Info16Regular } from '@fluentui/react-icons';
 import type { DropdownProps } from '@fluentui/react-components';
+import { useSharedStyles } from './sharedStyles';
 
 interface DropdownFluentUiProps {
     id?: string;
@@ -36,6 +37,7 @@ export const DropdownFluentUi: React.FC<DropdownFluentUiProps> = ({
     displayMode = 'dropdown',
     onChange,
 }) => {
+    const sharedStyles = useSharedStyles();
     const [selectedValue, setSelectedValue] = useState<string>(initialValue);
 
     const handleChange: DropdownProps['onOptionSelect'] = (_, data) => {
@@ -54,34 +56,29 @@ export const DropdownFluentUi: React.FC<DropdownFluentUiProps> = ({
         }
     };
 
+    // If no label, force vertical orientation for full width
+    const effectiveOrientation = !label ? 'vertical' : orientation;
+
+    // Create label with tooltip icon if tooltip is provided
+    const labelContent = label && tooltip ? (
+        <span className={sharedStyles.labelWithTooltip}>
+            <span>{label}</span>
+            <Tooltip content={tooltip} relationship="label">
+                <Info16Regular className={sharedStyles.tooltipIcon} />
+            </Tooltip>
+        </span>
+    ) : label;
+
     // Badge display mode
     if (displayMode === 'badges') {
-        // If no label, force vertical orientation for full width
-        const effectiveOrientation = !label ? 'vertical' : orientation;
-        
-        // Create label with tooltip icon if tooltip is provided
-        const labelContent = label && tooltip ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <span>{label}</span>
-                <Tooltip content={tooltip} relationship="label">
-                    <Info16Regular style={{ color: '#605e5c', cursor: 'help' }} />
-                </Tooltip>
-            </span>
-        ) : label;
-        
         return (
             <Field
                 label={labelContent}
                 required={required}
                 orientation={effectiveOrientation}
-                style={{ marginBottom: '8px' }}
+                className={sharedStyles.field}
             >
-                <div style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '8px',
-                    alignItems: 'center'
-                }}>
+                <div className={sharedStyles.badgeContainer}>
                     {options.map((option, index) => {
                         const isSelected = selectedValue === option;
                         return (
@@ -90,14 +87,10 @@ export const DropdownFluentUi: React.FC<DropdownFluentUiProps> = ({
                                 appearance={isSelected ? 'primary' : 'outline'}
                                 disabled={disabled}
                                 onClick={() => handleBadgeClick(option)}
-                                style={{
-                                    borderRadius: '16px',
-                                    minWidth: 'auto',
-                                    paddingLeft: '16px',
-                                    paddingRight: '16px',
-                                    fontSize: '14px',
-                                    fontWeight: isSelected ? 600 : 400,
-                                }}
+                                className={mergeClasses(
+                                    sharedStyles.badgeButton,
+                                    isSelected ? sharedStyles.badgeButtonSelected : sharedStyles.badgeButtonUnselected
+                                )}
                             >
                                 {option}
                             </Button>
@@ -109,25 +102,12 @@ export const DropdownFluentUi: React.FC<DropdownFluentUiProps> = ({
     }
 
     // Default dropdown display mode
-    // If no label, force vertical orientation for full width
-    const effectiveOrientation = !label ? 'vertical' : orientation;
-    
-    // Create label with tooltip icon if tooltip is provided
-    const labelContent = label && tooltip ? (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <span>{label}</span>
-            <Tooltip content={tooltip} relationship="label">
-                <Info16Regular style={{ color: '#605e5c', cursor: 'help' }} />
-            </Tooltip>
-        </span>
-    ) : label;
-    
     return (
         <Field
             label={labelContent}
             required={required}
             orientation={effectiveOrientation}
-            style={{ marginBottom: '8px' }}
+            className={sharedStyles.field}
         >
             <Dropdown
                 id={id}
@@ -136,7 +116,7 @@ export const DropdownFluentUi: React.FC<DropdownFluentUiProps> = ({
                 disabled={disabled}
                 appearance="filled-darker"
                 onOptionSelect={handleChange}
-                style={{ width: '100%' }}
+                className={sharedStyles.fullWidth}
             >
                 {options.map((option, index) => (
                     <Option key={index} value={option}>

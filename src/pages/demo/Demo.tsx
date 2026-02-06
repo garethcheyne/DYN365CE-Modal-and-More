@@ -434,6 +434,82 @@ export const Demo: React.FC = () => {
     modal.show();
   };
 
+  const showFieldGroupsModal = () => {
+    const modal = new uiLib.Modal({
+      title: 'New Contact with Field Groups',
+      size: 'large',
+      fields: [
+        // Group without border - just title and divider
+        {
+          id: 'personalInfoGroup',
+          type: 'group',
+          label: 'Personal Information',
+          content: 'Enter the contact\'s basic details below.',
+          fields: [
+            { id: 'firstName', label: 'First Name', type: 'text', required: true, placeholder: 'Enter first name' },
+            { id: 'lastName', label: 'Last Name', type: 'text', required: true, placeholder: 'Enter last name' },
+            { id: 'email', label: 'Email', type: 'email', placeholder: 'example@company.com' },
+            { id: 'phone', label: 'Phone', type: 'text', placeholder: '+1 (555) 123-4567' }
+          ]
+        },
+        // Group with border - card-like section
+        {
+          id: 'addressGroup',
+          type: 'group',
+          label: 'Address Details',
+          content: 'Physical address information.',
+          border: true,
+          fields: [
+            { id: 'street', label: 'Street', type: 'text', placeholder: '123 Main St' },
+            { id: 'city', label: 'City', type: 'text', placeholder: 'New York' },
+            { id: 'state', label: 'State/Province', type: 'text', placeholder: 'NY' },
+            { id: 'postalCode', label: 'Postal Code', type: 'text', placeholder: '10001' }
+          ]
+        },
+        // Collapsible group with border
+        {
+          id: 'preferencesGroup',
+          type: 'group',
+          label: 'Communication Preferences',
+          content: 'Configure notification settings.',
+          border: true,
+          collapsible: true,
+          defaultCollapsed: false,
+          fields: [
+            { id: 'emailNotifications', label: 'Email Notifications', type: 'switch', value: true },
+            { id: 'smsNotifications', label: 'SMS Notifications', type: 'switch', value: false },
+            { id: 'newsletter', label: 'Subscribe to Newsletter', type: 'checkbox', value: false }
+          ]
+        },
+        // Collapsible group - starts collapsed
+        {
+          id: 'advancedGroup',
+          type: 'group',
+          label: 'Advanced Options',
+          border: true,
+          collapsible: true,
+          defaultCollapsed: true,
+          fields: [
+            { id: 'notes', label: 'Notes', type: 'textarea', rows: 3, placeholder: 'Additional notes...' },
+            { id: 'tags', label: 'Tags', type: 'text', placeholder: 'Comma-separated tags' }
+          ]
+        }
+      ],
+      buttons: [
+        new uiLib.Button('Cancel', () => { }),
+        new uiLib.Button('Create Contact', () => {
+          const data = modal.getFieldValues();
+          uiLib.ModalHelpers.alert(
+            'Form Data Submitted',
+            formatJsonWithStyle(data)
+          );
+          uiLib.Toast.success({ title: 'Contact Created', message: `${data.firstName} ${data.lastName} has been created.` });
+        }, true)
+      ]
+    });
+    modal.show();
+  };
+
   const showTabsModal = () => {
     const modal = new uiLib.Modal({
       title: 'Account Settings',
@@ -745,6 +821,225 @@ export const Demo: React.FC = () => {
 
           return true;
         }, true)
+      ]
+    });
+    modal.show();
+  };
+
+  // SideCart Demo
+  const showSideCartDemo = () => {
+    const modal = new uiLib.Modal({
+      title: 'Product Details',
+      size: 'large',
+      sideCart: {
+        enabled: true,
+        position: 'left',
+        width: 280,
+        imageUrl: 'https://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RWBrzy?ver=85d4',
+        backgroundColor: '#f3f2f1',
+        content: `
+          <div style="padding: 16px;">
+            <h3 style="margin: 0 0 12px 0; color: #323130;">Surface Laptop 5</h3>
+            <p style="color: #605e5c; font-size: 13px; margin: 0 0 16px 0;">The perfect everyday laptop with a stunning touchscreen display.</p>
+            <div style="background: #fff; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
+              <div style="font-size: 24px; font-weight: 600; color: #0078d4;">$1,299.00</div>
+              <div style="font-size: 12px; color: #107c10;">✓ In Stock</div>
+            </div>
+            <ul style="padding-left: 20px; margin: 0; color: #605e5c; font-size: 13px;">
+              <li>13.5" PixelSense Display</li>
+              <li>Intel Core i7</li>
+              <li>16GB RAM / 512GB SSD</li>
+              <li>Up to 18 hours battery</li>
+            </ul>
+          </div>
+        `
+      },
+      fields: [
+        { id: 'quantity', label: 'Quantity', type: 'number', value: 1, required: true },
+        { id: 'color', label: 'Color', type: 'select', displayMode: 'badges', options: ['Platinum', 'Matte Black', 'Sage', 'Sandstone'], value: 'Platinum' },
+        { id: 'warranty', label: 'Extended Warranty', type: 'switch', value: false },
+        { id: 'notes', label: 'Order Notes', type: 'textarea', rows: 3, placeholder: 'Special instructions...' }
+      ],
+      buttons: [
+        new uiLib.Button({ label: 'Cancel', callback: () => true, id: 'cancelBtn' }),
+        new uiLib.Button({
+          label: 'Add to Cart',
+          callback: () => {
+            const data = modal.getFieldValues();
+            uiLib.Toast.success({ title: 'Added to Cart', message: `${data.quantity}x Surface Laptop 5 (${data.color})` });
+            return true;
+          },
+          setFocus: true,
+          id: 'addBtn'
+        })
+      ]
+    });
+    modal.show();
+  };
+
+  // AutoSave Demo
+  const showAutoSaveDemo = () => {
+    const modal = new uiLib.Modal({
+      title: 'Draft Email (Auto-Saved)',
+      size: 'medium',
+      autoSave: true,
+      autoSaveKey: 'demo-email-draft',
+      message: 'Your changes are automatically saved. Close and reopen to see restored values.',
+      fields: [
+        { id: 'to', label: 'To', type: 'email', required: true, placeholder: 'recipient@example.com' },
+        { id: 'subject', label: 'Subject', type: 'text', required: true, placeholder: 'Enter subject...' },
+        { id: 'priority', label: 'Priority', type: 'select', displayMode: 'badges', options: ['Low', 'Normal', 'High', 'Urgent'], value: 'Normal' },
+        { id: 'body', label: 'Message', type: 'textarea', rows: 6, placeholder: 'Type your message here...' }
+      ],
+      buttons: [
+        new uiLib.Button({
+          label: 'Clear Draft',
+          callback: () => {
+            modal.clearAutoSave();
+            uiLib.Toast.info({ title: 'Draft Cleared', message: 'Auto-saved data has been removed.' });
+            return true;
+          },
+          id: 'clearBtn'
+        }),
+        new uiLib.Button({ label: 'Cancel', callback: () => true, id: 'cancelBtn' }),
+        new uiLib.Button({
+          label: 'Send',
+          callback: () => {
+            const data = modal.getFieldValues();
+            modal.clearAutoSave();
+            uiLib.Toast.success({ title: 'Email Sent', message: `Sent to ${data.to}` });
+            return true;
+          },
+          setFocus: true,
+          id: 'sendBtn'
+        })
+      ]
+    });
+    modal.show();
+  };
+
+  // Loading with Progress Demo
+  const showLoadingProgressDemo = async () => {
+    const modal = new uiLib.Modal({
+      title: 'Data Sync',
+      message: 'Click "Start Sync" to see the loading progress animation.',
+      fields: [
+        { id: 'syncType', label: 'Sync Type', type: 'select', displayMode: 'badges', options: ['Accounts', 'Contacts', 'Products', 'All'], value: 'All' }
+      ],
+      buttons: [
+        new uiLib.Button({ label: 'Cancel', callback: () => true, id: 'cancelBtn' }),
+        new uiLib.Button({
+          label: 'Start Sync',
+          callback: async () => {
+            const steps = ['Connecting...', 'Syncing Accounts...', 'Syncing Contacts...', 'Syncing Products...', 'Finalizing...'];
+
+            for (let i = 0; i < steps.length; i++) {
+              const progress = Math.round(((i + 1) / steps.length) * 100);
+              modal.setLoading(true, { message: steps[i], progress });
+              await new Promise(resolve => setTimeout(resolve, 800));
+            }
+
+            modal.setLoading(false);
+            uiLib.Toast.success({ title: 'Sync Complete', message: 'All data synchronized successfully!', sound: true });
+            return true;
+          },
+          setFocus: true,
+          id: 'syncBtn'
+        })
+      ]
+    });
+    modal.show();
+  };
+
+  // ModalHelpers Demo
+  const showAlertDemo = async () => {
+    await uiLib.ModalHelpers.alert('Welcome!', 'This is a simple alert message using ModalHelpers.');
+    uiLib.Toast.info({ title: 'Alert Closed', message: 'User acknowledged the alert.' });
+  };
+
+  const showConfirmDemo = async () => {
+    const confirmed = await uiLib.ModalHelpers.confirm('Delete Record?', 'This action cannot be undone. Are you sure you want to proceed?', 'warning');
+    if (confirmed) {
+      uiLib.Toast.success({ title: 'Confirmed', message: 'User chose to proceed.' });
+    } else {
+      uiLib.Toast.info({ title: 'Cancelled', message: 'User cancelled the action.' });
+    }
+  };
+
+  const showPromptDemo = async () => {
+    const name = await uiLib.ModalHelpers.prompt('Enter Your Name', 'What should we call you?', 'Guest');
+    if (name) {
+      uiLib.Toast.success({ title: 'Hello!', message: `Nice to meet you, ${name}!` });
+    } else {
+      uiLib.Toast.info({ title: 'Cancelled', message: 'No name was entered.' });
+    }
+  };
+
+  // Field Groups Demo
+  const showFieldGroupsDemo = () => {
+    const modal = new uiLib.Modal({
+      title: 'Customer Profile',
+      size: 'large',
+      fields: [
+        {
+          id: 'personalInfo',
+          type: 'group',
+          label: 'Personal Information',
+          description: 'Basic customer details',
+          collapsible: true,
+          collapsed: false,
+          border: true,
+          fields: [
+            { id: 'firstName', label: 'First Name', type: 'text', required: true },
+            { id: 'lastName', label: 'Last Name', type: 'text', required: true },
+            { id: 'email', label: 'Email', type: 'email', required: true },
+            { id: 'phone', label: 'Phone', type: 'tel' }
+          ]
+        },
+        {
+          id: 'addressInfo',
+          type: 'group',
+          label: 'Address',
+          description: 'Shipping and billing address',
+          collapsible: true,
+          collapsed: true,
+          border: true,
+          fields: [
+            { id: 'street', label: 'Street', type: 'text' },
+            { id: 'city', label: 'City', type: 'text' },
+            { id: 'state', label: 'State', type: 'text' },
+            { id: 'zip', label: 'Postal Code', type: 'text' }
+          ]
+        },
+        {
+          id: 'preferences',
+          type: 'group',
+          label: 'Preferences',
+          description: 'Communication settings',
+          collapsible: true,
+          collapsed: true,
+          border: true,
+          fields: [
+            { id: 'newsletter', label: 'Subscribe to Newsletter', type: 'switch', value: true },
+            { id: 'sms', label: 'SMS Notifications', type: 'switch', value: false },
+            { id: 'language', label: 'Preferred Language', type: 'select', options: ['English', 'Spanish', 'French', 'German'], value: 'English' }
+          ]
+        }
+      ],
+      buttons: [
+        new uiLib.Button({ label: 'Cancel', callback: () => true, id: 'cancelBtn' }),
+        new uiLib.Button({
+          label: 'Save Profile',
+          callback: () => {
+            const data = modal.getFieldValues();
+            console.log('Profile data:', data);
+            uiLib.Toast.success({ title: 'Profile Saved', message: `${data.firstName} ${data.lastName}'s profile has been saved.` });
+            return true;
+          },
+          setFocus: true,
+          requiresValidation: true,
+          id: 'saveBtn'
+        })
       ]
     });
     modal.show();
@@ -1266,6 +1561,7 @@ const uploadModal = new uiLib.Modal({
               <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showAllFieldTypes}>All Field Types</button>
               <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showAddressLookupForm}>📍 Address Lookup</button>
               <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showFileUploadDemo}>📎 File Upload</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showFieldGroupsModal}>📦 Field Groups</button>
             </div>
           </Section>
           <Section title="Advanced Features">
@@ -1389,6 +1685,212 @@ const validationModal = new uiLib.Modal({
               <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showSimpleTable}>Simple Table</button>
               <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showTableWithSelection}>With Selection</button>
               <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showProductValidationDialog}>🎯 Real-World Example</button>
+            </div>
+          </Section>
+        </Card>
+
+        {/* SideCart Component */}
+        <Card
+          title="SideCart"
+          badge="ready"
+          description="Display product images, summaries, or additional context in a side panel attached to the modal."
+          code={`const modal = new uiLib.Modal({
+  title: 'Product Details',
+  size: 'large',
+  sideCart: {
+    enabled: true,
+    position: 'left',        // 'left' or 'right'
+    width: 280,              // Width in pixels
+    imageUrl: 'https://...',  // Product/hero image
+    backgroundColor: '#f3f2f1',
+    content: \`
+      <div style="padding: 16px;">
+        <h3>Surface Laptop 5</h3>
+        <p>$1,299.00</p>
+        <ul>
+          <li>13.5" Display</li>
+          <li>Intel Core i7</li>
+        </ul>
+      </div>
+    \`
+  },
+  fields: [
+    { id: 'quantity', label: 'Quantity', type: 'number', value: 1 },
+    { id: 'color', label: 'Color', type: 'select', options: ['Platinum', 'Black'] }
+  ],
+  buttons: [
+    new uiLib.Button({ label: 'Add to Cart', callback: () => true, setFocus: true })
+  ]
+});`}
+        >
+          <Section title="SideCart Demo">
+            <div className="ui-lib-d365-btn-group">
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showSideCartDemo}>🛒 Product with SideCart</button>
+            </div>
+          </Section>
+          <div className="ui-lib-d365-note ui-lib-d365-note--info">
+            <span className="ui-lib-d365-note__icon">💡</span>
+            <span>SideCart is great for e-commerce, product details, or showing related information alongside forms.</span>
+          </div>
+        </Card>
+
+        {/* AutoSave Feature */}
+        <Card
+          title="AutoSave"
+          badge="ready"
+          description="Automatically save form data to localStorage and restore it when the modal reopens."
+          code={`const modal = new uiLib.Modal({
+  title: 'Draft Email',
+  autoSave: true,                    // Enable auto-save
+  autoSaveKey: 'my-draft-email',     // Unique key for localStorage
+  fields: [
+    { id: 'to', label: 'To', type: 'email' },
+    { id: 'subject', label: 'Subject', type: 'text' },
+    { id: 'body', label: 'Message', type: 'textarea' }
+  ],
+  buttons: [
+    new uiLib.Button({
+      label: 'Clear Draft',
+      callback: () => {
+        modal.clearAutoSave();  // Clear saved data
+        return true;
+      }
+    }),
+    new uiLib.Button({
+      label: 'Send',
+      callback: () => {
+        modal.clearAutoSave();  // Clear on successful send
+        return true;
+      },
+      setFocus: true
+    })
+  ]
+});`}
+        >
+          <Section title="AutoSave Demo">
+            <div className="ui-lib-d365-btn-group">
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showAutoSaveDemo}>📝 Draft Email (AutoSave)</button>
+            </div>
+          </Section>
+          <div className="ui-lib-d365-note ui-lib-d365-note--warning">
+            <span className="ui-lib-d365-note__icon">💾</span>
+            <span>Try typing in fields, close the modal, then reopen - your data is restored!</span>
+          </div>
+        </Card>
+
+        {/* Loading with Progress */}
+        <Card
+          title="Loading States"
+          badge="ready"
+          description="Show loading spinners with optional progress bars for long-running operations."
+          code={`// Simple loading
+modal.setLoading(true, 'Processing...');
+
+// Loading with progress bar
+modal.setLoading(true, {
+  message: 'Syncing records...',
+  progress: 50  // 0-100 percentage
+});
+
+// Turn off loading
+modal.setLoading(false);
+
+// Example: Batch update with progress
+for (let i = 0; i < records.length; i++) {
+  const progress = Math.round(((i + 1) / records.length) * 100);
+  modal.setLoading(true, {
+    message: \`Processing \${i + 1} of \${records.length}...\`,
+    progress: progress
+  });
+  await processRecord(records[i]);
+}
+modal.setLoading(false);`}
+        >
+          <Section title="Loading Demo">
+            <div className="ui-lib-d365-btn-group">
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showLoadingProgressDemo}>⏳ Sync with Progress</button>
+            </div>
+          </Section>
+        </Card>
+
+        {/* ModalHelpers */}
+        <Card
+          title="ModalHelpers"
+          badge="ready"
+          description="Quick helper methods for common dialog patterns: alert, confirm, and prompt."
+          code={`// Alert - Simple message with OK button
+await uiLib.ModalHelpers.alert('Welcome!', 'Thanks for using our app.');
+await uiLib.ModalHelpers.alert('Success', 'Record saved.', 'success');
+
+// Confirm - Yes/No dialog, returns boolean
+const confirmed = await uiLib.ModalHelpers.confirm(
+  'Delete Record?',
+  'This cannot be undone.',
+  'warning'  // Optional: 'success', 'warning', 'error', 'info'
+);
+if (confirmed) {
+  // User clicked Yes
+}
+
+// Prompt - Get text input from user
+const name = await uiLib.ModalHelpers.prompt(
+  'Enter Name',
+  'What should we call you?',
+  'Guest'  // Default value
+);
+if (name) {
+  console.log('User entered:', name);
+}`}
+        >
+          <Section title="Quick Dialogs">
+            <div className="ui-lib-d365-btn-group">
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showAlertDemo}>Alert</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--warning" onClick={showConfirmDemo}>Confirm</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showPromptDemo}>Prompt</button>
+            </div>
+          </Section>
+        </Card>
+
+        {/* Field Groups */}
+        <Card
+          title="Field Groups"
+          badge="ready"
+          description="Organize complex forms with collapsible, bordered field groups."
+          code={`const modal = new uiLib.Modal({
+  title: 'Customer Profile',
+  fields: [
+    {
+      id: 'personalInfo',
+      type: 'group',
+      label: 'Personal Information',
+      description: 'Basic customer details',
+      collapsible: true,
+      collapsed: false,  // Start expanded
+      border: true,
+      fields: [
+        { id: 'firstName', label: 'First Name', type: 'text', required: true },
+        { id: 'lastName', label: 'Last Name', type: 'text', required: true },
+        { id: 'email', label: 'Email', type: 'email' }
+      ]
+    },
+    {
+      id: 'addressInfo',
+      type: 'group',
+      label: 'Address',
+      collapsible: true,
+      collapsed: true,  // Start collapsed
+      border: true,
+      fields: [
+        { id: 'street', label: 'Street', type: 'text' },
+        { id: 'city', label: 'City', type: 'text' }
+      ]
+    }
+  ]
+});`}
+        >
+          <Section title="Field Groups Demo">
+            <div className="ui-lib-d365-btn-group">
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showFieldGroupsDemo}>👤 Customer Profile</button>
             </div>
           </Section>
         </Card>

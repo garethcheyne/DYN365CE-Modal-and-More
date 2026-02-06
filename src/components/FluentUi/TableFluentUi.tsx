@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   DataGrid,
   DataGridBody,
@@ -60,15 +60,16 @@ interface TableRow {
 const useStyles = makeStyles({
   container: {
     maxHeight: '400px',
-    width: '100%',
-    overflow: 'auto',
+    width: '100%',               // Fill available space
+    overflow: 'auto',            // Allow both horizontal and vertical scroll
     backgroundColor: tokens.colorNeutralBackground1,
-    padding: '8px',
+    padding: '0',                // No padding - maximize table space
     boxSizing: 'border-box',
+    position: 'relative',        // Establish positioning context
   },
   dataGrid: {
-    width: '100%',
-    tableLayout: 'auto',
+    width: 'fit-content',        // Size based on column widths - no stretching
+    tableLayout: 'fixed',        // Fixed layout respects column widths strictly
     backgroundColor: tokens.colorNeutralBackground1,
     '& .fui-DataGridHeader': {
       backgroundColor: 'transparent',
@@ -90,6 +91,7 @@ const useStyles = makeStyles({
       textTransform: 'none',
       letterSpacing: 'normal',
       border: `2px solid transparent`,  // Transparent border by default (prevents size shift)
+      whiteSpace: 'nowrap',      // Prevent header text wrapping
       '&:hover': {
         backgroundColor: 'transparent',  // No background change
         border: '2px solid #0078d4',  // Change border color only (D365 style)
@@ -105,14 +107,16 @@ const useStyles = makeStyles({
       padding: '0 12px',  // 12px left and right padding
       height: '42px',  // D365 row height
       borderRight: 'none',
+      borderBottom: '1px solid #edebe9',  // Horizontal separator between rows (D365 style)
       overflow: 'hidden',
+      whiteSpace: 'nowrap',      // Prevent cell content wrapping
     },
   },
   truncatedCell: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    width: '100%',
+    maxWidth: '100%',            // Use maxWidth instead of width to allow shrinking
     display: 'inline-block',
   },
   emptyState: {
@@ -154,6 +158,30 @@ const useStyles = makeStyles({
 
 export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectionChange }) => {
   const styles = useStyles();
+
+  // Container ref for measuring available width
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
+
+  // Measure container width using ResizeObserver
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Initial measurement
+    setContainerWidth(container.clientWidth);
+
+    // Watch for resize
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        setContainerWidth(width);
+      }
+    });
+
+    resizeObserver.observe(container);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   // Safety check: Ensure config has required properties
   if (!config || !config.tableColumns || config.tableColumns.length === 0) {
@@ -677,19 +705,140 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     );
   };
 
-  // Create column sizing options from column widths
-  const columnSizingOptions = useMemo(() => {
-    const sizing: { [key: string]: { minWidth?: number; defaultWidth?: number; idealWidth?: number } } = {};
-    (config.tableColumns || []).forEach(col => {
+  // Calculate column widths based on container width
+  // - Fixed columns (width property): exact pixel width, won't change
+  // - Flexible columns (minWidth property): expand to fill remaining space
+  const { columnSizingOptions, calculatedTableWidth } = useMemo(() => {
+    const visibleColumns = (config.tableColumns || []).filter(col => col.visible !== false);
+    
+    // Selection column takes space if enabled
+    const selectionColumnWidth = (config.selectionMode && config.selectionMode !== 'none') ? 48 : 0;
+    
+    // Available width for data columns
+    const availableWidth = containerWidth > 0 ? containerWidth - selectionColumnWidth : 0;
+    
+    // Separate fixed and flexible columns
+    const fixedColumns: { id: string; width: number }[] = [];
+    const flexibleColumns: { id: string; minWidth: number }[] = [];
+    
+    visibleColumns.forEach(col => {
       if (col.width) {
-        sizing[col.id] = {
-          minWidth: 50,
-          idealWidth: parseInt(col.width) || undefined,
-        };
+        const widthStr = String(col.width).toLowerCase();
+        
+        // 'auto' means flexible column that fills remaining space
+        if (widthStr === 'auto') {
+          flexibleColumns.push({ id: col.id, minWidth: 100 });
+        } else {
+          // Fixed width column
+          const numericWidth = parseInt(widthStr);
+          if (!isNaN(numericWidth) && !widthStr.includes('%')) {
+            fixedColumns.push({ id: col.id, width: numericWidth });
+          } else {
+            // Percentage or invalid - treat as flexible with default minWidth
+            flexibleColumns.push({ id: col.id, minWidth: 100 });
+          }
+        }
+      } else if (col.minWidth) {
+        // Flexible column with minimum width
+        const minWidthStr = String(col.minWidth);
+        const numericMinWidth = parseInt(minWidthStr);
+        if (!isNaN(numericMinWidth) && !minWidthStr.includes('%')) {
+          flexibleColumns.push({ id: col.id, minWidth: numericMinWidth });
+        } else {
+          flexibleColumns.push({ id: col.id, minWidth: 100 });
+        }
+      } else {
+        // No width specified - flexible with default
+        flexibleColumns.push({ id: col.id, minWidth: 100 });
       }
     });
-    return sizing;
-  }, [config.tableColumns]);
+    
+    // Calculate total fixed width
+    const totalFixedWidth = fixedColumns.reduce((sum, col) => sum + col.width, 0);
+    
+    // Calculate minimum width needed for flexible columns
+    const totalFlexibleMinWidth = flexibleColumns.reduce((sum, col) => sum + col.minWidth, 0);
+    
+    // Calculate remaining space for flexible columns
+    const remainingSpace = availableWidth - totalFixedWidth;
+    
+    // Distribute remaining space among flexible columns
+    // If remaining space > total min width, expand flexible columns proportionally
+    // If remaining space < total min width, use min widths (will cause horizontal scroll)
+    const flexibleColumnWidths: { [id: string]: number } = {};
+    
+    if (flexibleColumns.length > 0 && remainingSpace > 0) {
+      if (remainingSpace >= totalFlexibleMinWidth) {
+        // We have extra space - distribute proportionally based on minWidth
+        const extraSpace = remainingSpace - totalFlexibleMinWidth;
+        flexibleColumns.forEach(col => {
+          const proportion = col.minWidth / totalFlexibleMinWidth;
+          flexibleColumnWidths[col.id] = Math.floor(col.minWidth + (extraSpace * proportion));
+        });
+      } else {
+        // Not enough space - use minWidth (will scroll)
+        flexibleColumns.forEach(col => {
+          flexibleColumnWidths[col.id] = col.minWidth;
+        });
+      }
+    } else {
+      // No container width yet or no flexible columns - use minWidths
+      flexibleColumns.forEach(col => {
+        flexibleColumnWidths[col.id] = col.minWidth;
+      });
+    }
+    
+    // Build sizing options
+    const sizing: { [key: string]: { minWidth?: number; defaultWidth?: number; idealWidth?: number } } = {};
+    
+    // Fixed columns
+    fixedColumns.forEach(col => {
+      sizing[col.id] = {
+        minWidth: col.width,
+        idealWidth: col.width,
+        defaultWidth: col.width,
+      };
+    });
+    
+    // Flexible columns with calculated widths
+    flexibleColumns.forEach(col => {
+      const calculatedWidth = flexibleColumnWidths[col.id] || col.minWidth;
+      sizing[col.id] = {
+        minWidth: col.minWidth,        // Minimum they can be
+        idealWidth: calculatedWidth,   // Calculated ideal
+        defaultWidth: calculatedWidth, // Start at calculated
+      };
+    });
+    
+    // Calculate total table width
+    const totalWidth = selectionColumnWidth + 
+      fixedColumns.reduce((sum, col) => sum + col.width, 0) +
+      flexibleColumns.reduce((sum, col) => sum + (flexibleColumnWidths[col.id] || col.minWidth), 0);
+    
+    console.log('[TableFluentUi] Column sizing calculation:', {
+      containerWidth,
+      availableWidth,
+      fixedColumns,
+      flexibleColumns,
+      flexibleColumnWidths,
+      totalWidth,
+      sizing
+    });
+    
+    return { columnSizingOptions: sizing, calculatedTableWidth: totalWidth };
+  }, [config.tableColumns, config.selectionMode, containerWidth]);
+
+  // Create a map of column IDs to their calculated widths for direct application
+  const columnWidthMap = useMemo(() => {
+    const widthMap: { [columnId: string]: number } = {};
+    
+    // Get calculated widths from columnSizingOptions
+    Object.entries(columnSizingOptions).forEach(([colId, sizing]) => {
+      widthMap[colId] = sizing.defaultWidth || sizing.idealWidth || sizing.minWidth || 100;
+    });
+    
+    return widthMap;
+  }, [columnSizingOptions]);
 
   // Define columns
   const columns: TableColumnDefinition<TableRow>[] = useMemo(() => {
@@ -722,14 +871,16 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
         createTableColumn<TableRow>({
           columnId: column.id,
           renderHeaderCell: () => {
+            const headerAlign = column.align || 'left';
+            const justifyContent = headerAlign === 'right' ? 'flex-end' : headerAlign === 'center' ? 'center' : 'space-between';
             return (
-              <>
-                {column.header}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent, width: '100%', gap: '8px' }}>
+                <span style={{ textAlign: headerAlign, flex: headerAlign === 'left' ? 1 : 'none' }}>{column.header}</span>
                 <ColumnHeaderMenu
                   columnId={column.id}
                   columnIndex={index}
                 />
-              </>
+              </div>
             );
           },
           renderCell: (item: TableRow) => {
@@ -763,22 +914,24 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
 
             const cellValue = item[column.id];
             const textAlign = column.align || 'left';
+            // Convert text-align to justify-content for flex layout
+            const justifyContent = textAlign === 'right' ? 'flex-end' : textAlign === 'center' ? 'center' : 'flex-start';
 
             // If the value is a string that looks like HTML, render it as HTML
             if (typeof cellValue === 'string' && (cellValue.includes('<') || cellValue.includes('&'))) {
               return (
-                <TableCellLayout truncate>
-                  <div className={styles.truncatedCell} style={{ textAlign }} dangerouslySetInnerHTML={{ __html: cellValue }} />
+                <TableCellLayout truncate style={{ justifyContent }}>
+                  <div className={styles.truncatedCell} style={{ textAlign, width: '100%' }} dangerouslySetInnerHTML={{ __html: cellValue }} />
                 </TableCellLayout>
               );
             }
 
             // Otherwise render as text
             return (
-              <TableCellLayout truncate title={cellValue != null ? String(cellValue) : ''}>
-                <div style={{ textAlign }}>
+              <TableCellLayout truncate title={cellValue != null ? String(cellValue) : ''} style={{ justifyContent }}>
+                <span style={{ textAlign, width: textAlign === 'left' ? 'auto' : '100%' }}>
                   {cellValue != null ? String(cellValue) : ''}
-                </div>
+                </span>
               </TableCellLayout>
             );
           },
@@ -843,16 +996,16 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   }
 
   return (
-    <div className={styles.container}>
+    <div ref={containerRef} className={styles.container}>
       <DataGrid
         items={displayData}
-        columns={columns}
+        columns={columns as any}
         sortable={!groupByColumn}
-        resizableColumns
+        resizableColumns={false}  // Disable resizing to prevent space distribution
         columnSizingOptions={columnSizingOptions}
         selectionMode={config.selectionMode === 'none' ? undefined : config.selectionMode === 'multiple' ? 'multiselect' : 'single'}
         selectedItems={Array.from(selectedRows)}
-        key={`datagrid-${config.tableColumns?.length || 0}-${data.length}`}
+        key={`datagrid-${config.tableColumns?.length || 0}-${data.length}-${containerWidth}`}
         onSelectionChange={(_, data) => {
           const newSelectedIndexes = new Set<number>();
           const selectedItemsArray = Array.from(data.selectedItems);
@@ -869,20 +1022,34 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
           }
         }}
         className={styles.dataGrid}
+        style={{ 
+          tableLayout: 'fixed', 
+          width: containerWidth > 0 ? `${Math.min(calculatedTableWidth, containerWidth)}px` : '100%' 
+        }}
       >
         <DataGridHeader>
           <DataGridRow>
-            {({ renderHeaderCell }) => (
-              <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-            )}
+            {({ renderHeaderCell, columnId }) => {
+              const colWidth = columnWidthMap[columnId as string];
+              return (
+                <DataGridHeaderCell style={colWidth ? { width: `${colWidth}px`, minWidth: `${colWidth}px`, maxWidth: `${colWidth}px` } : undefined}>
+                  {renderHeaderCell()}
+                </DataGridHeaderCell>
+              );
+            }}
           </DataGridRow>
         </DataGridHeader>
         <DataGridBody<TableRow>>
           {({ item, rowId }) => (
             <DataGridRow<TableRow> key={rowId}>
-              {({ renderCell }) => (
-                <DataGridCell>{renderCell(item)}</DataGridCell>
-              )}
+              {({ renderCell, columnId }) => {
+                const colWidth = columnWidthMap[columnId as string];
+                return (
+                  <DataGridCell style={colWidth ? { width: `${colWidth}px`, minWidth: `${colWidth}px`, maxWidth: `${colWidth}px` } : undefined}>
+                    {renderCell(item)}
+                  </DataGridCell>
+                );
+              }}
             </DataGridRow>
           )}
         </DataGridBody>

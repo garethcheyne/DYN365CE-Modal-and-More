@@ -7,6 +7,7 @@ import React from 'react';
 import { DatePicker } from '@fluentui/react-datepicker-compat';
 import { Field, Tooltip } from '@fluentui/react-components';
 import { Info16Regular } from '@fluentui/react-icons';
+import { useSharedStyles } from './sharedStyles';
 
 interface DatePickerFluentUiProps {
   id?: string;
@@ -20,10 +21,10 @@ interface DatePickerFluentUiProps {
   orientation?: 'horizontal' | 'vertical';
 }
 
-export const DatePickerFluentUi: React.FC<DatePickerFluentUiProps> = ({ 
+export const DatePickerFluentUi: React.FC<DatePickerFluentUiProps> = ({
   id,
-  value, 
-  onChange, 
+  value,
+  onChange,
   placeholder,
   label,
   tooltip,
@@ -31,25 +32,27 @@ export const DatePickerFluentUi: React.FC<DatePickerFluentUiProps> = ({
   disabled,
   orientation = 'horizontal'
 }) => {
+  const sharedStyles = useSharedStyles();
+
   // If no label, force vertical orientation for full width
   const effectiveOrientation = !label ? 'vertical' : orientation;
-  
+
   // Create label with tooltip icon if tooltip is provided
   const labelContent = label && tooltip ? (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+    <span className={sharedStyles.labelWithTooltip}>
       <span>{label}</span>
       <Tooltip content={tooltip} relationship="label">
-        <Info16Regular style={{ color: '#605e5c', cursor: 'help' }} />
+        <Info16Regular className={sharedStyles.tooltipIcon} />
       </Tooltip>
     </span>
   ) : label;
-  
+
   return (
     <Field
       label={labelContent}
       required={required}
       orientation={effectiveOrientation}
-      style={{ marginBottom: '8px' }}
+      className={sharedStyles.field}
     >
       <DatePicker
         id={id}

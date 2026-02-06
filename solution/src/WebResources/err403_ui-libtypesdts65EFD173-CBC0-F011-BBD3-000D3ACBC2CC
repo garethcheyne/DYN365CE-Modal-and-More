@@ -87,6 +87,12 @@ interface StepConfig {
     description?: string;
     message?: string;
     content?: string;
+    size?: {
+        width?: number | string;
+        height?: number | string;
+    };
+    width?: number | string;
+    height?: number | string;
     completed?: boolean;
     fields?: FieldConfig[];
     validate?: () => boolean;
@@ -106,6 +112,7 @@ interface TableColumn {
     visible?: boolean;
     sortable?: boolean;
     width?: string;
+    minWidth?: string;
     align?: 'left' | 'center' | 'right';
 }
 interface FieldConfig {
@@ -113,7 +120,11 @@ interface FieldConfig {
     label?: string;
     labelPosition?: 'left' | 'top';
     orientation?: 'horizontal' | 'vertical';
-    type?: string;
+    type?: 'text' | 'email' | 'number' | 'date' | 'textarea' | 'select' | 'checkbox' | 'switch' | 'lookup' | 'file' | 'addressLookup' | 'table' | 'range' | 'custom' | 'group' | string;
+    border?: boolean;
+    content?: string;
+    collapsible?: boolean;
+    defaultCollapsed?: boolean;
     value?: any;
     placeholder?: string;
     disabled?: boolean;
@@ -308,6 +319,7 @@ declare class Modal implements ModalInstance {
     private debug;
     private pendingReactMounts;
     private initPromise;
+    private updateButtonStatesTimer;
     constructor(options: ModalOptions);
     /**
      * Debug logging helper
@@ -334,6 +346,7 @@ declare class Modal implements ModalInstance {
     private updateStepIndicator;
     private createSideCart;
     private createTabs;
+    private createFieldGroup;
     private createField;
     private evaluateVisibilityCondition;
     private updateFieldVisibility;
@@ -342,8 +355,18 @@ declare class Modal implements ModalInstance {
     /**
      * Update button states based on validation requirements
      * Disables buttons with requiresValidation=true when required fields are invalid
+     *
+     * For wizards:
+     * - Default behavior (requiresValidation: true): validates ALL steps
+     * - To validate only current step: set validateAllSteps: false explicitly
+     *
+     * Debounced to prevent validation storms from rapid field updates
      */
     private updateButtonStates;
+    /**
+     * Execute the actual button state update logic
+     */
+    private executeButtonStateUpdate;
     /**
      * Validate all fields in the modal (non-wizard)
      */
@@ -357,7 +380,10 @@ declare class Modal implements ModalInstance {
     show(): Promise<void>;
     showAsync(): Promise<ModalResponse>;
     close(): void;
-    setLoading(loading: boolean, message?: string): void;
+    setLoading(loading: boolean, options?: string | {
+        message?: string;
+        progress?: number;
+    }): void;
     updateProgress(step: number, _skipValidation?: boolean): void;
     nextStep(): void;
     previousStep(): void;

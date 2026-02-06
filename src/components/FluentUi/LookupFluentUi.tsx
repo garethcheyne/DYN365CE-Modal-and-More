@@ -5,8 +5,9 @@
  */
 
 import React from 'react';
-import { Input, Field, Popover, PopoverSurface, PopoverTrigger, Spinner, Button } from '@fluentui/react-components';
+import { Input, Field, Popover, PopoverSurface, PopoverTrigger, Spinner, Button, mergeClasses } from '@fluentui/react-components';
 import { Search20Regular } from '@fluentui/react-icons';
+import { useSharedStyles, useLookupStyles } from './sharedStyles';
 
 interface LookupColumn {
     attribute: string;
@@ -54,6 +55,9 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
     disabled = false,
     required = false
 }) => {
+    const sharedStyles = useSharedStyles();
+    const lookupStyles = useLookupStyles();
+
     const [searchValue, setSearchValue] = React.useState('');
     const [options, setOptions] = React.useState<LookupOption[]>([]);
     const [loading, setLoading] = React.useState(false);
@@ -90,7 +94,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                 // Try to get actual D365 entity icon from metadata
                 if (typeof window !== 'undefined' && (window as any).Xrm?.Utility?.getEntityMetadata) {
                     const metadata = await (window as any).Xrm.Utility.getEntityMetadata(entityName);
-                    
+
                     if (metadata?.IconSmallName) {
                         // D365 entity icons are typically in web resources
                         const iconName = metadata.IconSmallName.replace('.png', '').replace('.svg', '');
@@ -100,14 +104,14 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                         console.log('[Lookup] No IconSmallName in metadata, using fallback');
                         setEntityIcon(getGenericEntityIcon(entityName));
                     }
-                    
+
                     // Get display name if not provided
                     if (!entityDisplayName && metadata?.DisplayName?.UserLocalizedLabel?.Label) {
                         setDisplayName(metadata.DisplayName.UserLocalizedLabel.Label);
                     }
                     return; // Exit early if we got the real icon
                 }
-                
+
                 console.log('[Lookup] Xrm not available, using generic icon');
                 // Fallback to generic icon only for mock/testing when Xrm is not available
                 setEntityIcon(getGenericEntityIcon(entityName));
@@ -144,7 +148,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                     // Try to get entity metadata to validate fields exist
                     if ((window as any).Xrm?.Utility?.getEntityMetadata) {
                         const metadata = await (window as any).Xrm.Utility.getEntityMetadata(entityName, ['Attributes', 'PrimaryIdAttribute']);
-                        
+
                         // Use actual primary ID attribute
                         if (metadata?.PrimaryIdAttribute) {
                             primaryId = metadata.PrimaryIdAttribute;
@@ -156,15 +160,15 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                             validColumns = columnConfigs
                                 .map(c => c.attribute)
                                 .filter(attr => existingAttributes.includes(attr));
-                            
+
                             // If no valid columns, try common fallbacks
                             if (validColumns.length === 0) {
                                 const fallbacks = ['name', 'fullname', 'title', 'subject'];
                                 validColumns = fallbacks.filter(attr => existingAttributes.includes(attr));
-                                
+
                                 // If still no valid columns, use first text attribute
                                 if (validColumns.length === 0) {
-                                    const firstTextAttr = metadata.Attributes.find((attr: any) => 
+                                    const firstTextAttr = metadata.Attributes.find((attr: any) =>
                                         attr.AttributeType === 'String' || attr.AttributeType === 'Memo'
                                     );
                                     if (firstTextAttr) {
@@ -179,8 +183,8 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                 }
 
                 // If metadata fetch failed or returned no valid columns, use provided columns
-                const selectColumns = validColumns.length > 0 
-                    ? validColumns 
+                const selectColumns = validColumns.length > 0
+                    ? validColumns
                     : columnConfigs.map(c => c.attribute);
 
                 // Check if filters is FetchXML (contains <filter or <condition tags)
@@ -249,17 +253,17 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
             }
         } catch (error: any) {
             console.error('Failed to fetch lookup records:', error);
-            
+
             // Provide helpful error messages based on error type
             let errorMessage = 'Failed to load records';
-            
+
             if (error?.message?.includes('does not exist')) {
                 errorMessage = `Invalid field in lookupColumns for entity '${entityName}'. Check column names match D365 schema.`;
                 console.error(`Attempted columns: ${columnConfigs.map(c => c.attribute).join(', ')}`);
                 console.error(`Tip: Common column names are 'name', 'fullname', 'subject', 'title'. Use browser DevTools to inspect actual D365 entity metadata.`);
             } else if (error?.message?.includes('Invalid Query')) {
                 errorMessage = `Invalid query for entity '${entityName}'. Check filters or column names.`;
-                
+
                 const isFetchXml = filters && (filters.includes('<filter') || filters.includes('<condition'));
                 if (isFetchXml) {
                     console.error('Invalid FetchXML query. Verify your filters configuration.');
@@ -267,10 +271,10 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                     console.error('Invalid OData query. Verify lookupColumns match entity schema.');
                 }
             }
-            
+
             setError(errorMessage);
             setOptions([]);
-            
+
             // Log detailed configuration for debugging
             console.error('Lookup configuration:', {
                 entityName,
@@ -316,7 +320,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
         const value = event.target.value || '';
         setSearchValue(value);
         setIsDropdownOpen(true);
-        
+
         // Clear selection when user types
         if (value === '') {
             setSelectedOption(null);
@@ -344,7 +348,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
             hint={tooltip}
             orientation={orientation}
             required={required}
-            style={{ marginBottom: '8px' }}
+            className={sharedStyles.field}
         >
             <Popover
                 open={isDropdownOpen && !disabled}
@@ -353,7 +357,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                 withArrow={false}
             >
                 <PopoverTrigger disableButtonEnhancement>
-                    <div ref={containerRef} style={{ display: 'flex', gap: 0, width: '100%' }}>
+                    <div ref={containerRef} className={sharedStyles.inputWithButton}>
                         <Input
                             ref={inputRef}
                             id={id}
@@ -369,17 +373,12 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                             aria-expanded={isDropdownOpen}
                             aria-haspopup="listbox"
                             aria-autocomplete="list"
-                            style={{ 
-                                width: '100%',
-                                borderTopRightRadius: 0,
-                                borderBottomRightRadius: 0,
-                                borderRight: 'none'
-                            }}
+                            className={lookupStyles.inputNoRightBorder}
                         />
                         {/* Clear button when value is selected */}
                         {selectedOption && (
                             <Button
-                                icon={<svg width="16" height="16" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" fill="currentColor"/></svg>}
+                                icon={<svg width="16" height="16" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" fill="currentColor" /></svg>}
                                 appearance="subtle"
                                 disabled={disabled}
                                 onClick={() => {
@@ -387,12 +386,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                                     setSearchValue('');
                                     onChange(null);
                                 }}
-                                style={{
-                                    minWidth: '32px',
-                                    backgroundColor: '#f3f2f1',
-                                    borderColor: 'transparent',
-                                    borderRadius: 0
-                                }}
+                                className={lookupStyles.buttonNoRightRadius}
                                 aria-label="Clear selection"
                             />
                         )}
@@ -401,42 +395,17 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                             appearance="outline"
                             disabled={disabled}
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            style={{
-                                borderTopLeftRadius: 0,
-                                borderBottomLeftRadius: 0,
-                                minWidth: '32px',
-                                backgroundColor: '#f3f2f1',
-                                borderColor: 'transparent'
-                            }}
+                            className={lookupStyles.buttonNoLeftRadius}
                             aria-label="Search records"
                         />
                     </div>
                 </PopoverTrigger>
                 <PopoverSurface
-                    style={{
-                        width: `${dropdownWidth}px`,
-                        maxHeight: '400px',
-                        overflowY: 'auto',
-                        padding: 0,
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                        border: '1px solid #d2d0ce',
-                    }}
+                    className={lookupStyles.popoverSurface}
+                    style={{ width: `${dropdownWidth}px` }}
                 >
                     {/* Header with entity type */}
-                    <div style={{
-                        padding: '8px 12px',
-                        backgroundColor: '#faf9f8',
-                        borderBottom: '1px solid #edebe9',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        color: '#605e5c',
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 1,
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                    }}>
+                    <div className={lookupStyles.dropdownHeader}>
                         <span>{searchValue ? `Search ${displayName.toLowerCase()}...` : displayName}</span>
                         {/* Expand All button - only show if there are items with additional columns */}
                         {options.length > 0 && visibleColumns.length > 2 && (
@@ -451,12 +420,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                                         setExpandedItems(new Set(options.map(opt => opt.id)));
                                     }
                                 }}
-                                style={{
-                                    fontSize: '11px',
-                                    minWidth: 'auto',
-                                    padding: '2px 8px',
-                                    height: '24px'
-                                }}
+                                className={lookupStyles.expandAllButton}
                             >
                                 {expandedItems.size === options.length ? 'Collapse All' : 'Expand All'}
                             </Button>
@@ -464,25 +428,18 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                     </div>
 
                     {loading ? (
-                        <div style={{ padding: '16px', textAlign: 'center' }}>
+                        <div className={lookupStyles.stateContainer}>
                             <Spinner size="small" label="Loading..." />
                         </div>
                     ) : error ? (
-                        <div style={{ 
-                            padding: '16px', 
-                            textAlign: 'center', 
-                            color: '#d13438',
-                            fontWeight: 600,
-                            backgroundColor: '#fef6f6',
-                            borderLeft: '3px solid #d13438'
-                        }}>
+                        <div className={lookupStyles.errorState}>
                             <div style={{ marginBottom: '4px' }}>Invalid Query</div>
-                            <div style={{ fontSize: '12px', fontWeight: 400, color: '#a4262c' }}>
+                            <div className={lookupStyles.errorMessage}>
                                 {error}
                             </div>
                         </div>
                     ) : options.length === 0 ? (
-                        <div style={{ padding: '16px', textAlign: 'center', color: '#605e5c' }}>
+                        <div className={mergeClasses(lookupStyles.stateContainer, lookupStyles.noResults)}>
                             No results found
                         </div>
                     ) : (
@@ -498,35 +455,29 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                                 return (
                                     <div
                                         key={option.id}
-                                        style={{
-                                            backgroundColor: isSelected ? '#f3f2f1' : 'transparent',
-                                            borderBottom: '1px solid #edebe9',
-                                        }}
+                                        className={mergeClasses(
+                                            lookupStyles.optionRow,
+                                            isSelected && lookupStyles.optionRowSelected
+                                        )}
                                     >
                                         {/* Main row with first 2 columns */}
                                         <div
                                             onClick={() => handleOptionClick(option)}
-                                            style={{
-                                                padding: '8px 12px',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                gap: '8px',
-                                                alignItems: 'center',
-                                            }}
+                                            className={lookupStyles.optionRowContent}
                                             onMouseEnter={(e) => {
                                                 if (!isSelected) {
-                                                    e.currentTarget.parentElement!.style.backgroundColor = '#faf9f8';
+                                                    (e.currentTarget.parentElement as HTMLElement).style.backgroundColor = '#faf9f8';
                                                 }
                                             }}
                                             onMouseLeave={(e) => {
                                                 if (!isSelected) {
-                                                    e.currentTarget.parentElement!.style.backgroundColor = 'transparent';
+                                                    (e.currentTarget.parentElement as HTMLElement).style.backgroundColor = 'transparent';
                                                 }
                                             }}
                                         >
                                             {/* Entity Icon */}
                                             {option.iconUrl && (
-                                                <div style={{ flexShrink: 0 }}>
+                                                <div className={lookupStyles.entityIcon}>
                                                     <img
                                                         src={option.iconUrl}
                                                         alt={option.entityType}
@@ -537,39 +488,25 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                                             )}
 
                                             {/* Content - Two line layout */}
-                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                                            <div className={lookupStyles.optionContent}>
                                                 {/* Primary text */}
-                                                <div style={{
-                                                    fontSize: '14px',
-                                                    fontWeight: 600,
-                                                    color: '#242424',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    whiteSpace: 'nowrap'
-                                                }}>
+                                                <div className={lookupStyles.primaryText}>
                                                     {primaryColumn?.label ? (
                                                         <>
-                                                            <span style={{ color: '#605e5c', fontWeight: 400 }}>{primaryColumn.label}: </span>
+                                                            <span className={lookupStyles.primaryTextLabel}>{primaryColumn.label}: </span>
                                                             {primaryColumn ? option.columns[primaryColumn.attribute] : option.name}
                                                         </>
                                                     ) : (
                                                         primaryColumn ? option.columns[primaryColumn.attribute] : option.name
                                                     )}
                                                 </div>
-                                                
+
                                                 {/* Secondary text */}
                                                 {secondaryColumn && option.columns[secondaryColumn.attribute] && (
-                                                    <div style={{
-                                                        fontSize: '12px',
-                                                        fontWeight: 400,
-                                                        color: '#605e5c',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        whiteSpace: 'nowrap'
-                                                    }}>
+                                                    <div className={lookupStyles.secondaryText}>
                                                         {secondaryColumn?.label ? (
                                                             <>
-                                                                <span style={{ fontWeight: 600 }}>{secondaryColumn.label}: </span>
+                                                                <span className={lookupStyles.secondaryTextLabel}>{secondaryColumn.label}: </span>
                                                                 {option.columns[secondaryColumn.attribute]}
                                                             </>
                                                         ) : (
@@ -594,17 +531,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                                                             return newSet;
                                                         });
                                                     }}
-                                                    style={{
-                                                        flexShrink: 0,
-                                                        width: '20px',
-                                                        height: '20px',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        cursor: 'pointer',
-                                                        borderRadius: '2px',
-                                                        color: '#605e5c'
-                                                    }}
+                                                    className={lookupStyles.chevronContainer}
                                                     onMouseEnter={(e) => {
                                                         e.currentTarget.style.backgroundColor = '#edebe9';
                                                     }}
@@ -616,7 +543,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                                                         transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                                                         transition: 'transform 0.2s ease'
                                                     }}>
-                                                        <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                                                        <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                                                     </svg>
                                                 </div>
                                             )}
@@ -624,27 +551,18 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
 
                                         {/* Expanded additional columns */}
                                         {hasAdditionalColumns && isExpanded && (
-                                            <div style={{
-                                                padding: '4px 12px 8px 36px',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                gap: '4px',
-                                                backgroundColor: isSelected ? '#f3f2f1' : '#faf9f8',
-                                                borderTop: '1px solid #edebe9'
-                                            }}>
+                                            <div className={mergeClasses(
+                                                lookupStyles.expandedColumns,
+                                                isSelected ? lookupStyles.expandedColumnsSelected : lookupStyles.expandedColumnsDefault
+                                            )}>
                                                 {additionalColumns.map((col, idx) => {
                                                     const value = option.columns[col.attribute];
                                                     if (!value) return null;
-                                                    
+
                                                     return (
-                                                        <div key={idx} style={{
-                                                            fontSize: '12px',
-                                                            color: '#605e5c',
-                                                            display: 'flex',
-                                                            gap: '4px'
-                                                        }}>
+                                                        <div key={idx} className={lookupStyles.additionalColumn}>
                                                             {col.label && (
-                                                                <span style={{ fontWeight: 600, minWidth: '100px' }}>{col.label}:</span>
+                                                                <span className={lookupStyles.additionalColumnLabel}>{col.label}:</span>
                                                             )}
                                                             <span style={{ flex: 1 }}>{value}</span>
                                                         </div>
