@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SearchBox, Field } from '@fluentui/react-components';
 import type { SearchBoxProps } from '@fluentui/react-components';
+import { UILIB } from '../Logger/Logger';
 
 // Extend Window interface for Google Maps
 declare global {

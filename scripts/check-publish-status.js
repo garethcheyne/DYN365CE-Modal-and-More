@@ -6,9 +6,9 @@
 
 const { execSync } = require('child_process');
 
-console.log('═══════════════════════════════════════════════════════════════');
-console.log('  Checking Publish Status');
-console.log('═══════════════════════════════════════════════════════════════\n');
+console.debug('═══════════════════════════════════════════════════════════════');
+console.debug('  Checking Publish Status');
+console.debug('═══════════════════════════════════════════════════════════════\n');
 
 try {
   // Check for unpublished customizations using OData query
@@ -17,14 +17,14 @@ try {
     { encoding: 'utf-8' }
   );
   
-  console.log(result);
-  console.log('\n✅ To check unpublished customizations:');
-  console.log('   1. Go to: https://make.powerapps.com');
-  console.log('   2. Select your environment');
-  console.log('   3. Go to Solutions → Select your solution');
-  console.log('   4. Look for "Publish All Customizations" button');
-  console.log('   5. If button is grayed out = everything is published ✅');
-  console.log('   6. If button is active = unpublished changes exist ⚠️');
+  console.debug(result);
+  console.debug('\n✅ To check unpublished customizations:');
+  console.debug('   1. Go to: https://make.powerapps.com');
+  console.debug('   2. Select your environment');
+  console.debug('   3. Go to Solutions → Select your solution');
+  console.debug('   4. Look for "Publish All Customizations" button');
+  console.debug('   5. If button is grayed out = everything is published ✅');
+  console.debug('   6. If button is active = unpublished changes exist ⚠️');
   
 } catch (error) {
   console.error('❌ Error checking status:', error.message);

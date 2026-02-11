@@ -31,7 +31,7 @@ const processHtmlForD365 = () => ({
         content = content.replace(/<link rel="modulepreload"[^>]*>\n?/g, '');
         // Write to release root
         writeFileSync(dest, content, 'utf-8');
-        console.log(`  Processed: ${page}.html`);
+        console.debug(`  Processed: ${page}.html`);
       }
     });
 

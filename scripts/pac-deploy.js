@@ -57,7 +57,7 @@ function getPacVersion() {
 // Run a command and stream output
 function runCommand(command, args = []) {
   return new Promise((resolve, reject) => {
-    console.log(`\n> ${command} ${args.join(' ')}\n`);
+    console.debug(`\n> ${command} ${args.join(' ')}\n`);
 
     const proc = spawn(command, args, {
       stdio: 'inherit',
@@ -112,8 +112,8 @@ async function authenticate() {
     process.exit(1);
   }
 
-  console.log(`\n🔐 Authenticating to: ${url}`);
-  console.log(`   Method: ${authMethod}`);
+  console.debug(`\n🔐 Authenticating to: ${url}`);
+  console.debug(`   Method: ${authMethod}`);
 
   // Check if already authenticated to this environment
   const authList = getAuthStatus();
@@ -122,14 +122,14 @@ async function authenticate() {
     const lines = authList.split('\n');
     for (const line of lines) {
       if (line.includes('*') && line.includes(url)) {
-        console.log('✅ Already authenticated and selected');
+        console.debug('✅ Already authenticated and selected');
         return;
       }
     }
     // Environment exists but not selected
-    console.log('   Selecting existing auth profile...');
+    console.debug('   Selecting existing auth profile...');
     await runCommand('pac', ['auth', 'select', '--environment', url]);
-    console.log('✅ Auth profile selected');
+    console.debug('✅ Auth profile selected');
     return;
   }
 
@@ -155,7 +155,7 @@ async function authenticate() {
       await runCommand('pac', ['auth', 'create', '--environment', url]);
     }
 
-    console.log('✅ Authentication successful');
+    console.debug('✅ Authentication successful');
   } catch (error) {
     throw error;
   }
@@ -166,9 +166,9 @@ async function packSolution() {
   const { name, version } = getSolutionInfo();
   const solutionType = process.env.SOLUTION_TYPE || 'unmanaged';
 
-  console.log(`\n📦 Packing ${solutionType} solution using archiver...`);
-  console.log(`   Name: ${name}`);
-  console.log(`   Version: ${version}`);
+  console.debug(`\n📦 Packing ${solutionType} solution using archiver...`);
+  console.debug(`   Name: ${name}`);
+  console.debug(`   Version: ${version}`);
 
   // Run the existing pack script
   await runCommand('node', [path.join(__dirname, 'pack-solution-zip.js')]);
@@ -179,8 +179,8 @@ async function packSolution() {
 
 // Import solution to D365 using PAC CLI
 async function importSolution(solutionZip) {
-  console.log(`\n🚀 Importing solution to D365...`);
-  console.log(`   File: ${solutionZip}`);
+  console.debug(`\n🚀 Importing solution to D365...`);
+  console.debug(`   File: ${solutionZip}`);
 
   await runCommand('pac', [
     'solution', 'import',
@@ -189,7 +189,7 @@ async function importSolution(solutionZip) {
     '--async'
   ]);
 
-  console.log('✅ Solution imported successfully!');
+  console.debug('✅ Solution imported successfully!');
 }
 
 // Find the latest solution zip file
@@ -215,9 +215,9 @@ async function main() {
   const args = process.argv.slice(2);
   const command = args[0] || 'deploy';
 
-  console.log('═══════════════════════════════════════════════════════════════');
-  console.log('  D365 Solution Deployment Tool');
-  console.log('═══════════════════════════════════════════════════════════════');
+  console.debug('═══════════════════════════════════════════════════════════════');
+  console.debug('  D365 Solution Deployment Tool');
+  console.debug('═══════════════════════════════════════════════════════════════');
 
   // Load environment variables
   loadEnv();
@@ -233,9 +233,9 @@ async function main() {
   }
 
   const pacVersion = getPacVersion();
-  console.log(`\nPAC CLI Version: ${pacVersion}`);
-  console.log(`Environment: ${process.env.D365_URL}`);
-  console.log(`Solution Type: ${process.env.SOLUTION_TYPE || 'unmanaged'}`);
+  console.debug(`\nPAC CLI Version: ${pacVersion}`);
+  console.debug(`Environment: ${process.env.D365_URL}`);
+  console.debug(`Solution Type: ${process.env.SOLUTION_TYPE || 'unmanaged'}`);
 
   try {
     switch (command) {
@@ -259,7 +259,7 @@ async function main() {
           process.exit(1);
         }
 
-        console.log(`\n📄 Found solution: ${path.basename(zipFile)}`);
+        console.debug(`\n📄 Found solution: ${path.basename(zipFile)}`);
 
         await authenticate();
         await importSolution(zipFile);
@@ -283,9 +283,9 @@ async function main() {
       }
     }
 
-    console.log('\n═══════════════════════════════════════════════════════════════');
-    console.log('  ✨ Done!');
-    console.log('═══════════════════════════════════════════════════════════════\n');
+    console.debug('\n═══════════════════════════════════════════════════════════════');
+    console.debug('  ✨ Done!');
+    console.debug('═══════════════════════════════════════════════════════════════\n');
 
   } catch (error) {
     console.error('\n❌ Error:', error.message);

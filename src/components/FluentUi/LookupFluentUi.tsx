@@ -8,6 +8,7 @@ import React from 'react';
 import { Input, Field, Popover, PopoverSurface, PopoverTrigger, Spinner, Button, mergeClasses } from '@fluentui/react-components';
 import { Search20Regular } from '@fluentui/react-icons';
 import { useSharedStyles, useLookupStyles } from './sharedStyles';
+import { UILIB } from '../Logger/Logger';
 
 interface LookupColumn {
     attribute: string;
@@ -101,7 +102,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                         const iconUrl = `/$web/Icons/${iconName}_16.svg`;
                         setEntityIcon(iconUrl);
                     } else {
-                        console.log('[Lookup] No IconSmallName in metadata, using fallback');
+                        console.debug(...UILIB, '[Lookup] No IconSmallName in metadata, using fallback');
                         setEntityIcon(getGenericEntityIcon(entityName));
                     }
 
@@ -112,14 +113,14 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                     return; // Exit early if we got the real icon
                 }
 
-                console.log('[Lookup] Xrm not available, using generic icon');
+                console.debug(...UILIB, '[Lookup] Xrm not available, using generic icon');
                 // Fallback to generic icon only for mock/testing when Xrm is not available
                 setEntityIcon(getGenericEntityIcon(entityName));
                 if (!entityDisplayName) {
                     setDisplayName(entityName.charAt(0).toUpperCase() + entityName.slice(1) + 's');
                 }
             } catch (error) {
-                console.warn('[Lookup] Failed to fetch entity icon from D365 metadata, using fallback:', error);
+                console.warn(...UILIB, '[Lookup] Failed to fetch entity icon from D365 metadata, using fallback:', error);
                 setEntityIcon(getGenericEntityIcon(entityName));
                 if (!entityDisplayName) {
                     setDisplayName(entityName.charAt(0).toUpperCase() + entityName.slice(1) + 's');

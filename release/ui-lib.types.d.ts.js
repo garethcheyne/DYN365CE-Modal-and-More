@@ -114,6 +114,7 @@ interface TableColumn {
     width?: string;
     minWidth?: string;
     align?: 'left' | 'center' | 'right';
+    format?: 'currency' | 'number' | 'percent' | 'date';
 }
 interface FieldConfig {
     id: string;
@@ -199,6 +200,7 @@ interface FieldConfig {
     data?: any[];
     selectionMode?: 'none' | 'single' | 'multiple';
     onRowSelect?: (selectedRows: any[]) => void;
+    isRowSelectable?: (row: any) => boolean;
 }
 interface ValidationConfig {
     rules?: ValidationRule[];
@@ -565,6 +567,7 @@ declare class Lookup {
 /**
  * Logger utility for debugging
  * Provides colored console output for different log levels
+ * All ui-Lib logs use consistent purple branding (#9C27B0)
  */
 declare const TRACE: string[];
 declare const BUG: string[];

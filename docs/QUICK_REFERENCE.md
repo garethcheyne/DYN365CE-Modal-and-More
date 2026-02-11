@@ -158,7 +158,7 @@ new uiLib.Table({
     { id: 2, product: 'Product B', price: 200 }
   ],
   selectionMode: 'multiple',
-  onRowSelect: (rows) => { console.log(rows); }
+  onRowSelect: (rows) => { console.debug(rows); }
 })
 
 // Or inline config
@@ -202,7 +202,7 @@ modal.setFieldValue('productsTable', styledData);
       country: 'country'
     },
     onSelect: (address) => {
-      console.log('Selected:', address.formattedAddress);
+      console.debug('Selected:', address.formattedAddress);
     }
   }}
 ```
@@ -221,7 +221,7 @@ modal.setFieldValue('productsTable', styledData);
     dragDropText: 'Drag and drop files here',
     browseText: 'or click to browse',
     onFilesSelected: (files) => {
-      console.log('Selected:', files.map(f => f.name));
+      console.debug('Selected:', files.map(f => f.name));
     }
   }}
 
@@ -236,7 +236,7 @@ modal.setFieldValue('productsTable', styledData);
 // Get uploaded files
 const files = modal.getFieldValue('attachments');
 files.forEach(file => {
-  console.log(`${file.name} - ${file.size} bytes`);
+  console.debug(`${file.name} - ${file.size} bytes`);
   // Upload file using FormData, XHR, fetch, etc.
 });
 ```
@@ -330,7 +330,7 @@ new uiLib.Lookup({
   columns: ['name', 'telephone1', 'emailaddress1'],
   filters: "statecode eq 0",
   onSelect: (records) => {
-    console.log('Selected records:', records);
+    console.debug('Selected records:', records);
   }
 }).show();
 ```
@@ -477,10 +477,10 @@ const modal = new uiLib.Modal({
 
 ```javascript
 const health = uiLib.init(executionContext);
-console.log('Version:', health.version);        // "2026.01.24.01"
-console.log('Loaded:', health.loaded);          // true
-console.log('CSS Loaded:', health.cssLoaded);   // true
-console.log('Timestamp:', health.timestamp);    // ISO timestamp
+console.debug('Version:', health.version);        // "2026.01.24.01"
+console.debug('Loaded:', health.loaded);          // true
+console.debug('CSS Loaded:', health.cssLoaded);   // true
+console.debug('Timestamp:', health.timestamp);    // ISO timestamp
 ```
 
 ## Best Practices

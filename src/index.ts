@@ -33,7 +33,7 @@ export interface HealthState {
  * @returns Health state of the library
  */
 export function init(executionContext?: any): HealthState {
-    console.debug(...TRACE, 'uiLib init() - Starting initialization', {
+    console.debug(...UILIB, `ui-Lib v${PACKAGE_VERSION} - Starting initialization`, {
         version: PACKAGE_VERSION,
         executionContext,
         timestamp: new Date().toISOString()
@@ -59,9 +59,9 @@ export function init(executionContext?: any): HealthState {
         instance: libraryInstance
     };
     
-    console.debug(...TRACE, 'uiLib init() - Initialization complete. Library available as window.uiLib and window.err403 (backward compatible)', {
-        version: PACKAGE_VERSION,
-        availableComponents: ['Toast', 'Modal', 'Lookup', 'Table', 'TRACE', 'WAR', 'ERR'],
+    console.debug(...UILIB, `✓ ui-Lib v${PACKAGE_VERSION} loaded successfully`, {
+        availableComponents: ['Toast', 'Modal', 'Lookup', 'Table', 'Logger'],
+        availableAs: ['window.uiLib', 'window.err403'],
         health
     });
     
@@ -214,7 +214,7 @@ if (typeof window !== 'undefined') {
             // Already loaded in parent window, copy reference to current window
             (window as any).uiLib = existingInstance;
             (window as any).err403 = existingInstance; // Backward compatibility
-            console.debug(...TRACE, 'uiLib found in parent window, assigned to current window');
+            console.debug(...UILIB, 'ui-Lib found in parent window, assigned to current window');
         } else {
             // First time loading or already in correct scope
             (window as any).uiLib = libraryObject;

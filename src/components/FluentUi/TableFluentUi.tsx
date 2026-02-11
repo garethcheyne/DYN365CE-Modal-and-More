@@ -118,6 +118,12 @@ const useStyles = makeStyles({
     whiteSpace: 'nowrap',
     maxWidth: '100%',            // Use maxWidth instead of width to allow shrinking
     display: 'inline-block',
+    color: '#323130',            // Explicit color to prevent inheriting link colors from D365
+    textDecoration: 'none',      // Prevent underline inheritance
+    '& *': {                     // Apply to all child elements (spans, anchors, etc.)
+      color: 'inherit !important',  // Force inheritance of parent color
+      textDecoration: 'inherit',
+    },
   },
   emptyState: {
     padding: tokens.spacingVerticalXXL,
@@ -128,6 +134,15 @@ const useStyles = makeStyles({
   radioButton: {
     cursor: 'pointer',
     accentColor: tokens.colorBrandBackground,
+  },
+  disabledRow: {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+    pointerEvents: 'none',
+  },
+  disabledCheckbox: {
+    cursor: 'not-allowed',
+    opacity: 0.5,
   },
   columnHeader: {
     display: 'flex',
@@ -185,7 +200,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
 
   // Safety check: Ensure config has required properties
   if (!config || !config.tableColumns || config.tableColumns.length === 0) {
-    console.error('[TableFluentUi] Missing or empty tableColumns in config:', config);
+    console.error(...UILIB, '[TableFluentUi] Missing or empty tableColumns in config:', config);
     return (
       <div style={{ padding: '20px', textAlign: 'center', color: '#a4262c' }}>
         Error: Table configuration is missing column definitions
@@ -223,6 +238,53 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     }
     return 'string'; // Default to string
   }, [data]);
+
+  // Format cell value based on column format property
+  const formatCellValue = useCallback((value: any, format?: 'currency' | 'number' | 'percent' | 'date'): string => {
+    if (value == null) return '';
+
+    switch (format) {
+      case 'currency':
+        // Format as USD currency with $ symbol and thousands separator
+        const numValue = typeof value === 'number' ? value : parseFloat(value);
+        if (isNaN(numValue)) return String(value);
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(numValue);
+
+      case 'number':
+        // Format number with thousands separator
+        const num = typeof value === 'number' ? value : parseFloat(value);
+        if (isNaN(num)) return String(value);
+        return new Intl.NumberFormat('en-US').format(num);
+
+      case 'percent':
+        // Format as percentage (assumes value is decimal, e.g., 0.25 = 25%)
+        const pct = typeof value === 'number' ? value : parseFloat(value);
+        if (isNaN(pct)) return String(value);
+        return new Intl.NumberFormat('en-US', {
+          style: 'percent',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(pct);
+
+      case 'date':
+        // Format as localized date (MM/DD/YYYY for en-US)
+        const date = value instanceof Date ? value : new Date(value);
+        if (isNaN(date.getTime())) return String(value);
+        return new Intl.DateTimeFormat('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).format(date);
+
+      default:
+        return String(value);
+    }
+  }, []);
 
   // Get filter operators based on data type
   const getFilterOperators = useCallback((dataType: 'string' | 'number' | 'boolean' | 'date'): string[] => {
@@ -326,8 +388,20 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     });
   }, []);
 
+  // Check if a row is selectable
+  const isRowSelectableCheck = useCallback((rowIndex: number): boolean => {
+    if (!config.isRowSelectable) return true; // All rows selectable if not specified
+    const row = data[rowIndex];
+    return config.isRowSelectable(row);
+  }, [config, data]);
+
   // Handle row selection
   const handleRowSelect = useCallback((rowIndex: number, checked: boolean) => {
+    // Check if row is selectable
+    if (!isRowSelectableCheck(rowIndex)) {
+      return; // Don't allow selection of disabled rows
+    }
+
     setSelectedRows(prev => {
       const newSet = new Set(prev);
       if (config.selectionMode === 'single') {
@@ -347,12 +421,15 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
 
       return newSet;
     });
-  }, [config.selectionMode, data, onSelectionChange]);
+  }, [config.selectionMode, data, onSelectionChange, isRowSelectableCheck]);
 
   // Handle select all
   const handleSelectAll = useCallback((checked: boolean) => {
     setSelectedRows(() => {
-      const newSet = checked ? new Set(data.map((_, idx) => idx)) : new Set<number>();
+      // Only select rows that are selectable
+      const newSet = checked 
+        ? new Set(data.map((_, idx) => idx).filter(idx => isRowSelectableCheck(idx))) 
+        : new Set<number>();
 
       if (onSelectionChange) {
         const selectedData = Array.from(newSet).map(idx => data[idx]);
@@ -361,7 +438,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
 
       return newSet;
     });
-  }, [data, onSelectionChange]);
+  }, [data, onSelectionChange, isRowSelectableCheck]);
 
 
 
@@ -815,7 +892,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
       fixedColumns.reduce((sum, col) => sum + col.width, 0) +
       flexibleColumns.reduce((sum, col) => sum + (flexibleColumnWidths[col.id] || col.minWidth), 0);
     
-    console.log('[TableFluentUi] Column sizing calculation:', {
+    console.debug(...UILIB, '[TableFluentUi] Column sizing calculation:', {
       containerWidth,
       availableWidth,
       fixedColumns,
@@ -843,7 +920,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   // Define columns
   const columns: TableColumnDefinition<TableRow>[] = useMemo(() => {
     // Debug: Log what we're working with
-    console.log('[TableFluentUi] Building columns from config:', {
+    console.debug(...UILIB, '[TableFluentUi] Building columns from config:', {
       hasConfig: !!config,
       hasTableColumns: !!config?.tableColumns,
       isArray: Array.isArray(config?.tableColumns),
@@ -917,20 +994,23 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
             // Convert text-align to justify-content for flex layout
             const justifyContent = textAlign === 'right' ? 'flex-end' : textAlign === 'center' ? 'center' : 'flex-start';
 
+            // Apply formatting if column has format property
+            const displayValue = (column as any).format ? formatCellValue(cellValue, (column as any).format) : cellValue;
+
             // If the value is a string that looks like HTML, render it as HTML
-            if (typeof cellValue === 'string' && (cellValue.includes('<') || cellValue.includes('&'))) {
+            if (typeof displayValue === 'string' && (displayValue.includes('<') || displayValue.includes('&'))) {
               return (
                 <TableCellLayout truncate style={{ justifyContent }}>
-                  <div className={styles.truncatedCell} style={{ textAlign, width: '100%' }} dangerouslySetInnerHTML={{ __html: cellValue }} />
+                  <div className={styles.truncatedCell} style={{ textAlign, width: '100%' }} dangerouslySetInnerHTML={{ __html: displayValue }} />
                 </TableCellLayout>
               );
             }
 
             // Otherwise render as text
             return (
-              <TableCellLayout truncate title={cellValue != null ? String(cellValue) : ''} style={{ justifyContent }}>
+              <TableCellLayout truncate title={displayValue != null ? String(displayValue) : ''} style={{ justifyContent }}>
                 <span style={{ textAlign, width: textAlign === 'left' ? 'auto' : '100%' }}>
-                  {cellValue != null ? String(cellValue) : ''}
+                  {displayValue != null ? String(displayValue) : ''}
                 </span>
               </TableCellLayout>
             );
@@ -961,7 +1041,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
       );
     });
 
-    console.log('[TableFluentUi] Built columns array:', {
+    console.debug(...UILIB, '[TableFluentUi] Built columns array:', {
       count: cols.length,
       columnIds: cols.map(c => c.columnId)
     });
@@ -978,7 +1058,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   }
 
   // Safety check before rendering DataGrid
-  console.log('[TableFluentUi] About to render DataGrid with:', {
+  console.debug(...UILIB, '[TableFluentUi] About to render DataGrid with:', {
     hasColumns: !!columns,
     columnsLength: columns?.length,
     isArray: Array.isArray(columns),
@@ -987,7 +1067,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   });
 
   if (!columns || columns.length === 0) {
-    console.error('[TableFluentUi] Columns is empty or undefined before DataGrid render!');
+    console.error(...UILIB, '[TableFluentUi] Columns is empty or undefined before DataGrid render!');
     return (
       <div style={{ padding: '20px', textAlign: 'center', color: '#a4262c' }}>
         Error: Table columns became undefined
@@ -1024,7 +1104,8 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
         className={styles.dataGrid}
         style={{ 
           tableLayout: 'fixed', 
-          width: containerWidth > 0 ? `${Math.min(calculatedTableWidth, containerWidth)}px` : '100%' 
+          minWidth: '100%',  // At minimum, fill container
+          width: calculatedTableWidth > 0 ? `${calculatedTableWidth}px` : '100%'  // Use full calculated width to enable horizontal scroll
         }}
       >
         <DataGridHeader>
@@ -1040,18 +1121,27 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
           </DataGridRow>
         </DataGridHeader>
         <DataGridBody<TableRow>>
-          {({ item, rowId }) => (
-            <DataGridRow<TableRow> key={rowId}>
-              {({ renderCell, columnId }) => {
-                const colWidth = columnWidthMap[columnId as string];
-                return (
-                  <DataGridCell style={colWidth ? { width: `${colWidth}px`, minWidth: `${colWidth}px`, maxWidth: `${colWidth}px` } : undefined}>
-                    {renderCell(item)}
-                  </DataGridCell>
-                );
-              }}
-            </DataGridRow>
-          )}
+          {({ item, rowId }) => {
+            const rowIndex = item._index;
+            const isSelectable = rowIndex >= 0 ? isRowSelectableCheck(rowIndex) : true;
+            const isGroupHeader = (item as any)._isGroupHeader;
+            
+            return (
+              <DataGridRow<TableRow> 
+                key={rowId}
+                className={!isSelectable && !isGroupHeader ? styles.disabledRow : undefined}
+              >
+                {({ renderCell, columnId }) => {
+                  const colWidth = columnWidthMap[columnId as string];
+                  return (
+                    <DataGridCell style={colWidth ? { width: `${colWidth}px`, minWidth: `${colWidth}px`, maxWidth: `${colWidth}px` } : undefined}>
+                      {renderCell(item)}
+                    </DataGridCell>
+                  );
+                }}
+              </DataGridRow>
+            );
+          }}
         </DataGridBody>
       </DataGrid>
     </div>

@@ -52,7 +52,7 @@ function updateSolutionVersion() {
   solutionXml = solutionXml.replace(/<Version>[\d.]+<\/Version>/, `<Version>${version}</Version>`);
   fs.writeFileSync(SOLUTION_FILE, solutionXml, 'utf8');
   
-  console.log(`✅ Updated solution version to: ${version}`);
+  console.debug(`✅ Updated solution version to: ${version}`);
   return version;
 }
 
@@ -87,7 +87,7 @@ function copyWebResources() {
     const targetPath = path.join(SOLUTION_WR_DIR, targetFile);
 
     if (!fs.existsSync(sourcePath)) {
-      console.log(`⚠️  Skipped: ${sourceFile} (not found in release)`);
+      console.debug(`⚠️  Skipped: ${sourceFile} (not found in release)`);
       skippedCount++;
       continue;
     }
@@ -102,18 +102,18 @@ function copyWebResources() {
     }
 
     const stats = fs.statSync(targetPath);
-    console.log(`✅ Copied: ${sourceFile} → ${targetFile} (${(stats.size / 1024).toFixed(2)} KB)`);
+    console.debug(`✅ Copied: ${sourceFile} → ${targetFile} (${(stats.size / 1024).toFixed(2)} KB)`);
     copiedCount++;
   }
 
-  console.log(`\n📦 Web Resources: ${copiedCount} copied, ${skippedCount} skipped`);
+  console.debug(`\n📦 Web Resources: ${copiedCount} copied, ${skippedCount} skipped`);
 }
 
 /**
  * Main execution
  */
 function main() {
-  console.log('🚀 Updating Dataverse solution...\n');
+  console.debug('🚀 Updating Dataverse solution...\n');
 
   // Check if release directory exists
   if (!fs.existsSync(RELEASE_DIR)) {
@@ -134,11 +134,11 @@ function main() {
   // Copy web resources
   copyWebResources();
 
-  console.log('\n✨ Solution updated successfully!');
-  console.log(`📋 Next steps:`);
-  console.log(`   1. Run: npm run pack-solution`);
-  console.log(`   2. Import unmanaged: solution/${name}_${version.replace(/\./g, '_')}_unmanaged.zip`);
-  console.log(`   3. Import managed: solution/${name}_${version.replace(/\./g, '_')}_managed.zip`);
+  console.debug('\n✨ Solution updated successfully!');
+  console.debug(`📋 Next steps:`);
+  console.debug(`   1. Run: npm run pack-solution`);
+  console.debug(`   2. Import unmanaged: solution/${name}_${version.replace(/\./g, '_')}_unmanaged.zip`);
+  console.debug(`   3. Import managed: solution/${name}_${version.replace(/\./g, '_')}_managed.zip`);
 }
 
 main();

@@ -179,7 +179,7 @@ const modal = uiLib.Modal.open({ title: 'Form', fields: [...] }); // Creates, sh
 
   // Field change callback
   onChange: (value) => {
-    console.log('Field value changed:', value);
+    console.debug('Field value changed:', value);
     // Trigger side effects, update other fields, fetch data, etc.
     // Called automatically when field value changes
     //
@@ -681,7 +681,7 @@ fields: [
       dragDropText: "Drag and drop files here",
       browseText: "or click to browse",
       onFilesSelected: (files) => {
-        console.log(
+        console.debug(
           "Files selected:",
           files.map((f) => f.name),
         );
@@ -707,7 +707,7 @@ fields: [
 // Get uploaded files
 const files = modal.getFieldValue("attachments");
 files.forEach((file) => {
-  console.log(`${file.name} - ${file.size} bytes`);
+  console.debug(`${file.name} - ${file.size} bytes`);
   // Upload to D365 using FormData, XHR, fetch, etc.
 });
 ```
@@ -773,7 +773,7 @@ fields: [
     ],
     selectionMode: "multiple",
     onRowSelect: (selectedRows) => {
-      console.log(selectedRows);
+      console.debug(selectedRows);
     },
   },
 ];
@@ -809,6 +809,72 @@ fields: [
   },
 ];
 
+// Example with column formatting (currency, number, percent, date)
+fields: [
+  {
+    id: "salesTable",
+    type: "table",
+    label: "Sales Report",
+    tableColumns: [
+      {
+        id: "product",
+        header: "Product",
+        visible: true,
+        sortable: true,
+        width: "250px",
+        align: "left",
+      },
+      {
+        id: "revenue",
+        header: "Revenue",
+        visible: true,
+        sortable: true,
+        width: "120px",
+        align: "right",
+        format: "currency",  // Auto-formats as $1,234.56
+      },
+      {
+        id: "units",
+        header: "Units Sold",
+        visible: true,
+        sortable: true,
+        width: "100px",
+        align: "right",
+        format: "number",  // Auto-formats as 1,234
+      },
+      {
+        id: "margin",
+        header: "Margin",
+        visible: true,
+        sortable: true,
+        width: "100px",
+        align: "right",
+        format: "percent",  // Auto-formats as 12.34% (expects decimal: 0.1234)
+      },
+      {
+        id: "saleDate",
+        header: "Sale Date",
+        visible: true,
+        sortable: true,
+        width: "120px",
+        align: "left",
+        format: "date",  // Auto-formats as MM/DD/YYYY (en-US)
+      },
+    ],
+    data: [
+      { id: 1, product: "Product A", revenue: 15234.89, units: 523, margin: 0.3245, saleDate: "2026-02-11" },
+      { id: 2, product: "Product B", revenue: 8920.50, units: 1240, margin: 0.4512, saleDate: new Date(2026, 1, 10) },
+    ],
+    selectionMode: "single",
+  },
+];
+
+// Format options:
+// - format: 'currency' → Formats as $1,234.56 (USD with 2 decimals)
+// - format: 'number' → Formats as 1,234 (thousands separator)
+// - format: 'percent' → Formats as 12.34% (expects decimal input: 0.1234)
+// - format: 'date' → Formats as MM/DD/YYYY (accepts Date objects or ISO strings)
+
 // Table features (all built-in, no configuration needed):
 // - Sortable columns (click headers to sort)
 // - Row selection (none, single, multiple) with select-all checkbox
@@ -817,6 +883,7 @@ fields: [
 // - Group expand/collapse (click group headers)
 // - Column visibility toggle (right-click header → Show/Hide Columns)
 // - Custom column widths (width for fixed, minWidth for flexible)
+// - Column formatting (format: currency, number, percent, date)
 // - onRowSelect callback for selection changes
 // - Dynamic data updates via setFieldValue()
 // - HTML rendering in cells (automatically detects and renders HTML)
@@ -842,6 +909,59 @@ const styledData = [
 ];
 modal.setFieldValue("productsTable", styledData);
 // HTML in cells will be rendered with styling - perfect for colored values, icons, badges
+```
+
+**Disabling Selection for Specific Rows:**
+
+Use `isRowSelectable` to control which rows can be selected. This function receives each row as a parameter and returns `true` (selectable) or `false` (disabled).
+
+```javascript
+// Example: Only allow active products to be selected
+fields: [
+  {
+    id: "productsTable",
+    type: "table",
+    label: "Products",
+    selectionMode: "multiple",
+    tableColumns: [
+      { id: "name", header: "Product", visible: true, sortable: true },
+      { id: "status", header: "Status", visible: true, sortable: true },
+      { id: "price", header: "Price", visible: true, sortable: true, align: "right" },
+    ],
+    data: [
+      { id: 1, name: "Product A", status: "Active", price: 100 },
+      { id: 2, name: "Product B", status: "Inactive", price: 200 },
+      { id: 3, name: "Product C", status: "Active", price: 150 },
+      { id: 4, name: "Product D", status: "Discontinued", price: 80 },
+    ],
+    // Only active products can be selected
+    isRowSelectable: (row) => row.status === "Active",
+    onRowSelect: (selectedRows) => {
+      console.debug("Selected active products:", selectedRows);
+    },
+  },
+];
+
+// More examples of isRowSelectable:
+
+// Example 1: Disable rows based on stock level
+isRowSelectable: (row) => row.stock > 0,
+
+// Example 2: Disable rows based on multiple conditions
+isRowSelectable: (row) => row.status === "Active" && row.price > 0 && !row.archived,
+
+// Example 3: Disable rows based on user permissions
+isRowSelectable: (row) => userHasPermission(row.ownerId),
+
+// Example 4: Disable specific rows by ID
+isRowSelectable: (row) => ![5, 7, 10].includes(row.id),
+
+// Visual behavior:
+// - Disabled rows have reduced opacity (0.5)
+// - Checkboxes/radio buttons are grayed out
+// - Cursor shows "not-allowed" for disabled rows
+// - Clicking disabled rows has no effect
+// - "Select All" only selects selectable rows
 ```
 
 ### 3. Lookup (`uiLib.Lookup`)
@@ -951,10 +1071,10 @@ new uiLib.Lookup({
   height: 600,                          // Modal height (optional)
   onSelect: (records) => {
     // records: [{ id, name, entityType, attributes: { name, telephone1, ... } }]
-    console.log("Selected:", records);
+    console.debug("Selected:", records);
   },
   onCancel: () => {
-    console.log("Lookup cancelled");
+    console.debug("Lookup cancelled");
   }
 }).show();
 ```
@@ -1006,7 +1126,7 @@ fields: [
     ],
     selectionMode: "multiple",
     onRowSelect: (rows) => {
-      console.log(rows);
+      console.debug(rows);
     },
   },
 ];
@@ -1014,31 +1134,31 @@ fields: [
 
 ### 5. Logger Utilities (`uiLib.TRACE`, `uiLib.WAR`, `uiLib.ERR`)
 
-Styled console logging for debugging with colored output:
+Styled console logging for debugging with consistent purple ui-Lib branding:
 
 ```javascript
-// Trace/Debug logging (purple badge)
-console.log(...uiLib.TRACE, 'Debug message', { data: 'value' });
+// All logs appear with purple "ui-Lib" badge for consistent branding
+// Trace/Debug logging
+console.debug(...uiLib.TRACE, 'Debug message', { data: 'value' });
 
-// Warning logging (orange badge)
+// Warning logging
 console.warn(...uiLib.WAR, 'Warning message', { issue: 'details' });
 
-// Error logging (red badge)
+// Error logging
 console.error(...uiLib.ERR, 'Error message', error);
 
-// Library-specific logging (purple badge)
-console.log(...uiLib.UILIB, 'UI library event', { action: 'modal opened' });
+// Library-specific logging
+console.debug(...uiLib.UILIB, 'UI library event', { action: 'modal opened' });
 
 // Also available via Logger object
 const { TRACE, WAR, ERR, UILIB } = uiLib.Logger;
-console.log(...TRACE, 'Using Logger object');
+console.debug(...TRACE, 'Using Logger object');
 ```
 
 **Output appearance in browser console:**
-- `TRACE` - Purple background badge: `[TRACE] Debug message`
-- `WAR` - Orange background badge: `[WAR] Warning message`
-- `ERR` - Red background badge: `[ERR] Error message`
-- `UILIB` - Purple background badge: `[uiLib] Library event`
+- All logs show with purple background badge: `[ui-Lib] message`
+- Consistent branding across all library logs
+- Easy identification of ui-Lib messages in console
 
 ## File Structure
 
@@ -1466,7 +1586,7 @@ const modal = new uiLib.Modal({
           longitude: "lng",
         },
         onSelect: (address) => {
-          console.log("Selected:", address.formattedAddress);
+          console.debug("Selected:", address.formattedAddress);
           // address object contains: formattedAddress, street, city, state,
           // postalCode, country, latitude, longitude
         },
@@ -2089,7 +2209,7 @@ new uiLib.Modal({
 
   // Behavior options
   preventClose: false,              // Prevent closing via buttons
-  allowDismiss: true,               // Click outside to close
+  allowDismiss: false,              // Click outside to close (default: false, requires explicit button clicks)
   allowEscapeClose: true,           // Press Escape to close
   draggable: true,                  // Make modal draggable by header
   buttonAlignment: 'right',         // left | center | right | space-between
@@ -2219,7 +2339,7 @@ modal.title('New Title').message('New message').width(800).height(600);
   requiredWhen: { field: 'x', operator: 'truthy' },
 
   // Change callback
-  onChange: (value) => { console.log(value); },
+  onChange: (value) => { console.debug(value); },
 
   // Custom validation (in addition to 'required' property)
   validation: {
@@ -2243,9 +2363,11 @@ modal.title('New Title').message('New message').width(800).height(600);
   entityName: 'account',            // lookup
   lookupColumns: [...],             // lookup
   filters: 'statecode eq 0',        // lookup
-  tableColumns: [...],              // table
+  tableColumns: [...],              // table (each column supports: id, header, visible, sortable, width, minWidth, align, format)
   data: [...],                      // table
-  selectionMode: 'multiple',        // table
+  selectionMode: 'multiple',        // table: none | single | multiple
+  onRowSelect: (rows) => {},        // table: callback for selection changes
+  isRowSelectable: (row) => true,   // table: function to control row selectability
   fileUpload: { ... },              // file
   addressLookup: { ... },           // addressLookup
   extraAttributes: { min: 0 },      // range
@@ -2536,7 +2658,7 @@ const modal = new uiLib.Modal({
       label: 'Save',
       callback: () => {
         const data = modal.getFieldValues();
-        console.log(data); // { name: '...', email: '...', active: true }
+        console.debug(data); // { name: '...', email: '...', active: true }
         return true; // Close modal
       },
       setFocus: true,
@@ -2582,7 +2704,7 @@ wizard.show();
 | `checkbox` | Boolean (D365 style) | `value: true/false` |
 | `switch` | Boolean (modern toggle) | `value: true/false` |
 | `lookup` | D365 record selector | `entityName`, `lookupColumns`, `filters` |
-| `table` | Data grid | `tableColumns`, `data`, `selectionMode` |
+| `table` | Data grid | `tableColumns` (with `format`), `data`, `selectionMode`, `isRowSelectable` |
 | `file` | File upload | `fileUpload: { accept, maxFiles, maxSize }` |
 | `addressLookup` | Address autocomplete | `addressLookup: { provider, apiKey }` |
 | `group` | Field grouping | `fields`, `border`, `collapsible` |

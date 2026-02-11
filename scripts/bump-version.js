@@ -14,7 +14,7 @@ const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 
 // Get current version
 const currentVersion = packageJson.version;
-console.log(`Current version: ${currentVersion}`);
+console.debug(`Current version: ${currentVersion}`);
 
 // Parse version (YYYY.MM.DD.NN)
 const versionParts = currentVersion.split('.');
@@ -39,15 +39,15 @@ if (year === currentYear && month === currentMonth && day === currentDay) {
   newVersion = `${currentYear}.${currentMonth.toString().padStart(2, '0')}.${currentDay.toString().padStart(2, '0')}.01`;
 }
 
-console.log(`New version: ${newVersion}`);
+console.debug(`New version: ${newVersion}`);
 
 // Update package.json
 packageJson.version = newVersion;
 fs.writeFileSync(packagePath, JSON.stringify(packageJson, null, 2) + '\n', 'utf8');
 
-console.log('✅ Version updated successfully!');
-console.log(`\nNext steps:`);
-console.log(`  1. Review changes: git diff package.json`);
-console.log(`  2. Commit: git add . && git commit -m "chore: bump version to ${newVersion}"`);
-console.log(`  3. Push: git push origin main`);
-console.log(`\nGitHub Actions will automatically create a release.`);
+console.debug('✅ Version updated successfully!');
+console.debug(`\nNext steps:`);
+console.debug(`  1. Review changes: git diff package.json`);
+console.debug(`  2. Commit: git add . && git commit -m "chore: bump version to ${newVersion}"`);
+console.debug(`  3. Push: git push origin main`);
+console.debug(`\nGitHub Actions will automatically create a release.`);

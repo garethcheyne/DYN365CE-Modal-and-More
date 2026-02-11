@@ -172,7 +172,7 @@ function openAccountSelector() {
 ### Lookup Shows Mock Data
 - This is normal when not in D365 form context
 - For real data, open lookup from a form's JavaScript
-- Check Xrm object availability: `console.log(typeof Xrm)`
+- Check Xrm object availability: `console.debug(typeof Xrm)`
 
 ### Styles Look Wrong
 - Library uses Fluent UI styles (built-in)
@@ -180,7 +180,7 @@ function openAccountSelector() {
 - Should work in all modern browsers
 
 ### Components Don't Appear
-- Verify library loaded: `console.log(typeof uiLib)` (should show "object")
+- Verify library loaded: `console.debug(typeof uiLib)` (should show "object")
 - Check script path in your code
 - Look for JavaScript errors in console
 

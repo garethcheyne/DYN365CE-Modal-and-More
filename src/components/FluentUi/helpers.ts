@@ -67,10 +67,22 @@ export function mountFluentComponent(
   const root = createRoot(container);
   // Get the owner document of the container to ensure styles go to the same document
   const targetDoc = container.ownerDocument || getTargetDocument();
+  
+  // Ensure Griffel renderer is ready before rendering
+  // This prevents race conditions where components render before CSS is injected
+  getSharedRenderer(targetDoc);
+  
   // Use flushSync to force synchronous DOM updates - critical for cross-document rendering
   flushSync(() => {
     root.render(createFluentProvider(component, theme, targetDoc));
   });
+  
+  // Force a reflow to ensure styles are applied before returning
+  // This is critical for preventing unstyled button flashes
+  if (container.offsetHeight !== undefined) {
+    // Reading offsetHeight triggers layout/reflow
+  }
+  
   return root;
 }
 

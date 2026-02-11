@@ -46,14 +46,14 @@ function checkPacCli() {
  * Install PAC CLI via dotnet tool
  */
 function installPacCli() {
-  console.log('📦 Installing Power Platform CLI...');
+  console.debug('📦 Installing Power Platform CLI...');
   try {
     execSync('dotnet tool install --global Microsoft.PowerApps.CLI.Tool', { stdio: 'inherit' });
-    console.log('✅ PAC CLI installed successfully\n');
+    console.debug('✅ PAC CLI installed successfully\n');
   } catch (error) {
     console.error('❌ Failed to install PAC CLI');
-    console.log('\nManual installation:');
-    console.log('   dotnet tool install --global Microsoft.PowerApps.CLI.Tool');
+    console.debug('\nManual installation:');
+    console.debug('   dotnet tool install --global Microsoft.PowerApps.CLI.Tool');
     process.exit(1);
   }
 }
@@ -67,22 +67,22 @@ function packSolution() {
   const outputFile = path.resolve(SOLUTION_OUTPUT, `${name}_${version.replace(/\./g, '_')}_managed.zip`);
   const sourceFolder = path.resolve(SOLUTION_SRC);
 
-  console.log('📦 Packing solution...');
-  console.log(`   Solution: ${name}`);
-  console.log(`   Version: ${version}`);
-  console.log(`   Source: ${sourceFolder}`);
-  console.log(`   Output: ${outputFile}\n`);
+  console.debug('📦 Packing solution...');
+  console.debug(`   Solution: ${name}`);
+  console.debug(`   Version: ${version}`);
+  console.debug(`   Source: ${sourceFolder}`);
+  console.debug(`   Output: ${outputFile}\n`);
 
   try {
     // Try using SolutionPackager from NuGet package instead of PAC CLI
     const command = `pac solution pack --zipfile "${outputFile}" --folder "${sourceFolder}" --packagetype Managed`;
-    console.log(`Command: ${command}\n`);
+    console.debug(`Command: ${command}\n`);
     execSync(command, { stdio: 'inherit' });
     
     const stats = fs.statSync(outputFile);
-    console.log(`\n✅ Solution packed successfully!`);
-    console.log(`   File: ${outputFile}`);
-    console.log(`   Size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
+    console.debug(`\n✅ Solution packed successfully!`);
+    console.debug(`   File: ${outputFile}`);
+    console.debug(`   Size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
   } catch (error) {
     console.error('\n❌ Failed to pack solution');
     process.exit(1);
@@ -93,12 +93,12 @@ function packSolution() {
  * Main execution
  */
 function main() {
-  console.log('🚀 Packing Dataverse solution...\n');
+  console.debug('🚀 Packing Dataverse solution...\n');
 
   // Change to project root directory
   const projectRoot = path.join(__dirname, '..');
   process.chdir(projectRoot);
-  console.log(`Working directory: ${process.cwd()}\n`);
+  console.debug(`Working directory: ${process.cwd()}\n`);
 
   // Check if solution source exists
   if (!fs.existsSync(SOLUTION_SRC)) {
@@ -108,7 +108,7 @@ function main() {
 
   // Check if PAC CLI is installed
   if (!checkPacCli()) {
-    console.log('⚠️  PAC CLI not found');
+    console.debug('⚠️  PAC CLI not found');
     installPacCli();
   }
 

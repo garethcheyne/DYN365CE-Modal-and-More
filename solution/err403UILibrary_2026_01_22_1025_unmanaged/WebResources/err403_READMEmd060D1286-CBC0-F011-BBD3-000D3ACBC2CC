@@ -245,7 +245,7 @@ function createContact() {
             err403.Toast.success({ 
               message: 'Contact created successfully!' 
             });
-            console.log('Created contact ID:', result.id);
+            console.debug('Created contact ID:', result.id);
           },
           function error(err) {
             err403.Toast.error({ 
@@ -432,11 +432,11 @@ function selectMultipleContacts() {
     },
     multiSelect: true, // Allow selecting multiple records
     onSelect: function(selectedContacts) {
-      console.log('Selected ' + selectedContacts.length + ' contacts');
+      console.debug('Selected ' + selectedContacts.length + ' contacts');
       
       // Process each selected contact
       selectedContacts.forEach(function(contact) {
-        console.log(contact.fullname + ' - ' + contact.emailaddress1);
+        console.debug(contact.fullname + ' - ' + contact.emailaddress1);
       });
       
       err403.Toast.success({ 
@@ -467,7 +467,7 @@ function selectActiveAccount() {
     orderBy: [{ attribute: 'revenue', descending: true }],
     onSelect: function(results) {
       if (results.length > 0) {
-        console.log('Selected account:', results[0].name);
+        console.debug('Selected account:', results[0].name);
       }
     }
   });
@@ -500,7 +500,7 @@ function showContactsTable() {
             data: result.entities,
             selectionMode: 'multiple', // Options: 'none', 'single', 'multiple'
             onRowSelect: function(selectedRows) {
-              console.log('Selected contacts:', selectedRows);
+              console.debug('Selected contacts:', selectedRows);
               err403.Toast.info({ 
                 message: selectedRows.length + ' contact(s) selected' 
               });
@@ -521,7 +521,7 @@ function showContactsTable() {
             
             // Process selected contacts
             selectedContacts.forEach(function(contact) {
-              console.log('Processing:', contact.fullname);
+              console.debug('Processing:', contact.fullname);
             });
             
             err403.Toast.success({ 
@@ -887,7 +887,7 @@ err403.Lookup.open({
 
 **Console logging with prefixes:**
 ```javascript
-console.log(...err403.BUG, 'Debug message', data);
+console.debug(...err403.BUG, 'Debug message', data);
 console.warn(...err403.WAR, 'Warning message');
 console.error(...err403.ERR, 'Error message', error);
 ```

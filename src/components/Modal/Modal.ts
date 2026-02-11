@@ -85,7 +85,7 @@ export class Modal implements ModalInstance {
   constructor(options: ModalOptions) {
     this.options = {
       preventClose: false,
-      allowDismiss: true,
+      allowDismiss: false,  // Changed default: require explicit button clicks to close
       allowEscapeClose: true,
       draggable: false,
       buttonAlignment: 'right',
@@ -98,7 +98,7 @@ export class Modal implements ModalInstance {
     this.debug = this.options.debug || false;
 
     if (this.debug) {
-      console.log('[Modal Debug] Constructor called with options:', this.options);
+      console.debug(...UILIB, '[Modal Debug] Constructor called with options:', this.options);
     }
 
     // Extract width/height from size object if provided
@@ -119,7 +119,7 @@ export class Modal implements ModalInstance {
    */
   private log(...args: any[]): void {
     if (this.debug) {
-      console.log('[Modal Debug]', ...args);
+      console.debug(...UILIB, '[Modal Debug]', ...args);
     }
   }
 
@@ -142,7 +142,7 @@ export class Modal implements ModalInstance {
     try {
       // Check if Xrm is available
       if (typeof (window as any).Xrm === 'undefined') {
-        console.debug(...WAR, 'Dynamics 365 Xrm object not available. Cannot fetch option set.');
+        console.debug(...UILIB, 'Dynamics 365 Xrm object not available. Cannot fetch option set.');
         return [];
       }
 
@@ -153,7 +153,7 @@ export class Modal implements ModalInstance {
       const attributeMetadata = attribute.Attributes._collection[attributeName];
 
       if (!attributeMetadata || !attributeMetadata.OptionSet) {
-        console.debug(...WAR, `No option set found for ${entityName}.${attributeName}`);
+        console.debug(...UILIB, `No option set found for ${entityName}.${attributeName}`);
         return [];
       }
 
@@ -181,7 +181,7 @@ export class Modal implements ModalInstance {
       return options;
 
     } catch (error) {
-      console.error(...ERR, `Error fetching option set for ${entityName}.${attributeName}:`, error);
+      console.error(...UILIB, `Error fetching option set for ${entityName}.${attributeName}:`, error);
       return [];
     }
   }
@@ -195,7 +195,7 @@ export class Modal implements ModalInstance {
     container.setAttribute('data-field-id', field.id);
 
     if (!field.addressLookup) {
-      console.debug(...WAR, 'Address lookup configuration missing');
+      console.debug(...UILIB, 'Address lookup configuration missing');
       return null;
     }
 
@@ -221,7 +221,7 @@ export class Modal implements ModalInstance {
     }
 
     if (!apiKey) {
-      console.error(...ERR, `${provider === 'google' ? 'Google Maps' : 'Azure Maps'} API key required`);
+      console.error(...UILIB, `${provider === 'google' ? 'Google Maps' : 'Azure Maps'} API key required`);
       return null;
     }
 
@@ -300,7 +300,7 @@ export class Modal implements ModalInstance {
       background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(0px);
       z-index: ${theme.zIndex.modalOverlay};
-      animation: fadeIn 0.2s cubic-bezier(0.33, 0, 0.67, 1);
+      animation: fadeIn 0.3s cubic-bezier(0.33, 0, 0.67, 1) forwards;
     `;
 
     if (this.options.allowDismiss) {
@@ -339,7 +339,7 @@ export class Modal implements ModalInstance {
       border-radius: 8px;
       box-shadow: 0 0 2px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.14);
       border: 1px solid rgba(0, 0, 0, 0.1);
-      animation: fadeInScale 0.2s cubic-bezier(0.33, 0, 0.67, 1);
+      animation: fadeInScale 0.3s cubic-bezier(0.33, 0, 0.67, 1) forwards;
       width: ${formatSize(width)};
       max-width: 95vw;
       ${height ? `height: ${formatSize(height)}; max-height: 90vh;` : 'max-height: 90vh;'}
@@ -1523,7 +1523,7 @@ export class Modal implements ModalInstance {
         // Create table component with state management
         const TableWrapper = () => {
           // Debug: Log what we received
-          console.log('[TableWrapper] Received tableFieldRef:', {
+          console.debug(...UILIB, '[TableWrapper] Received tableFieldRef:', {
             id: tableFieldRef?.id,
             type: tableFieldRef?.type,
             hasTableColumns: !!tableFieldRef?.tableColumns,
@@ -1536,7 +1536,7 @@ export class Modal implements ModalInstance {
 
           // Validate config before rendering
           if (!tableFieldRef || !tableFieldRef.tableColumns || tableFieldRef.tableColumns.length === 0) {
-            console.error('[Modal] TableWrapper: tableColumns missing or empty!', {
+            console.error(...UILIB, '[Modal] TableWrapper: tableColumns missing or empty!', {
               tableFieldRef: tableFieldRef,
               originalField: field
             });
@@ -1754,14 +1754,14 @@ export class Modal implements ModalInstance {
             validationState: validationState,
             validationMessage: validationMessage,
             onChange: (value: string | number) => {
-              console.log(`[Field ${field.id}] onChange triggered with value:`, value, `(type: ${typeof value})`);
+              console.debug(...UILIB, `[Field ${field.id}] onChange triggered with value:`, value, `(type: ${typeof value})`);
               setTouched(true);
               setInputValue(value);
               this.fieldValues.set(field.id, value);
               field.value = value;
               validateField(value, true);
               this.updateFieldVisibility(field.id);
-              console.log(`[Field ${field.id}] Calling updateButtonStates...`);
+              console.debug(...UILIB, `[Field ${field.id}] Calling updateButtonStates...`);
               this.updateButtonStates();
               
               // Call user's onChange callback if provided
@@ -1961,22 +1961,22 @@ export class Modal implements ModalInstance {
           // Validate ALL steps (default for wizards with requiresValidation)
           isValid = this.options.progress.steps.every((_, index) => {
             const stepValid = this.validateStep(index);
-            console.log(`[updateButtonStates] Step ${index + 1} validation:`, stepValid);
+            console.debug(...UILIB, `[updateButtonStates] Step ${index + 1} validation:`, stepValid);
             return stepValid;
           });
-          console.log(`[updateButtonStates] ${btn.label} button validation result (all steps):`, isValid);
+          console.debug(...UILIB, `[updateButtonStates] ${btn.label} button validation result (all steps):`, isValid);
         } else {
           // Validate only current step (when validateAllSteps: false)
           isValid = this.validateStep(this.currentStep - 1);
-          console.log(`[updateButtonStates] ${btn.label} button validation result (current step only):`, isValid);
+          console.debug(...UILIB, `[updateButtonStates] ${btn.label} button validation result (current step only):`, isValid);
         }
       } else if (this.options.fields) {
         // For regular modal: validate all fields
         isValid = this.validateAllFields();
-        console.log(`[updateButtonStates] ${btn.label} button validation result (all fields):`, isValid);
+        console.debug(...UILIB, `[updateButtonStates] ${btn.label} button validation result (all fields):`, isValid);
       }
 
-      console.log(`[updateButtonStates] Setting ${btn.label} button disabled state to:`, !isValid);
+      console.debug(...UILIB, `[updateButtonStates] Setting ${btn.label} button disabled state to:`, !isValid);
       setDisabled(!isValid); // Set React state, which updates Fluent UI Button's disabled prop
     });
   }
@@ -2189,12 +2189,25 @@ export class Modal implements ModalInstance {
       doc.body.style.overflow = 'hidden';
       this.log('Modal displayed');
 
+      // Force a reflow immediately after appending to DOM
+      // This helps Griffel detect that components are now in live DOM
+      void this.container.offsetHeight;
+
       // Execute pending React mounts now that modal is in DOM
       if (this.pendingReactMounts.length > 0) {
         this.log('Executing', this.pendingReactMounts.length, 'pending React mounts');
         this.pendingReactMounts.forEach(mountFn => mountFn());
         this.pendingReactMounts = [];
       }
+      
+      // CRITICAL: Always add delay after modal is in DOM, not just for pending mounts
+      // This ensures Griffel CSS-in-JS has time to inject styles for ALL components
+      // including buttons which are mounted during initialization (while detached)
+      // Without this, buttons can render unstyled because Griffel needs time to:
+      // 1. Detect the component is now in live DOM
+      // 2. Inject the CSS rules into the document
+      // 3. Apply the styles to the elements
+      await new Promise(resolve => setTimeout(resolve, 10));
     } else {
       console.error('[Modal] Failed to display: overlay or container is null');
     }
@@ -2214,14 +2227,16 @@ export class Modal implements ModalInstance {
     doc.removeEventListener('mousemove', this.handleDrag);
     doc.removeEventListener('mouseup', this.stopDrag);
 
+    // Apply smooth fade-out animations with fill-mode to maintain final state
     if (this.modal) {
-      this.modal.style.animation = 'fadeOutScale 0.2s cubic-bezier(0.33, 0, 0.67, 1)';
+      this.modal.style.animation = 'fadeOutScale 0.3s cubic-bezier(0.33, 0, 0.67, 1) forwards';
     }
     if (this.overlay) {
-      this.overlay.style.animation = 'fadeOut 0.2s cubic-bezier(0.33, 0, 0.67, 1)';
+      this.overlay.style.animation = 'fadeOut 0.3s cubic-bezier(0.33, 0, 0.67, 1) forwards';
     }
 
-    setTimeout(() => {
+    // Use animationend event for reliable cleanup timing
+    const handleAnimationEnd = () => {
       if (this.container?.parentElement) {
         this.container.parentElement.removeChild(this.container);
       }
@@ -2229,7 +2244,19 @@ export class Modal implements ModalInstance {
         this.overlay.parentElement.removeChild(this.overlay);
       }
       doc.body.style.overflow = '';
-    }, 200);
+    };
+
+    // Listen for animation end on modal (primary element)
+    if (this.modal) {
+      this.modal.addEventListener('animationend', handleAnimationEnd, { once: true });
+    }
+
+    // Fallback timeout in case animationend doesn't fire
+    setTimeout(() => {
+      if (this.container?.parentElement || this.overlay?.parentElement) {
+        handleAnimationEnd();
+      }
+    }, 350); // Slightly longer than animation duration
   }
 
   setLoading(loading: boolean, options?: string | { message?: string; progress?: number }): void {
@@ -2439,35 +2466,35 @@ export class Modal implements ModalInstance {
     const step = this.options.progress.steps[stepIndex];
     if (!step?.fields) return true;
 
-    console.log(`[validateStep] Validating step ${stepIndex + 1}:`, step.label || step.id);
+    console.debug(...UILIB, `[validateStep] Validating step ${stepIndex + 1}:`, step.label || step.id);
 
     // Recursive function to validate fields (including all nested structures: groups, tabs, etc.)
     const validateFields = (fields: FieldConfig[], depth: number = 0): boolean => {
       const indent = '  '.repeat(depth);
       
       for (const field of fields) {
-        console.log(`${indent}[validateStep] Checking field:`, field.id, `type: ${field.type}`);
+        console.debug(...UILIB, `${indent}[validateStep] Checking field:`, field.id, `type: ${field.type}`);
         
         // Skip hidden fields - if visibleWhen is false, don't validate
         if (field.visibleWhen) {
           const isVisible = this.evaluateVisibilityCondition(field.visibleWhen);
-          console.log(`${indent}[validateStep] Field ${field.id} visibleWhen:`, field.visibleWhen, `result: ${isVisible}`);
+          console.debug(...UILIB, `${indent}[validateStep] Field ${field.id} visibleWhen:`, field.visibleWhen, `result: ${isVisible}`);
           if (!isVisible) {
-            console.log(`${indent}[validateStep] Field ${field.id} is hidden, skipping`);
+            console.debug(...UILIB, `${indent}[validateStep] Field ${field.id} is hidden, skipping`);
             continue; // Skip this field
           }
         }
 
         // If this field contains nested fields (group, tabs, or any container), recursively validate
         if (field.fields && field.fields.length > 0) {
-          console.log(`${indent}[validateStep] Field ${field.id} has ${field.fields.length} nested fields`);
+          console.debug(...UILIB, `${indent}[validateStep] Field ${field.id} has ${field.fields.length} nested fields`);
           if (!validateFields(field.fields, depth + 1)) {
-            console.log(`${indent}[validateStep] Nested field validation failed for ${field.id}`);
+            console.debug(...UILIB, `${indent}[validateStep] Nested field validation failed for ${field.id}`);
             return false;
           }
           // If this is just a container (group, tabs), don't validate the container itself
           if (field.type === 'group' || field.asTabs) {
-            console.log(`${indent}[validateStep] Field ${field.id} is container, skipping self-validation`);
+            console.debug(...UILIB, `${indent}[validateStep] Field ${field.id} is container, skipping self-validation`);
             continue;
           }
         }
@@ -2478,31 +2505,31 @@ export class Modal implements ModalInstance {
         // If requiredWhen is specified, use that condition
         if (field.requiredWhen) {
           isRequired = this.evaluateVisibilityCondition(field.requiredWhen);
-          console.log(`${indent}[validateStep] Field ${field.id} requiredWhen:`, field.requiredWhen, `result: ${isRequired}`);
+          console.debug(...UILIB, `${indent}[validateStep] Field ${field.id} requiredWhen:`, field.requiredWhen, `result: ${isRequired}`);
         } else {
           // Otherwise use the static required property
           isRequired = field.required || false;
-          console.log(`${indent}[validateStep] Field ${field.id} static required: ${isRequired}`);
+          console.debug(...UILIB, `${indent}[validateStep] Field ${field.id} static required: ${isRequired}`);
         }
 
         if (isRequired) {
           const value = this.getFieldValue(field.id);
-          console.log(`${indent}[validateStep] Field ${field.id} is required, value:`, value, `type: ${typeof value}`);
+          console.debug(...UILIB, `${indent}[validateStep] Field ${field.id} is required, value:`, value, `(type: ${typeof value})`);
           
           // Empty values: null, undefined, empty string, empty array
           if (value === null || value === undefined || value === '' || 
               (Array.isArray(value) && value.length === 0)) {
-            console.log(`${indent}[validateStep] ❌ Field ${field.id} is EMPTY and required!`);
+            console.debug(...UILIB, `${indent}[validateStep] ❌ Field ${field.id} is EMPTY and required!`);
             return false;
           }
-          console.log(`${indent}[validateStep] ✅ Field ${field.id} has value`);
+          console.debug(...UILIB, `${indent}[validateStep] ✅ Field ${field.id} has value`);
         }
       }
       return true;
     };
 
     const result = validateFields(step.fields);
-    console.log(`[validateStep] Step ${stepIndex + 1} validation result:`, result);
+    console.debug(...UILIB, `[validateStep] Step ${stepIndex + 1} validation result:`, result);
     return result;
   }
 
@@ -2877,14 +2904,14 @@ export class Modal implements ModalInstance {
                   this.options.width = newWidth;
                   this.options.height = newHeight;
                 
-                  console.log('Modal: Auto-resized webresource to', `${newWidth}x${newHeight}`);
+                  console.debug(...UILIB, 'Modal: Auto-resized webresource to', `${newWidth}x${newHeight}`);
                 }
               }
             }, 500); // Give content time to render
           }
         } catch (e) {
           // Cross-origin iframe - can't auto-resize
-          console.warn('Modal: Cannot auto-resize cross-origin webresource');
+          console.warn(...UILIB, 'Modal: Cannot auto-resize cross-origin webresource');
         }
       };
     }

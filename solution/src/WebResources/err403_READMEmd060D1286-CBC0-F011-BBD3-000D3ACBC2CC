@@ -407,7 +407,7 @@ function createContact() {
               uiLib.Toast.success({ 
                 message: 'Contact created successfully!' 
               });
-              console.log('Created contact ID:', result.id);
+              console.debug('Created contact ID:', result.id);
             },
             function error(err) {
               uiLib.Toast.error({ 
@@ -693,7 +693,7 @@ function createAccountWithConditionalFields() {
       new uiLib.Button('Cancel', () => {}),
       new uiLib.Button('Save', () => {
         const data = modal.getFieldValues();
-        console.log('Account data:', data);
+        console.debug('Account data:', data);
         uiLib.Toast.success({ title: 'Saved', message: 'Account created successfully' });
         return true;
       }, true)
@@ -805,7 +805,7 @@ function createFlexibleContactForm() {
       new uiLib.Button('Cancel', () => {}),
       new uiLib.Button('Save', () => {
         const data = modal.getFieldValues();
-        console.log('Contact data:', data);
+        console.debug('Contact data:', data);
         uiLib.Toast.success({ title: 'Saved', message: 'Contact created successfully' });
         return true;
       }, true)
@@ -913,7 +913,7 @@ function createOrderForm() {
         label: 'Create Order', 
         callback: () => {
           const data = modal.getFieldValues();
-          console.log('Order data:', data);
+          console.debug('Order data:', data);
           return true;
         }, 
         setFocus: true,
@@ -1051,7 +1051,7 @@ function createContactWithAddress() {
             longitude: 'address1_longitude'
           },
           onSelect: (address) => {
-            console.log('Selected address:', address);
+            console.debug('Selected address:', address);
             // address = { formattedAddress, street, city, state, postalCode, country, latitude, longitude }
             uiLib.Toast.success({ 
               message: `Address: ${address.formattedAddress}` 
@@ -1074,7 +1074,7 @@ function createContactWithAddress() {
         const data = modal.getFieldValues();
         
         // The businessAddress field contains the full address object:
-        console.log(data.businessAddress);
+        console.debug(data.businessAddress);
         // {
         //   formattedAddress: "9 Clendon Court, Templestowe VIC 3106, Australia",
         //   street: "9 Clendon Court",
@@ -1181,7 +1181,7 @@ function selectActiveAccount() {
     onSelect: function(results) {
       if (results.length > 0) {
         const account = results[0];
-        console.log('Selected account:', account.name);
+        console.debug('Selected account:', account.name);
         
         uiLib.Toast.success({ 
           message: 'Selected: ' + account.name 
@@ -1218,7 +1218,7 @@ function showContactsTable() {
             data: result.entities,
             selectionMode: 'multiple', // Options: 'none', 'single', 'multiple'
             onRowSelect: function(selectedRows) {
-              console.log('Selected contacts:', selectedRows);
+              console.debug('Selected contacts:', selectedRows);
               uiLib.Toast.info({ 
                 message: selectedRows.length + ' contact(s) selected' 
               });
@@ -1239,7 +1239,7 @@ function showContactsTable() {
             
             // Process selected contacts
             selectedContacts.forEach(function(contact) {
-              console.log('Processing:', contact.fullname);
+              console.debug('Processing:', contact.fullname);
             });
             
             uiLib.Toast.success({ 
@@ -1386,7 +1386,7 @@ function createContactWithGroups() {
         label: 'Create Contact',
         callback: function() {
           var data = modal.getFieldValues();
-          console.log('Contact data:', data);
+          console.debug('Contact data:', data);
           uiLib.Toast.success({ message: 'Contact created!' });
           return true;
         },
@@ -1611,7 +1611,7 @@ The `uiLib.init()` function returns a health state object that provides informat
 function onFormLoad(executionContext) {
   const health = uiLib.init(executionContext);
   
-  console.log(health);
+  console.debug(health);
   // {
   //   loaded: true,                    // Library initialized successfully
   //   cssLoaded: true,                 // CSS file found and loaded
@@ -1890,7 +1890,7 @@ const modal = new uiLib.Modal({
   fields: [ /* array of field config objects */ ],
   buttons: [ /* array of Button objects */ ],
   draggable: true, // optional - make modal draggable
-  allowDismiss: true, // click outside to close
+  allowDismiss: false, // click outside to close (default: false, requires explicit button clicks)
   progress: { // optional - for wizards
     enabled: true,
     currentStep: 1,
@@ -2070,7 +2070,7 @@ new uiLib.Modal({
   
   // Field change callback
   onChange: (value) => {
-    console.log('Field value changed:', value);
+    console.debug('Field value changed:', value);
     // Trigger side effects, update other fields, fetch data, etc.
     // For lookup fields: value is array of { id, name, entityType, record }
     // For tables: value is array of selected rows
@@ -2312,10 +2312,10 @@ new uiLib.Table({
     dragDropText: 'Drag and drop files here',
     browseText: 'or click to browse',
     onFilesSelected: (files) => {
-      console.log('Files selected:', files);
+      console.debug('Files selected:', files);
       // files is an array of File objects
       files.forEach(file => {
-        console.log(`${file.name} - ${file.size} bytes`);
+        console.debug(`${file.name} - ${file.size} bytes`);
       });
     }
   }
@@ -2334,7 +2334,7 @@ new uiLib.Table({
   }
 }
   selectionMode: 'multiple',
-  onRowSelect: (selectedRows) => { console.log(selectedRows); }
+  onRowSelect: (selectedRows) => { console.debug(selectedRows); }
 })
 
 // Example: Table field using inline config (simpler)
@@ -2351,7 +2351,7 @@ new uiLib.Table({
     { id: 2, name: 'Product B', price: 200 }
   ],
   selectionMode: 'multiple',
-  onRowSelect: (selectedRows) => { console.log(selectedRows); }
+  onRowSelect: (selectedRows) => { console.debug(selectedRows); }
 }
 ```
 
@@ -2445,7 +2445,7 @@ uiLib.Lookup.open({
 **Console logging with prefixes:**
 
 ```javascript
-console.log(...uiLib.BUG, 'Debug message', data);
+console.debug(...uiLib.BUG, 'Debug message', data);
 console.warn(...uiLib.WAR, 'Warning message');
 console.error(...uiLib.ERR, 'Error message', error);
 ```
@@ -2474,7 +2474,7 @@ function onFormLoad(executionContext) {
   }
   
   const health = uiLib.init(executionContext);
-  console.log('Library health:', health);
+  console.debug('Library health:', health);
 }
 ```
 
@@ -2511,7 +2511,7 @@ if (!health.cssLoaded) {
 // Test with simple alert first
 try {
   uiLib.Modal.alert('Test', 'If you see this, modals work').then(() => {
-    console.log('Modal dismissed');
+    console.debug('Modal dismissed');
   });
 } catch (error) {
   console.error('Modal error:', error);
@@ -2546,7 +2546,7 @@ function initIframe() {
   // Wait a bit for parent to load library
   setTimeout(() => {
     if (typeof uiLib !== 'undefined') {
-      console.log('Library available in iframe');
+      console.debug('Library available in iframe');
       uiLib.Toast.success({ message: 'Iframe initialized' });
     } else {
       console.error('Library not found in parent window');
@@ -2606,9 +2606,9 @@ function onFormLoad(executionContext) {
 
 ```javascript
 const health = uiLib.init(executionContext);
-console.log('Library health:', health);
-console.log('Version:', health.version);
-console.log('CSS loaded:', health.cssLoaded);
+console.debug('Library health:', health);
+console.debug('Version:', health.version);
+console.debug('CSS loaded:', health.cssLoaded);
 ```
 
 1. **Check browser console:** Press F12, look for errors

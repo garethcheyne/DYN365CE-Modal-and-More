@@ -1,29 +1,30 @@
 /**
  * Logger utility for debugging
  * Provides colored console output for different log levels
+ * All ui-Lib logs use consistent purple branding (#9C27B0)
  */
 
 export const TRACE = [
-  '%c TRACE ',
-  'background: #9C27B0; color: white; font-weight: bold; padding: 2px 6px; border-radius: 3px;'
+  '%c ui-Lib ',
+  'background: #9C27B0; color: white; font-weight: bold; padding: 2px 8px; border-radius: 3px;'
 ];
 
 // Backwards compatibility alias
 export const BUG = TRACE;
 
 export const WAR = [
-  '%c WAR ',
-  'background: #FF9800; color: white; font-weight: bold; padding: 2px 6px; border-radius: 3px;'
+  '%c ui-Lib ',
+  'background: #9C27B0; color: white; font-weight: bold; padding: 2px 8px; border-radius: 3px;'
 ];
 
 export const ERR = [
-  '%c ERR ',
-  'background: #F44336; color: white; font-weight: bold; padding: 2px 6px; border-radius: 3px;'
+  '%c ui-Lib ',
+  'background: #9C27B0; color: white; font-weight: bold; padding: 2px 8px; border-radius: 3px;'
 ];
 
 export const UILIB = [
-  '%c uiLib ',
-  'background: #9C27B0; color: white; font-weight: bold; padding: 2px 6px; border-radius: 3px;'
+  '%c ui-Lib ',
+  'background: #9C27B0; color: white; font-weight: bold; padding: 2px 8px; border-radius: 3px;'
 ];
 
 export const Logger = {

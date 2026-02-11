@@ -749,6 +749,178 @@ export const Demo: React.FC = () => {
     modal.show();
   };
 
+  // Advanced Table with Formatting and Styled Cells
+  const showAdvancedTableDemo = () => {
+    const salesData = [
+      { 
+        id: 1, 
+        vendor: 'Contoso Ltd', 
+        accountNumber: '300045',
+        productCount: 12,
+        totalValue: 15234.89,
+        margin: 0.3245,
+        lastOrder: '2026-01-15',
+        status: 'Active',
+        action: '<a href="#" style="color: #0078d4; text-decoration: underline;">View Existing Quote</a>'
+      },
+      { 
+        id: 2, 
+        vendor: 'Fabrikam Inc', 
+        accountNumber: '505444',
+        productCount: 8,
+        totalValue: 8920.50,
+        margin: 0.1512,
+        lastOrder: '2026-02-01',
+        status: 'Pending',
+        action: '<a href="#" style="color: #0078d4; text-decoration: underline;">View Existing Quote</a>'
+      },
+      { 
+        id: 3, 
+        vendor: 'Adventure Works', 
+        accountNumber: '612305',
+        productCount: 25,
+        totalValue: 32150.00,
+        margin: 0.4120,
+        lastOrder: '2025-12-20',
+        status: 'Active',
+        action: '<a href="#" style="color: #0078d4; text-decoration: underline;">View Existing Quote</a>'
+      },
+      { 
+        id: 4, 
+        vendor: 'Northwind Traders', 
+        accountNumber: '789012',
+        productCount: 5,
+        totalValue: 4567.25,
+        margin: 0.2890,
+        lastOrder: '2026-01-28',
+        status: 'Inactive',
+        action: '<span style="color: #a4262c;">No quotes</span>'
+      }
+    ];
+
+    const modal = new uiLib.Modal({
+      title: 'Sales Report',
+      message: 'Select vendors to create bulk quotes (inactive vendors cannot be selected)',
+      size: 'large',
+      fields: [
+        {
+          id: 'salesTable',
+          type: 'table',
+          tableColumns: [
+            {
+              id: 'vendor',
+              header: 'Vendor Name',
+              visible: true,
+              sortable: true,
+              width: '200px',
+              align: 'left'
+            },
+            {
+              id: 'accountNumber',
+              header: 'Account #',
+              visible: true,
+              sortable: true,
+              width: '120px',
+              align: 'left'
+            },
+            {
+              id: 'productCount',
+              header: 'Products',
+              visible: true,
+              sortable: true,
+              width: '100px',
+              align: 'center',
+              format: 'number'
+            },
+            {
+              id: 'totalValue',
+              header: 'Total Value',
+              visible: true,
+              sortable: true,
+              width: '120px',
+              align: 'right',
+              format: 'currency'
+            },
+            {
+              id: 'margin',
+              header: 'Margin',
+              visible: true,
+              sortable: true,
+              width: '100px',
+              align: 'right',
+              format: 'percent'
+            },
+            {
+              id: 'lastOrder',
+              header: 'Last Order',
+              visible: true,
+              sortable: true,
+              width: '120px',
+              align: 'left',
+              format: 'date'
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              visible: true,
+              sortable: true,
+              width: '100px',
+              align: 'center'
+            },
+            {
+              id: 'action',
+              header: 'Action',
+              visible: true,
+              sortable: false,
+              width: '180px',
+              align: 'left'
+            }
+          ],
+          data: salesData,
+          selectionMode: 'multiple',
+          isRowSelectable: (row: any) => row.status !== 'Inactive',
+          onRowSelect: (selectedRows: any[]) => {
+            console.debug('Selected vendors:', selectedRows);
+          }
+        }
+      ],
+      buttons: [
+        new uiLib.Button({
+          label: 'Create Quotes',
+          callback: function() {
+            const modal = this as any;
+            const selected = modal.getFieldValue('salesTable');
+            const selectedRows = salesData.filter((row: any) => 
+              selected && selected.includes(row.id)
+            );
+            
+            if (!selectedRows || selectedRows.length === 0) {
+              uiLib.Toast.warn({ 
+                title: 'No Selection', 
+                message: 'Please select vendors to create quotes' 
+              });
+              return false;
+            }
+
+            uiLib.Toast.success({ 
+              title: 'Quotes Created', 
+              message: `Created ${selectedRows.length} quote(s) for selected vendors` 
+            });
+            return true;
+          },
+          setFocus: true,
+          id: 'createBtn'
+        }),
+        new uiLib.Button({
+          label: 'Close',
+          callback: () => true,
+          id: 'closeBtn'
+        })
+      ]
+    });
+    modal.show();
+  };
+
   // File Upload Demo with Drag & Drop
   const showFileUploadDemo = () => {
     const modal = new uiLib.Modal({
@@ -1032,7 +1204,7 @@ export const Demo: React.FC = () => {
           label: 'Save Profile',
           callback: () => {
             const data = modal.getFieldValues();
-            console.log('Profile data:', data);
+            console.debug('Profile data:', data);
             uiLib.Toast.success({ title: 'Profile Saved', message: `${data.firstName} ${data.lastName}'s profile has been saved.` });
             return true;
           },
@@ -1243,7 +1415,7 @@ export const Demo: React.FC = () => {
                     longitude: 'lng'
                   },
                   onSelect: (address) => {
-                    console.log('Selected address:', address);
+                    console.debug('Selected address:', address);
                   }
                 },
                 visibleWhen: { field: 'mapsApiKey', operator: 'truthy' }
@@ -1274,7 +1446,7 @@ export const Demo: React.FC = () => {
                   multiple: true,
                   dragDropText: 'Drag and drop files here',
                   browseText: 'or click to browse',
-                  onFilesSelected: (files) => console.log('Files:', files)
+                  onFilesSelected: (files) => console.debug('Files:', files)
                 }
               },
               { id: 'description', label: 'Description', type: 'textarea', required: true, rows: 4, placeholder: 'Enter detailed description...' },
@@ -1322,8 +1494,8 @@ export const Demo: React.FC = () => {
             const allData = modal.getFieldValues();
             const selectedProducts = modal.getFieldValue('productTable') || [];
 
-            console.log('📦 Complete Wizard Data:', allData);
-            console.log('✅ Selected Products:', selectedProducts);
+            console.debug('📦 Complete Wizard Data:', allData);
+            console.debug('✅ Selected Products:', selectedProducts);
 
             const summary = {
               ...allData,
@@ -1478,7 +1650,7 @@ const modal = new uiLib.Modal({
     new uiLib.Button('Cancel', () => {}),
     new uiLib.Button('Save', () => {
       const data = modal.getFieldValues();
-      console.log('Saved:', data);
+      console.debug('Saved:', data);
       return true;
     }, true)
   ]
@@ -1507,7 +1679,7 @@ const addressModal = new uiLib.Modal({
           country: 'country'
         },
         onSelect: (address) => {
-          console.log('Selected:', address.formattedAddress);
+          console.debug('Selected:', address.formattedAddress);
         }
       }
     },
@@ -1534,7 +1706,7 @@ const uploadModal = new uiLib.Modal({
         multiple: true,
         dragDropText: 'Drag files here',
         onFilesSelected: (files) => {
-          console.log('Selected:', files);
+          console.debug('Selected:', files);
         }
       }
     }
@@ -1584,7 +1756,7 @@ uiLib.Lookup.open({
   title: 'Select Account',
   columns: ['name', 'emailaddress1', 'telephone1'],
   onSelect: (selected) => {
-    console.log('Selected:', selected);
+    console.debug('Selected:', selected);
   }
 });
 
@@ -1595,7 +1767,7 @@ uiLib.Lookup.open({
   allowMultiSelect: true,
   columns: ['fullname', 'emailaddress1', 'jobtitle'],
   onSelect: (selected) => {
-    console.log('Selected contacts:', selected);
+    console.debug('Selected contacts:', selected);
   }
 });`}
         >
@@ -1637,7 +1809,7 @@ const modal = new uiLib.Modal({
       ],
       selectionMode: 'multiple',
       onRowSelect: (selectedRows) => {
-        console.log('Selected:', selectedRows);
+        console.debug('Selected:', selectedRows);
       }
     }
   ]
@@ -1685,6 +1857,7 @@ const validationModal = new uiLib.Modal({
               <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showSimpleTable}>Simple Table</button>
               <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showTableWithSelection}>With Selection</button>
               <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showProductValidationDialog}>🎯 Real-World Example</button>
+              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showAdvancedTableDemo}>🧪 Advanced Formatting</button>
             </div>
           </Section>
         </Card>
@@ -1839,7 +2012,7 @@ const name = await uiLib.ModalHelpers.prompt(
   'Guest'  // Default value
 );
 if (name) {
-  console.log('User entered:', name);
+  console.debug('User entered:', name);
 }`}
         >
           <Section title="Quick Dialogs">

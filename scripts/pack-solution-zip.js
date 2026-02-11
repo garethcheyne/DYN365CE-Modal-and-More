@@ -40,11 +40,11 @@ function zipSolution(managed = false) {
   const packageType = managed ? 'managed' : 'unmanaged';
   const outputFile = path.resolve(SOLUTION_OUTPUT, `${name}_${version.replace(/\./g, '_')}_${packageType}.zip`);
 
-  console.log(`📦 Zipping ${packageType} solution...`);
-  console.log(`   Solution: ${name}`);
-  console.log(`   Version: ${version}`);
-  console.log(`   Type: ${packageType}`);
-  console.log(`   Output: ${outputFile}\n`);
+  console.debug(`📦 Zipping ${packageType} solution...`);
+  console.debug(`   Solution: ${name}`);
+  console.debug(`   Version: ${version}`);
+  console.debug(`   Type: ${packageType}`);
+  console.debug(`   Output: ${outputFile}\n`);
 
   return new Promise((resolve, reject) => {
     const output = fs.createWriteStream(outputFile);
@@ -52,10 +52,10 @@ function zipSolution(managed = false) {
 
     output.on('close', () => {
       const stats = fs.statSync(outputFile);
-      console.log(`✅ ${packageType.charAt(0).toUpperCase() + packageType.slice(1)} solution zipped successfully!`);
-      console.log(`   File: ${outputFile}`);
-      console.log(`   Size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
-      console.log(`   Total bytes: ${archive.pointer()}\n`);
+      console.debug(`✅ ${packageType.charAt(0).toUpperCase() + packageType.slice(1)} solution zipped successfully!`);
+      console.debug(`   File: ${outputFile}`);
+      console.debug(`   Size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
+      console.debug(`   Total bytes: ${archive.pointer()}\n`);
       resolve();
     });
 
@@ -90,7 +90,7 @@ function zipSolution(managed = false) {
  * Main execution
  */
 async function main() {
-  console.log('🚀 Packing Dataverse solution (ZIP method)...\n');
+  console.debug('🚀 Packing Dataverse solution (ZIP method)...\n');
 
   // Check if solution source exists
   if (!fs.existsSync(SOLUTION_SRC)) {
@@ -103,7 +103,7 @@ async function main() {
     await zipSolution(false); // Unmanaged
     await zipSolution(true);  // Managed
     
-    console.log('✨ Both solution packages created successfully!');
+    console.debug('✨ Both solution packages created successfully!');
   } catch (error) {
     console.error('❌ Failed to pack solution');
     process.exit(1);
