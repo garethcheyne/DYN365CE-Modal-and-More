@@ -1,8 +1,21 @@
 /**
  * Tests Page - Test suite for err403 UI Library components
+ * Used as tab content in About.tsx - no Layout wrapper needed
  */
 import React, { useState, useCallback } from 'react';
-import { Layout } from '../shared/Layout';
+import {
+  makeStyles,
+  tokens,
+  Card,
+  CardHeader,
+  Text,
+  Button,
+  Badge,
+  Title3,
+  Body1,
+  MessageBar,
+  MessageBarBody,
+} from '@fluentui/react-components';
 import * as err403Module from '../../index';
 
 // Use the module exports directly (works in both dev and production)
@@ -16,7 +29,87 @@ interface LogEntry {
   time: string;
 }
 
-// Test Card Component
+const useStyles = makeStyles({
+  container: {
+    padding: tokens.spacingHorizontalXL,
+    backgroundColor: tokens.colorNeutralBackground2,
+    minHeight: '100%',
+  },
+  pageTitle: {
+    marginBottom: tokens.spacingVerticalXL,
+  },
+  subtitle: {
+    color: tokens.colorNeutralForeground2,
+    marginTop: tokens.spacingVerticalXS,
+  },
+  note: {
+    marginBottom: tokens.spacingVerticalL,
+  },
+  cardGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+    gap: tokens.spacingHorizontalL,
+  },
+  card: {
+    backgroundColor: tokens.colorNeutralBackground1,
+  },
+  cardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: tokens.spacingVerticalS,
+  },
+  cardBody: {
+    padding: tokens.spacingHorizontalM,
+  },
+  description: {
+    color: tokens.colorNeutralForeground2,
+    marginBottom: tokens.spacingVerticalM,
+  },
+  testGrid: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalS,
+    marginBottom: tokens.spacingVerticalM,
+  },
+  console: {
+    backgroundColor: tokens.colorNeutralBackground3,
+    padding: tokens.spacingHorizontalM,
+    borderRadius: tokens.borderRadiusMedium,
+    fontFamily: "'Consolas', 'Monaco', 'Courier New', monospace",
+    fontSize: tokens.fontSizeBase200,
+    maxHeight: '200px',
+    overflowY: 'auto',
+  },
+  consoleLine: {
+    padding: `${tokens.spacingVerticalXS} 0`,
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    '&:last-child': {
+      borderBottom: 'none',
+    },
+  },
+  consoleLineSuccess: {
+    color: tokens.colorPaletteGreenForeground1,
+  },
+  consoleLineError: {
+    color: tokens.colorPaletteRedForeground1,
+  },
+  consoleLineWarning: {
+    color: tokens.colorPaletteYellowForeground1,
+  },
+  consoleLineInfo: {
+    color: tokens.colorBrandForeground1,
+  },
+  consoleTime: {
+    color: tokens.colorNeutralForeground3,
+    marginRight: tokens.spacingHorizontalS,
+  },
+  emptyConsole: {
+    color: tokens.colorNeutralForeground3,
+  },
+});
+
+// Test Card Component with Fluent UI
 interface TestCardProps {
   title: string;
   description?: string;
@@ -25,35 +118,53 @@ interface TestCardProps {
   onClear: () => void;
 }
 
-const TestCard: React.FC<TestCardProps> = ({ title, description, tests, logs, onClear }) => (
-  <div className="ui-lib-d365-card">
-    <div className="ui-lib-d365-card__header">
-      <h2 className="ui-lib-d365-card__title">{title}</h2>
-      <button className="ui-lib-d365-btn ui-lib-d365-btn--ghost ui-lib-d365-btn--small" onClick={onClear}>
-        Clear
-      </button>
-    </div>
-    <div className="ui-lib-d365-card__body">
-      {description && <p className="ui-lib-d365-card__description">{description}</p>}
-      <div className="ui-lib-d365-test-grid">
-        {tests.map((test, i) => (
-          <button key={i} className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={test.handler}>
-            {test.label}
-          </button>
-        ))}
+const TestCard: React.FC<TestCardProps> = ({ title, description, tests, logs, onClear }) => {
+  const styles = useStyles();
+  
+  const getLineClass = (status: LogEntry['status']) => {
+    switch (status) {
+      case 'success': return styles.consoleLineSuccess;
+      case 'error': return styles.consoleLineError;
+      case 'warning': return styles.consoleLineWarning;
+      case 'info': return styles.consoleLineInfo;
+      default: return '';
+    }
+  };
+
+  return (
+    <Card className={styles.card}>
+      <CardHeader
+        header={<Text weight="semibold" size={400}>{title}</Text>}
+        action={
+          <Button appearance="subtle" size="small" onClick={onClear}>
+            Clear
+          </Button>
+        }
+      />
+      <div className={styles.cardBody}>
+        {description && <Body1 className={styles.description}>{description}</Body1>}
+        <div className={styles.testGrid}>
+          {tests.map((test, i) => (
+            <Button key={i} appearance="primary" size="small" onClick={test.handler}>
+              {test.label}
+            </Button>
+          ))}
+        </div>
+        <div className={styles.console}>
+          {logs.length === 0 && (
+            <span className={styles.emptyConsole}>Results will appear here...</span>
+          )}
+          {logs.map((log) => (
+            <div key={log.id} className={`${styles.consoleLine} ${getLineClass(log.status)}`}>
+              <span className={styles.consoleTime}>[{log.time}]</span>
+              <span>{log.message}</span>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="ui-lib-d365-console">
-        {logs.length === 0 && <span style={{ color: '#6a6a6a' }}>Results will appear here...</span>}
-        {logs.map((log) => (
-          <div key={log.id} className={`ui-lib-d365-console__line ui-lib-d365-console__line--${log.status}`}>
-            <span className="ui-lib-d365-console__time">[{log.time}]</span>
-            <span>{log.message}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-);
+    </Card>
+  );
+};
 
 export const Tests: React.FC = () => {
   // Separate log state for each section
@@ -133,8 +244,8 @@ export const Tests: React.FC = () => {
       const modal = new err403.Modal({
         title: 'Form Test',
         fields: [
-          new err403.Input({ id: 'email', label: 'Email', type: 'text', required: true }),
-          new err403.Input({ id: 'age', label: 'Age', type: 'number', extraAttributes: { min: 18, max: 100 } })
+          { id: 'email', label: 'Email', type: 'email', required: true },
+          { id: 'age', label: 'Age', type: 'number', extraAttributes: { min: 18, max: 100 } }
         ],
         buttons: [
           new err403.Button('Cancel', () => addLog(setModalLogs, 'Form cancelled')),
@@ -151,16 +262,16 @@ export const Tests: React.FC = () => {
       const modal = new err403.Modal({
         title: 'Tabbed Modal Test',
         fields: [
-          new err403.Group({
-            id: 'tabs', asTabs: true, fields: [
-              new err403.Group({ id: 'tab1', label: 'General', fields: [
-                new err403.Input({ id: 'name', label: 'Name', type: 'text' })
-              ]}),
-              new err403.Group({ id: 'tab2', label: 'Details', fields: [
-                new err403.MultiLine({ id: 'desc', label: 'Description', rows: 4 })
-              ]})
+          {
+            id: 'tabs', type: 'group', asTabs: true, fields: [
+              { id: 'tab1', type: 'group', label: 'General', fields: [
+                { id: 'name', label: 'Name', type: 'text' }
+              ]},
+              { id: 'tab2', type: 'group', label: 'Details', fields: [
+                { id: 'desc', label: 'Description', type: 'textarea', rows: 4 }
+              ]}
             ]
-          })
+          }
         ],
         buttons: [new err403.Button('Close', () => addLog(setModalLogs, '✓ Tabbed modal closed'), true)]
       });
@@ -227,14 +338,14 @@ export const Tests: React.FC = () => {
       const modal = new err403.Modal({
         title: 'Validation Test',
         fields: [
-          new err403.Input({
+          {
             id: 'email', label: 'Email', type: 'email', required: true,
             validation: { rules: [{ type: 'required' }, { type: 'email', message: 'Must be valid email' }], showErrors: true }
-          }),
-          new err403.Input({
+          },
+          {
             id: 'password', label: 'Password', type: 'password', required: true,
             validation: { rules: [{ type: 'minLength', value: 8, message: 'Min 8 characters' }], showErrors: true }
-          })
+          }
         ],
         buttons: [
           new err403.Button('Cancel', () => {}),
@@ -366,15 +477,16 @@ export const Tests: React.FC = () => {
       const modal = new err403.Modal({
         title: 'Simple Table',
         size: 'medium',
-        fields: [new err403.Table({
+        fields: [{
           id: 'table1',
-          columns: [
-            { id: 'name', header: 'Name', sortable: true },
-            { id: 'age', header: 'Age', sortable: true }
+          type: 'table',
+          tableColumns: [
+            { id: 'name', header: 'Name', sortable: true, visible: true },
+            { id: 'age', header: 'Age', sortable: true, visible: true }
           ],
           data: [{ id: 1, name: 'Alice', age: 30 }, { id: 2, name: 'Bob', age: 25 }],
           selectionMode: 'none'
-        })],
+        }],
         buttons: [new err403.Button('Close', () => {}, true)]
       });
       modal.show();
@@ -384,11 +496,12 @@ export const Tests: React.FC = () => {
       const modal = new err403.Modal({
         title: 'Sortable Table',
         size: 'medium',
-        fields: [new err403.Table({
+        fields: [{
           id: 'table2',
-          columns: [
-            { id: 'name', header: 'Name', sortable: true },
-            { id: 'score', header: 'Score', sortable: true }
+          type: 'table',
+          tableColumns: [
+            { id: 'name', header: 'Name', sortable: true, visible: true },
+            { id: 'score', header: 'Score', sortable: true, visible: true }
           ],
           data: [
             { id: 1, name: 'Zebra', score: 85 },
@@ -396,7 +509,7 @@ export const Tests: React.FC = () => {
             { id: 3, name: 'Mango', score: 78 }
           ],
           selectionMode: 'none'
-        })],
+        }],
         buttons: [new err403.Button('Close', () => {}, true)]
       });
       modal.show();
@@ -405,13 +518,14 @@ export const Tests: React.FC = () => {
     { label: 'Single Select', handler: () => {
       const modal = new err403.Modal({
         title: 'Single Selection',
-        fields: [new err403.Table({
+        fields: [{
           id: 'table3',
-          columns: [{ id: 'product', header: 'Product', sortable: true }, { id: 'price', header: 'Price' }],
+          type: 'table',
+          tableColumns: [{ id: 'product', header: 'Product', sortable: true, visible: true }, { id: 'price', header: 'Price', visible: true }],
           data: [{ id: 1, product: 'Laptop', price: 1200 }, { id: 2, product: 'Mouse', price: 25 }],
           selectionMode: 'single',
           onRowSelect: (rows: any[]) => rows.length && addLog(setTableLogs, `→ Selected: ${rows[0].product}`)
-        })],
+        }],
         buttons: [new err403.Button('Close', () => {}, true)]
       });
       modal.show();
@@ -420,9 +534,10 @@ export const Tests: React.FC = () => {
     { label: 'Multi Select', handler: () => {
       const modal = new err403.Modal({
         title: 'Multi Selection',
-        fields: [new err403.Table({
+        fields: [{
           id: 'table4',
-          columns: [{ id: 'task', header: 'Task' }, { id: 'status', header: 'Status' }],
+          type: 'table',
+          tableColumns: [{ id: 'task', header: 'Task', visible: true }, { id: 'status', header: 'Status', visible: true }],
           data: [
             { id: 1, task: 'Design', status: 'Done' },
             { id: 2, task: 'Code', status: 'In Progress' },
@@ -430,7 +545,7 @@ export const Tests: React.FC = () => {
           ],
           selectionMode: 'multiple',
           onRowSelect: (rows: any[]) => addLog(setTableLogs, `→ ${rows.length} row(s) selected`)
-        })],
+        }],
         buttons: [new err403.Button('Close', () => {}, true)]
       });
       modal.show();
@@ -454,7 +569,7 @@ export const Tests: React.FC = () => {
     { label: 'Lookup in Modal', handler: () => {
       err403.Modal.open({
         title: 'Select Account',
-        fields: [new err403.Input({ id: 'selected', label: 'Selected Account', disabled: true })],
+        fields: [{ id: 'selected', label: 'Selected Account', type: 'text', disabled: true }],
         buttons: [
           new err403.Button('Open Lookup', () => {
             err403.Lookup.open({
@@ -493,21 +608,24 @@ export const Tests: React.FC = () => {
     }}
   ];
 
+  const styles = useStyles();
+  
   return (
-    <Layout currentPage="tests" version={typeof PACKAGE_VERSION !== 'undefined' ? PACKAGE_VERSION : undefined}>
-      <div className="ui-lib-d365-page-title">
-        <h1 className="ui-lib-d365-page-title__heading">Test Suite</h1>
-        <p className="ui-lib-d365-page-title__subtitle">
+    <div className={styles.container}>
+      <div className={styles.pageTitle}>
+        <Title3>Test Suite</Title3>
+        <Body1 className={styles.subtitle}>
           Automated and manual tests for the err403 UI Library components
-        </p>
+        </Body1>
       </div>
 
-      <div className="ui-lib-d365-note ui-lib-d365-note--info" style={{ marginBottom: '24px' }}>
-        <span className="ui-lib-d365-note__icon">ℹ️</span>
-        <span>Click the buttons below to run individual tests. Results appear in the console below each section.</span>
-      </div>
+      <MessageBar intent="info" className={styles.note}>
+        <MessageBarBody>
+          Click the buttons below to run individual tests. Results appear in the console below each section.
+        </MessageBarBody>
+      </MessageBar>
 
-      <div className="ui-lib-d365-card-grid">
+      <div className={styles.cardGrid}>
         <TestCard
           title="Toast Component Tests"
           tests={toastTests}
@@ -553,7 +671,7 @@ export const Tests: React.FC = () => {
           onClear={() => setIntegrationLogs([])}
         />
       </div>
-    </Layout>
+    </div>
   );
 };
 

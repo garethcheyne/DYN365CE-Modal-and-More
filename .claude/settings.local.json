@@ -8,7 +8,10 @@
       "WebSearch",
       "WebFetch(domain:github.com)",
       "Bash(npm run build:*)",
-      "Bash(npm run build:lib:*)"
+      "Bash(npm run build:lib:*)",
+      "Bash(npm run build:pages:demo:*)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

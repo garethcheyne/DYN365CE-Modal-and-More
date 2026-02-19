@@ -52,6 +52,19 @@ Powerful record selection with two modes:
 - **Inline Dropdown Lookup** - Search and select records in a dropdown (D365 native style)
 - **Modal Dialog Lookup** - Full-screen lookup with table, search, filter, and multi-select
 
+### 🔧 Modal Builder (Beta)
+
+A visual drag-and-drop interface for building modal dialogs without writing code:
+
+- **Drag & Drop Fields** - Drag field types from the palette onto your modal
+- **Visual Configuration** - Configure field properties, validation, and visibility
+- **Live Preview** - See your modal in real-time as you build
+- **Code Export** - Generate ready-to-use JavaScript/TypeScript code
+- **Wizard Support** - Build multi-step wizard dialogs visually
+- **Save & Load** - Save configurations and reload them later
+
+> **Beta Notice:** The Modal Builder is currently in beta. Some features may be incomplete or change in future releases.
+
 ## Architecture
 
 **Vanilla JavaScript API with Fluent UI Components**
@@ -1599,6 +1612,39 @@ function processRecords() {
 }
 ```
 
+### Example 16: Open Query Builder
+
+Open the built-in ui-Lib query builder modal and receive both FetchXML and OData output:
+
+```javascript
+async function openNativeQueryBuilder() {
+  const result = await uiLib.Modal.openQueryBuilder({
+    title: 'Custom Query Builder',
+    entityName: 'account',
+    showODataPreview: true
+  });
+
+  if (result.opened && result.result) {
+    uiLib.Toast.success({
+      title: 'Query Builder',
+      message: `Applied in ${result.elapsedMs}ms.`
+    });
+
+    console.debug('FetchXML:', result.result.fetchXml);
+    console.debug('OData Filter:', result.result.odataFilter);
+  } else {
+    uiLib.Toast.warn({
+      title: 'Query Builder',
+      message: `${result.reason}${result.error ? ': ' + result.error : ''}`
+    });
+  }
+}
+```
+
+**Result contract:** `reason` is one of `'applied' | 'cancelled' | 'closed' | 'error'`.
+
+For npm/component consumers, the same builder is also exported as `QueryBuilderFluentUi` (plus `serializeQueryBuilderState`) so you can mount it directly outside the Modal wrapper.
+
 ---
 
 ## Library Initialization
@@ -2404,6 +2450,9 @@ new uiLib.Button(
 ```javascript
 uiLib.Modal.alert('Title', 'Message').then(() => { /* closed */ });
 uiLib.Modal.confirm('Title', 'Message').then((confirmed) => { /* boolean */ });
+uiLib.Modal.openQueryBuilder({ entityName: 'account' }).then((result) => {
+  // { opened, reason: 'applied' | 'cancelled' | 'closed' | 'error', elapsedMs, result?, error? }
+});
 ```
 
 **Modal methods:**

@@ -18,11 +18,13 @@ import type {
   ModalOptions,
   ModalInstance,
   ModalResponse,
-  FieldConfig
+  FieldConfig,
+  QueryBuilderOpenOptions,
+  QueryBuilderOpenResult
 } from './Modal.types';
 import { ModalButton } from './Modal.types';
 import { getTargetDocument } from '../../utils/dom';
-import { WAR, ERR, UILIB } from '../Logger/Logger';
+import { UILIB } from '../Logger/Logger';
 import {
   React,
   TabList,
@@ -44,8 +46,12 @@ import {
   PopoverTrigger,
   PopoverSurface,
   mountFluentComponent,
+  unmountFluentComponent,
   defaultTheme,
 } from '../FluentUi';
+import { FluentProvider, webLightTheme } from '@fluentui/react-components';
+import { QueryBuilder } from 'fluentui-extended';
+import type { QueryBuilderApplyResult } from 'fluentui-extended';
 
 /**
  * Modal class
@@ -650,6 +656,19 @@ export class Modal implements ModalInstance {
         margin-bottom: ${theme.spacing.m};
       `;
       this.body.appendChild(contentEl);
+    }
+
+    // Add custom content element if provided
+    if (this.options.customContent) {
+      const customContentWrapper = doc.createElement('div');
+      customContentWrapper.style.cssText = `
+        margin-bottom: ${theme.spacing.m};
+        display: flex;
+        flex-direction: column;
+        gap: ${theme.spacing.s};
+      `;
+      customContentWrapper.appendChild(this.options.customContent);
+      this.body.appendChild(customContentWrapper);
     }
 
     if (hasSteps) {
@@ -2775,6 +2794,113 @@ export class Modal implements ModalInstance {
             resolve(true);
           }, true)
         ]
+      });
+    });
+  }
+
+  static async openQueryBuilder(options: QueryBuilderOpenOptions): Promise<QueryBuilderOpenResult> {
+    const startTime = performance.now();
+    const entityName = options?.entityName;
+
+    if (!entityName || !entityName.trim()) {
+      return {
+        opened: false,
+        reason: 'error',
+        elapsedMs: Math.round(performance.now() - startTime),
+        error: 'entityName is required for openQueryBuilder.'
+      };
+    }
+
+    const host = getTargetDocument().createElement('div');
+    let latestPayload: QueryBuilderApplyResult | undefined;
+    const root = mountFluentComponent(
+      host,
+      React.createElement(
+        FluentProvider,
+        { theme: webLightTheme },
+        React.createElement(QueryBuilder, {
+          ...options,
+          onSerializedChange: (result: QueryBuilderApplyResult) => {
+            latestPayload = result;
+          },
+        })
+      ),
+      defaultTheme,
+    );
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const complete = (result: QueryBuilderOpenResult): void => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        try {
+          unmountFluentComponent(root);
+        } catch {
+          // no-op
+        }
+
+        resolve(result);
+      };
+
+      Modal.open({
+        title: options.title || 'Query Builder',
+        customContent: host,
+        size: 'large',
+        width: options.width || 960,
+        height: options.height || 640,
+        preventClose: true,
+        allowDismiss: false,
+        allowEscapeClose: false,
+        buttons: [
+          new ModalButton({
+            label: options.cancelButtonText || 'Cancel',
+            id: 'queryBuilderCancel',
+            callback: () => {
+              options.onCancel?.();
+              complete({
+                opened: false,
+                reason: 'cancelled',
+                elapsedMs: Math.round(performance.now() - startTime),
+              });
+            },
+          }),
+          new ModalButton({
+            label: options.applyButtonText || 'Apply',
+            id: 'queryBuilderApply',
+            setFocus: true,
+            callback: async () => {
+              try {
+                if (!latestPayload) {
+                  complete({
+                    opened: false,
+                    reason: 'error',
+                    elapsedMs: Math.round(performance.now() - startTime),
+                    error: 'Query builder is not ready yet.',
+                  });
+                  return;
+                }
+
+                await options.onApply?.(latestPayload);
+                complete({
+                  opened: true,
+                  reason: 'applied',
+                  elapsedMs: Math.round(performance.now() - startTime),
+                  result: latestPayload,
+                });
+              } catch (error) {
+                complete({
+                  opened: false,
+                  reason: 'error',
+                  elapsedMs: Math.round(performance.now() - startTime),
+                  error: error instanceof Error ? error.message : String(error),
+                });
+              }
+            },
+          }),
+        ],
       });
     });
   }

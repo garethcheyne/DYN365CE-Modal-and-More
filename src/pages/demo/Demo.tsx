@@ -1,8 +1,36 @@
 /**
  * Demo Page - Interactive showcase of err403 UI Library components
+ * Used as tab content in About.tsx - no Layout wrapper needed
  */
-import React, { useState } from 'react';
-import { Layout } from '../shared/Layout';
+import React, { useState, useEffect } from 'react';
+import {
+  makeStyles,
+  tokens,
+  Card as FluentCard,
+  CardHeader,
+  Text,
+  Button,
+  Badge,
+  Title2,
+  Body1,
+  MessageBar,
+  MessageBarBody,
+} from '@fluentui/react-components';
+import {
+  CheckmarkCircle24Regular,
+  Info24Regular,
+  Warning24Regular,
+  ErrorCircle24Regular,
+  QuestionCircle24Regular,
+  Location24Regular,
+  Attach24Regular,
+  GroupList24Regular,
+  TargetArrow24Regular,
+  DocumentEdit24Regular,
+  Copy24Regular,
+  Checkmark24Regular,
+} from '@fluentui/react-icons';
+import { detectEnvironment, canUseLiveData, mockData, type D365Environment } from '../shared/environment';
 import * as err403Module from '../../index';
 
 // Use the module exports directly (works in both dev and production)
@@ -24,6 +52,67 @@ const formatJsonWithStyle = (obj: any): string => {
   return `<pre style="background: #f3f2f1; padding: 20px; border-radius: 6px; overflow: auto; max-height: 500px; text-align: left; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.6; border: 1px solid #e1dfdd;">${highlighted}</pre>`;
 };
 
+// Styles for demo components using Fluent UI makeStyles
+const useDemoStyles = makeStyles({
+  container: {
+    padding: tokens.spacingHorizontalXL,
+    backgroundColor: tokens.colorNeutralBackground2,
+    minHeight: '100%',
+  },
+  cardGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
+    gap: tokens.spacingHorizontalL,
+  },
+  card: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    marginBottom: tokens.spacingVerticalL,
+  },
+  cardBody: {
+    padding: tokens.spacingHorizontalM,
+  },
+  description: {
+    color: tokens.colorNeutralForeground2,
+    marginBottom: tokens.spacingVerticalM,
+  },
+  section: {
+    marginTop: tokens.spacingVerticalM,
+  },
+  sectionTitle: {
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightSemibold,
+    marginBottom: tokens.spacingVerticalS,
+    color: tokens.colorNeutralForeground1,
+  },
+  btnGroup: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalS,
+  },
+  note: {
+    marginTop: tokens.spacingVerticalM,
+    marginBottom: tokens.spacingVerticalL,
+  },
+  noteSuccess: {
+    backgroundColor: tokens.colorPaletteGreenBackground1,
+    padding: tokens.spacingHorizontalM,
+    borderRadius: tokens.borderRadiusMedium,
+    marginBottom: tokens.spacingVerticalL,
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+  },
+  noteInfo: {
+    backgroundColor: tokens.colorNeutralBackground3,
+    padding: tokens.spacingHorizontalM,
+    borderRadius: tokens.borderRadiusMedium,
+    marginBottom: tokens.spacingVerticalL,
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+  },
+});
+
 // Code Viewer Component
 interface CodeViewerProps {
   code: string;
@@ -44,8 +133,8 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ code, language = 'typescript' }
       position: 'relative',
       marginTop: '12px',
       borderRadius: '6px',
-      border: '1px solid #e1dfdd',
-      backgroundColor: '#f9f9f9',
+      border: `1px solid ${tokens.colorNeutralStroke1}`,
+      backgroundColor: tokens.colorNeutralBackground3,
       overflow: 'hidden'
     }}>
       <div style={{
@@ -53,27 +142,20 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ code, language = 'typescript' }
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '8px 12px',
-        backgroundColor: '#f3f2f1',
-        borderBottom: '1px solid #e1dfdd',
+        backgroundColor: tokens.colorNeutralBackground4,
+        borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
         fontSize: '12px',
-        color: '#605e5c'
+        color: tokens.colorNeutralForeground2
       }}>
         <span>{language}</span>
-        <button
+        <Button
+          size="small"
+          appearance={copied ? 'primary' : 'secondary'}
           onClick={handleCopy}
-          style={{
-            padding: '4px 12px',
-            fontSize: '12px',
-            backgroundColor: copied ? '#107c10' : '#0078d4',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
-          }}
+          icon={copied ? <Checkmark24Regular /> : <Copy24Regular />}
         >
-          {copied ? '✓ Copied!' : '📋 Copy'}
-        </button>
+          {copied ? 'Copied!' : 'Copy'}
+        </Button>
       </div>
       <pre style={{
         margin: 0,
@@ -83,14 +165,14 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ code, language = 'typescript' }
         overflowX: 'auto',
         fontFamily: "'Consolas', 'Monaco', 'Courier New', monospace"
       }}>
-        <code style={{ color: '#323130' }}>{code}</code>
+        <code>{code}</code>
       </pre>
     </div>
   );
 };
 
-// Component Card wrapper with code viewer
-interface CardProps {
+// Component Card wrapper with code viewer using Fluent UI
+interface DemoCardProps {
   title: string;
   badge?: 'ready' | 'beta';
   description: string;
@@ -98,62 +180,90 @@ interface CardProps {
   code?: string;
 }
 
-const Card: React.FC<CardProps> = ({ title, badge, description, children, code }) => {
+const DemoCard: React.FC<DemoCardProps> = ({ title, badge, description, children, code }) => {
+  const styles = useDemoStyles();
   const [showCode, setShowCode] = useState(false);
 
   return (
-    <div className="ui-lib-d365-card">
-      <div className="ui-lib-d365-card__header">
-        <h2 className="ui-lib-d365-card__title">
-          {title}
-          {badge && (
-            <span className={`ui-lib-d365-card__badge ui-lib-d365-card__badge--${badge}`}>
-              {badge}
-            </span>
-          )}
-        </h2>
-      </div>
-      <div className="ui-lib-d365-card__body">
-        <p className="ui-lib-d365-card__description">{description}</p>
+    <FluentCard className={styles.card}>
+      <CardHeader
+        header={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Text weight="semibold" size={400}>{title}</Text>
+            {badge && (
+              <Badge
+                appearance={badge === 'ready' ? 'filled' : 'outline'}
+                color={badge === 'ready' ? 'success' : 'informative'}
+              >
+                {badge}
+              </Badge>
+            )}
+          </div>
+        }
+      />
+      <div className={styles.cardBody}>
+        <Body1 className={styles.description}>{description}</Body1>
         {children}
         {code && (
           <div style={{ marginTop: '16px' }}>
-            <button
+            <Button
+              appearance="subtle"
               onClick={() => setShowCode(!showCode)}
-              style={{
-                padding: '8px 16px',
-                fontSize: '14px',
-                backgroundColor: showCode ? '#edebe9' : '#f3f2f1',
-                color: '#323130',
-                border: '1px solid #d2d0ce',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: 500,
-                transition: 'all 0.2s'
-              }}
             >
               {showCode ? '▼ Hide Code' : '▶ Show Code'}
-            </button>
+            </Button>
             {showCode && <CodeViewer code={code} />}
           </div>
         )}
       </div>
-    </div>
+    </FluentCard>
   );
 };
 
-// Section with title
+// Alias for backward compatibility
+const Card = DemoCard;
+
+// Section with title using Fluent UI styles
 interface SectionProps {
   title: string;
   children: React.ReactNode;
 }
 
-const Section: React.FC<SectionProps> = ({ title, children }) => (
-  <div className="ui-lib-d365-section">
-    <h3 className="ui-lib-d365-section__title">{title}</h3>
-    {children}
-  </div>
-);
+const Section: React.FC<SectionProps> = ({ title, children }) => {
+  const styles = useDemoStyles();
+  return (
+    <div className={styles.section}>
+      <div className={styles.sectionTitle}>{title}</div>
+      {children}
+    </div>
+  );
+};
+
+// Data Source Note Component - shows different message based on environment
+const DataSourceNote: React.FC = () => {
+  const styles = useDemoStyles();
+  const [env, setEnv] = useState<D365Environment | null>(null);
+
+  useEffect(() => {
+    setEnv(detectEnvironment());
+  }, []);
+
+  if (!env) return null;
+
+  if (env.hasWebApi) {
+    return (
+      <MessageBar intent="success" className={styles.note}>
+        Connected to D365 - using live entity data from <strong>{env.orgName || 'your organization'}</strong>
+      </MessageBar>
+    );
+  }
+
+  return (
+    <MessageBar intent="info" className={styles.note}>
+      Demo mode - using mock data. Deploy to D365 to use live entity records.
+    </MessageBar>
+  );
+};
 
 export const Demo: React.FC = () => {
   // Toast handlers
@@ -263,6 +373,50 @@ export const Demo: React.FC = () => {
     } else {
       uiLib.Toast.info({ title: 'Cancelled', message: 'Action cancelled.' });
     }
+  };
+
+  const showQueryBuilder = async () => {
+    // QueryBuilder auto-fetches entity metadata in D365 environments
+    // Mock fields provided for demo purposes outside D365
+    const result = await uiLib.Modal.openQueryBuilder({
+      title: 'Account Query Builder',
+      entityName: 'account',
+      entitySetName: 'accounts',
+      entityDisplayName: 'Account',
+      showODataPreview: true,
+      showFetchXmlPreview: true,
+      showResetToDefaultButton: true,
+      showDownloadFetchXmlButton: true,
+      showUploadFetchXmlButton: true,
+      showDeleteAllFiltersButton: true,
+      allowGroups: true,
+      allowRelatedEntity: true,
+      onApply: (queryResult) => {
+        console.debug('Query applied:', queryResult);
+      }
+    });
+
+    if (result.opened && result.result) {
+      uiLib.Toast.success({
+        title: 'Query Builder',
+        message: `Applied in ${result.elapsedMs}ms.`
+      });
+
+      uiLib.ModalHelpers.alert(
+        'Query Output',
+        formatJsonWithStyle({
+          reason: result.reason,
+          fetchXml: result.result.fetchXml,
+          odataFilter: result.result.odataFilter
+        })
+      );
+      return;
+    }
+
+    uiLib.Toast.warn({
+      title: 'Query Builder',
+      message: `${result.reason}${result.error ? `: ${result.error}` : ''}`
+    });
   };
 
   const showSimpleForm = () => {
@@ -565,10 +719,13 @@ export const Demo: React.FC = () => {
 
   // Lookup handlers
   const showSimpleLookup = () => {
+    const env = detectEnvironment();
+    const dataSource = env.hasWebApi ? 'D365 Live Data' : 'Mock Data';
+
     uiLib.Lookup.open({
       entity: 'account',
       columns: ['name', 'accountnumber', 'telephone1', 'address1_city'],
-      title: 'Select Account',
+      title: `Select Account (${dataSource})`,
       onSelect: (records: any[]) => {
         uiLib.Toast.success({ title: 'Account Selected', message: `Selected: ${records.map((r: any) => r.name).join(', ')}` });
       }
@@ -576,11 +733,14 @@ export const Demo: React.FC = () => {
   };
 
   const showMultiSelectLookup = () => {
+    const env = detectEnvironment();
+    const dataSource = env.hasWebApi ? 'D365 Live Data' : 'Mock Data';
+
     uiLib.Lookup.open({
       entity: 'contact',
       columns: ['name', 'emailaddress1', 'telephone1'],
       multiSelect: true,
-      title: 'Select Contacts (Multi-Select)',
+      title: `Select Contacts (${dataSource})`,
       onSelect: (records: any[]) => {
         uiLib.Toast.success({ title: `${records.length} Contact(s) Selected`, message: `Selected: ${records.map((r: any) => r.name).join(', ')}` });
       }
@@ -752,9 +912,9 @@ export const Demo: React.FC = () => {
   // Advanced Table with Formatting and Styled Cells
   const showAdvancedTableDemo = () => {
     const salesData = [
-      { 
-        id: 1, 
-        vendor: 'Contoso Ltd', 
+      {
+        id: 1,
+        vendor: 'Contoso Ltd',
         accountNumber: '300045',
         productCount: 12,
         totalValue: 15234.89,
@@ -763,9 +923,9 @@ export const Demo: React.FC = () => {
         status: 'Active',
         action: '<a href="#" style="color: #0078d4; text-decoration: underline;">View Existing Quote</a>'
       },
-      { 
-        id: 2, 
-        vendor: 'Fabrikam Inc', 
+      {
+        id: 2,
+        vendor: 'Fabrikam Inc',
         accountNumber: '505444',
         productCount: 8,
         totalValue: 8920.50,
@@ -774,9 +934,9 @@ export const Demo: React.FC = () => {
         status: 'Pending',
         action: '<a href="#" style="color: #0078d4; text-decoration: underline;">View Existing Quote</a>'
       },
-      { 
-        id: 3, 
-        vendor: 'Adventure Works', 
+      {
+        id: 3,
+        vendor: 'Adventure Works',
         accountNumber: '612305',
         productCount: 25,
         totalValue: 32150.00,
@@ -785,9 +945,9 @@ export const Demo: React.FC = () => {
         status: 'Active',
         action: '<a href="#" style="color: #0078d4; text-decoration: underline;">View Existing Quote</a>'
       },
-      { 
-        id: 4, 
-        vendor: 'Northwind Traders', 
+      {
+        id: 4,
+        vendor: 'Northwind Traders',
         accountNumber: '789012',
         productCount: 5,
         totalValue: 4567.25,
@@ -887,24 +1047,24 @@ export const Demo: React.FC = () => {
       buttons: [
         new uiLib.Button({
           label: 'Create Quotes',
-          callback: function() {
+          callback: function () {
             const modal = this as any;
             const selected = modal.getFieldValue('salesTable');
-            const selectedRows = salesData.filter((row: any) => 
+            const selectedRows = salesData.filter((row: any) =>
               selected && selected.includes(row.id)
             );
-            
+
             if (!selectedRows || selectedRows.length === 0) {
-              uiLib.Toast.warn({ 
-                title: 'No Selection', 
-                message: 'Please select vendors to create quotes' 
+              uiLib.Toast.warn({
+                title: 'No Selection',
+                message: 'Please select vendors to create quotes'
               });
               return false;
             }
 
-            uiLib.Toast.success({ 
-              title: 'Quotes Created', 
-              message: `Created ${selectedRows.length} quote(s) for selected vendors` 
+            uiLib.Toast.success({
+              title: 'Quotes Created',
+              message: `Created ${selectedRows.length} quote(s) for selected vendors`
             });
             return true;
           },
@@ -1528,28 +1688,38 @@ export const Demo: React.FC = () => {
 
   // Show welcome toast on mount
   React.useEffect(() => {
+    const env = detectEnvironment();
     const timer = setTimeout(() => {
+      const message = env.hasWebApi
+        ? 'Connected to D365. Lookups and data operations will use live data.'
+        : 'Running in demo mode. Using mock data for lookups and tables.';
+
       uiLib.Toast.info({
-        title: 'Welcome!',
-        message: 'Try the buttons to see Toast notifications and Modal dialogs in action.',
+        title: env.hasWebApi ? 'D365 Connected' : 'Demo Mode',
+        message,
         duration: 6000
       });
     }, 500);
     return () => clearTimeout(timer);
   }, []);
 
+  const styles = useDemoStyles();
+
   return (
-    <Layout currentPage="demo" version={typeof PACKAGE_VERSION !== 'undefined' ? PACKAGE_VERSION : undefined}>
-      <div className="ui-lib-d365-page-title">
-        <h1 className="ui-lib-d365-page-title__heading">Interactive Demo</h1>
-        <p className="ui-lib-d365-page-title__subtitle">
+    <div className={styles.container}>
+      <div style={{ marginBottom: '24px' }}>
+        <Title2>Interactive Demo</Title2>
+        <Body1 style={{ color: tokens.colorNeutralForeground2 }}>
           Explore all the UI components available in the err403 UI Library for Dynamics 365 CE
-        </p>
+        </Body1>
       </div>
 
-      <div className="ui-lib-d365-card-grid">
+      {/* Modal Builder - Visual designer for creating modals with code export */}
+      {/* Moved to its own tab - see About.tsx */}
+
+      <div className={styles.cardGrid}>
         {/* Toast Notifications */}
-        <Card
+        <DemoCard
           title="Toast Notifications"
           badge="ready"
           description="Toast notifications with auto-dismiss, stacking, and optional sound alerts."
@@ -1583,22 +1753,22 @@ uiLib.Toast.info({
 });`}
         >
           <Section title="Basic Toasts">
-            <div className="ui-lib-d365-btn-group">
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--success" onClick={showSuccessToast}>Success</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--error" onClick={showErrorToast}>Error</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--warning" onClick={showWarnToast}>Warning</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showInfoToast}>Info</button>
+            <div className={styles.btnGroup}>
+              <Button appearance="primary" onClick={showSuccessToast}>Success</Button>
+              <Button appearance="secondary" onClick={showErrorToast}>Error</Button>
+              <Button appearance="outline" onClick={showWarnToast}>Warning</Button>
+              <Button appearance="subtle" onClick={showInfoToast}>Info</Button>
             </div>
           </Section>
           <Section title="With Sound">
-            <div className="ui-lib-d365-btn-group">
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--success" onClick={showToastWithSound}>Success + Sound</button>
+            <div className={styles.btnGroup}>
+              <Button appearance="primary" onClick={showToastWithSound}>Success + Sound</Button>
             </div>
           </Section>
-        </Card>
+        </DemoCard>
 
         {/* Logger Utility */}
-        <Card
+        <DemoCard
           title="Logger Utility"
           badge="ready"
           description="Consistent console logging with styled prefixes for debugging."
@@ -1612,20 +1782,19 @@ console.warn(...uiLib.WAR, "Warning message");
 console.error(...uiLib.ERR, "Error message", new Error("Sample"));`}
         >
           <Section title="Log Types">
-            <div className="ui-lib-d365-btn-group">
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={logTrace}>Log TRACE</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--warning" onClick={logWarning}>Log WAR</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--error" onClick={logError}>Log ERR</button>
+            <div className={styles.btnGroup}>
+              <Button appearance="primary" onClick={logTrace}>Log TRACE</Button>
+              <Button appearance="outline" onClick={logWarning}>Log WAR</Button>
+              <Button appearance="secondary" onClick={logError}>Log ERR</Button>
             </div>
           </Section>
-          <div className="ui-lib-d365-note ui-lib-d365-note--info">
-            <span className="ui-lib-d365-note__icon">ℹ️</span>
-            <span>Open the browser console (F12) to see styled log outputs.</span>
-          </div>
-        </Card>
+          <MessageBar intent="info" className={styles.note}>
+            Open the browser console (F12) to see styled log outputs.
+          </MessageBar>
+        </DemoCard>
 
         {/* Modal Dialogs */}
-        <Card
+        <DemoCard
           title="Modal Dialogs"
           badge="ready"
           description="Modals with forms, validation, wizard navigation, tabs, and conditional field visibility."
@@ -1714,39 +1883,40 @@ const uploadModal = new uiLib.Modal({
 });`}
         >
           <Section title="Basic Modals">
-            <div className="ui-lib-d365-btn-group">
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showAlertSuccess}>✅ Success Alert</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showAlertInfo}>ℹ️ Info Alert</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showAlertWarning}>⚠️ Warning Alert</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showAlertError}>❌ Error Alert</button>
+            <div className={styles.btnGroup}>
+              <Button appearance="primary" onClick={showAlertSuccess} icon={<CheckmarkCircle24Regular />}>Success Alert</Button>
+              <Button appearance="primary" onClick={showAlertInfo} icon={<Info24Regular />}>Info Alert</Button>
+              <Button appearance="primary" onClick={showAlertWarning} icon={<Warning24Regular />}>Warning Alert</Button>
+              <Button appearance="primary" onClick={showAlertError} icon={<ErrorCircle24Regular />}>Error Alert</Button>
             </div>
-            <div className="ui-lib-d365-btn-group" style={{ marginTop: '12px' }}>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showConfirmSuccess}>✅ Success Confirm</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showConfirmWarning}>⚠️ Warning Confirm</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showConfirmError}>❌ Error Confirm</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showConfirmModal}>❓ Question Confirm</button>
+            <div className={styles.btnGroup} style={{ marginTop: '12px' }}>
+              <Button appearance="secondary" onClick={showConfirmSuccess} icon={<CheckmarkCircle24Regular />}>Success Confirm</Button>
+              <Button appearance="secondary" onClick={showConfirmWarning} icon={<Warning24Regular />}>Warning Confirm</Button>
+              <Button appearance="secondary" onClick={showConfirmError} icon={<ErrorCircle24Regular />}>Error Confirm</Button>
+              <Button appearance="secondary" onClick={showConfirmModal} icon={<QuestionCircle24Regular />}>Question Confirm</Button>
             </div>
           </Section>
           <Section title="Form Modals">
-            <div className="ui-lib-d365-btn-group">
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showSimpleForm}>Simple Form</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showAllFieldTypes}>All Field Types</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showAddressLookupForm}>📍 Address Lookup</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showFileUploadDemo}>📎 File Upload</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showFieldGroupsModal}>📦 Field Groups</button>
+            <div className={styles.btnGroup}>
+              <Button appearance="primary" onClick={showSimpleForm}>Simple Form</Button>
+              <Button appearance="primary" onClick={showAllFieldTypes}>All Field Types</Button>
+              <Button appearance="primary" onClick={showAddressLookupForm} icon={<Location24Regular />}>Address Lookup</Button>
+              <Button appearance="primary" onClick={showFileUploadDemo} icon={<Attach24Regular />}>File Upload</Button>
+              <Button appearance="primary" onClick={showFieldGroupsModal} icon={<GroupList24Regular />}>Field Groups</Button>
             </div>
           </Section>
           <Section title="Advanced Features">
-            <div className="ui-lib-d365-btn-group">
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showTabsModal}>Tabs</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showDraggableModal}>Draggable</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary ui-lib-d365-btn--highlight" onClick={showComprehensiveDemo}>🎯 Complete Showcase</button>
+            <div className={styles.btnGroup}>
+              <Button appearance="secondary" onClick={showTabsModal}>Tabs</Button>
+              <Button appearance="secondary" onClick={showDraggableModal}>Draggable</Button>
+              <Button appearance="secondary" onClick={showQueryBuilder}>Open Query Builder</Button>
+              <Button appearance="primary" onClick={showComprehensiveDemo} icon={<TargetArrow24Regular />}>Complete Showcase</Button>
             </div>
           </Section>
-        </Card>
+        </DemoCard>
 
         {/* Lookup Component */}
-        <Card
+        <DemoCard
           title="Lookup Component"
           badge="ready"
           description="Advanced entity record lookup with search, pagination, and sorting."
@@ -1772,19 +1942,16 @@ uiLib.Lookup.open({
 });`}
         >
           <Section title="Lookup Types">
-            <div className="ui-lib-d365-btn-group">
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showSimpleLookup}>Simple Lookup</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showMultiSelectLookup}>Multi-Select</button>
+            <div className={styles.btnGroup}>
+              <Button appearance="primary" onClick={showSimpleLookup}>Simple Lookup</Button>
+              <Button appearance="primary" onClick={showMultiSelectLookup}>Multi-Select</Button>
             </div>
           </Section>
-          <div className="ui-lib-d365-note ui-lib-d365-note--warning">
-            <span className="ui-lib-d365-note__icon">⚠️</span>
-            <span>Lookup uses mock data in demo. In D365, it fetches real entity records.</span>
-          </div>
-        </Card>
+          <DataSourceNote />
+        </DemoCard>
 
         {/* Table Component */}
-        <Card
+        <DemoCard
           title="Table Component"
           badge="ready"
           description="Display tabular data with sortable columns and row selection."
@@ -1853,17 +2020,17 @@ const validationModal = new uiLib.Modal({
 });`}
         >
           <Section title="Table Types">
-            <div className="ui-lib-d365-btn-group">
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showSimpleTable}>Simple Table</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showTableWithSelection}>With Selection</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showProductValidationDialog}>🎯 Real-World Example</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showAdvancedTableDemo}>🧪 Advanced Formatting</button>
+            <div className={styles.btnGroup}>
+              <Button appearance="primary" onClick={showSimpleTable}>Simple Table</Button>
+              <Button appearance="primary" onClick={showTableWithSelection}>With Selection</Button>
+              <Button appearance="primary" onClick={showProductValidationDialog}>🎯 Real-World Example</Button>
+              <Button appearance="primary" onClick={showAdvancedTableDemo}>🧪 Advanced Formatting</Button>
             </div>
           </Section>
-        </Card>
+        </DemoCard>
 
         {/* SideCart Component */}
-        <Card
+        <DemoCard
           title="SideCart"
           badge="ready"
           description="Display product images, summaries, or additional context in a side panel attached to the modal."
@@ -1897,18 +2064,17 @@ const validationModal = new uiLib.Modal({
 });`}
         >
           <Section title="SideCart Demo">
-            <div className="ui-lib-d365-btn-group">
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showSideCartDemo}>🛒 Product with SideCart</button>
+            <div className={styles.btnGroup}>
+              <Button appearance="primary" onClick={showSideCartDemo}>🛒 Product with SideCart</Button>
             </div>
           </Section>
-          <div className="ui-lib-d365-note ui-lib-d365-note--info">
-            <span className="ui-lib-d365-note__icon">💡</span>
-            <span>SideCart is great for e-commerce, product details, or showing related information alongside forms.</span>
-          </div>
-        </Card>
+          <MessageBar intent="info" className={styles.note}>
+            SideCart is great for e-commerce, product details, or showing related information alongside forms.
+          </MessageBar>
+        </DemoCard>
 
         {/* AutoSave Feature */}
-        <Card
+        <DemoCard
           title="AutoSave"
           badge="ready"
           description="Automatically save form data to localStorage and restore it when the modal reopens."
@@ -1941,18 +2107,17 @@ const validationModal = new uiLib.Modal({
 });`}
         >
           <Section title="AutoSave Demo">
-            <div className="ui-lib-d365-btn-group">
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showAutoSaveDemo}>📝 Draft Email (AutoSave)</button>
+            <div className={styles.btnGroup}>
+              <Button appearance="primary" onClick={showAutoSaveDemo} icon={<DocumentEdit24Regular />}>Draft Email (AutoSave)</Button>
             </div>
           </Section>
-          <div className="ui-lib-d365-note ui-lib-d365-note--warning">
-            <span className="ui-lib-d365-note__icon">💾</span>
-            <span>Try typing in fields, close the modal, then reopen - your data is restored!</span>
-          </div>
-        </Card>
+          <MessageBar intent="warning" className={styles.note}>
+            Try typing in fields, close the modal, then reopen - your data is restored!
+          </MessageBar>
+        </DemoCard>
 
         {/* Loading with Progress */}
-        <Card
+        <DemoCard
           title="Loading States"
           badge="ready"
           description="Show loading spinners with optional progress bars for long-running operations."
@@ -1980,14 +2145,14 @@ for (let i = 0; i < records.length; i++) {
 modal.setLoading(false);`}
         >
           <Section title="Loading Demo">
-            <div className="ui-lib-d365-btn-group">
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showLoadingProgressDemo}>⏳ Sync with Progress</button>
+            <div className={styles.btnGroup}>
+              <Button appearance="primary" onClick={showLoadingProgressDemo}>⏳ Sync with Progress</Button>
             </div>
           </Section>
-        </Card>
+        </DemoCard>
 
         {/* ModalHelpers */}
-        <Card
+        <DemoCard
           title="ModalHelpers"
           badge="ready"
           description="Quick helper methods for common dialog patterns: alert, confirm, and prompt."
@@ -2016,16 +2181,16 @@ if (name) {
 }`}
         >
           <Section title="Quick Dialogs">
-            <div className="ui-lib-d365-btn-group">
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary" onClick={showAlertDemo}>Alert</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--warning" onClick={showConfirmDemo}>Confirm</button>
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--secondary" onClick={showPromptDemo}>Prompt</button>
+            <div className={styles.btnGroup}>
+              <Button appearance="primary" onClick={showAlertDemo}>Alert</Button>
+              <Button appearance="outline" onClick={showConfirmDemo}>Confirm</Button>
+              <Button appearance="secondary" onClick={showPromptDemo}>Prompt</Button>
             </div>
           </Section>
-        </Card>
+        </DemoCard>
 
         {/* Field Groups */}
-        <Card
+        <DemoCard
           title="Field Groups"
           badge="ready"
           description="Organize complex forms with collapsible, bordered field groups."
@@ -2062,13 +2227,13 @@ if (name) {
 });`}
         >
           <Section title="Field Groups Demo">
-            <div className="ui-lib-d365-btn-group">
-              <button className="ui-lib-d365-btn ui-lib-d365-btn--primary ui-lib-d365-btn--highlight" onClick={showFieldGroupsDemo}>👤 Customer Profile</button>
+            <div className={styles.btnGroup}>
+              <Button appearance="primary" onClick={showFieldGroupsDemo}>👤 Customer Profile</Button>
             </div>
           </Section>
-        </Card>
+        </DemoCard>
       </div>
-    </Layout>
+    </div>
   );
 };
 

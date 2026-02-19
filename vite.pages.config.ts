@@ -9,6 +9,7 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 // Get current page from environment variable (for single-page builds)
 // If not set, build all pages (for dev server)
 const currentPage = process.env.BUILD_PAGE;
+// About is the main page containing all tabs (Documentation, Demo, Tests)
 const allPages = ['about'];
 const pagesToBuild = currentPage ? [currentPage] : allPages;
 

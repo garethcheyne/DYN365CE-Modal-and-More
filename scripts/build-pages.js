@@ -8,6 +8,7 @@
 const { execSync } = require('child_process');
 const path = require('path');
 
+// About is the main page containing all tabs (Documentation, Demo, Tests)
 const pages = ['about'];
 
 console.debug('🚀 Building D365 pages (self-contained bundles)...\n');

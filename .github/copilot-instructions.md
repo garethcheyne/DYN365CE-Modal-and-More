@@ -1160,6 +1160,42 @@ console.debug(...TRACE, 'Using Logger object');
 - Consistent branding across all library logs
 - Easy identification of ui-Lib messages in console
 
+### 6. Modal Builder (Beta)
+
+A visual drag-and-drop interface for building modal dialogs without writing code. Access via the Demo page's "Builder" tab.
+
+> **Beta Notice:** The Modal Builder is currently in beta. Some features may be incomplete or change in future releases.
+
+**Features:**
+- **Drag & Drop Fields** - Drag field types from the palette onto your modal
+- **Visual Configuration** - Configure field properties, validation, and visibility conditions
+- **Live Preview** - See your modal render in real-time as you build
+- **Code Export** - Generate ready-to-use JavaScript/TypeScript code
+- **Wizard Support** - Build multi-step wizard dialogs with step indicators
+- **Save & Load** - Save configurations to browser storage and reload later
+- **Import Code** - Paste existing modal code to edit visually
+
+**Field Types Supported:**
+- Text, Email, Phone, Password, URL, Search
+- Number, Range/Slider
+- Textarea
+- Date
+- Select (dropdown and badges display modes)
+- Checkbox, Switch
+- Lookup (inline D365-style)
+- Table (with sortable columns)
+- File Upload
+- Address Lookup
+- Field Groups (with collapsible sections)
+- Custom HTML
+
+**Usage:**
+1. Open the Demo page and navigate to the "Builder" tab
+2. Drag fields from the left palette onto the canvas
+3. Click fields to configure their properties in the right panel
+4. Use the Preview button to see your modal
+5. Export the generated code
+
 ## File Structure
 
 ### Source Code (`src/`)

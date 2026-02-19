@@ -10,6 +10,7 @@ import { ModalButton } from './components/Modal/Modal.types';
 import * as ModalHelpers from './components/Modal/ModalHelpers';
 import { Lookup } from './components/Lookup/Lookup';
 import { Logger, TRACE, BUG, WAR, ERR, UILIB } from './components/Logger/Logger';
+import { QueryBuilder, serializeQueryBuilderState } from 'fluentui-extended';
 import { theme } from './styles/theme';
 import { initializeFluentProvider, d365Theme, FluentProvider } from './providers/FluentProvider';
 
@@ -137,6 +138,8 @@ export {
     WAR,
     ERR,
     UILIB,
+    QueryBuilder,
+    serializeQueryBuilderState,
     theme,
     // Fluent UI integration
     FluentProvider,
@@ -161,6 +164,8 @@ if (typeof window !== 'undefined') {
         WAR,
         ERR,
         UILIB,
+        QueryBuilder,
+        serializeQueryBuilderState,
         theme,
         // Alias Button for ModalButton
         Button: ModalButton,

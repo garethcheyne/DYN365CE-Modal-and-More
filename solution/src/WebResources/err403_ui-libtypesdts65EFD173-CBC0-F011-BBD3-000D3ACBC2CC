@@ -1,3 +1,4 @@
+export { QueryBuilder, serializeQueryBuilderState } from 'fluentui-extended';
 import { Theme } from '@fluentui/react-components';
 export { FluentProvider } from '@fluentui/react-components';
 
@@ -256,6 +257,148 @@ interface ModalResponse {
     button: ModalButton;
     data: Record<string, any>;
 }
+type QueryBuilderDataType = 'string' | 'number' | 'datetime' | 'boolean' | 'optionset' | 'lookup';
+interface QueryBuilderOption {
+    label: string;
+    value: string | number;
+}
+/** Target entity for lookup fields */
+interface QueryBuilderLookupTarget {
+    /** Logical name of the target entity (e.g., "contact") */
+    entityLogicalName: string;
+    /** Entity set name for OData queries (e.g., "contacts") */
+    entitySetName?: string;
+    /** Display name of the entity (e.g., "Contact") */
+    displayName?: string;
+    /** Primary name attribute for searching (e.g., "fullname") */
+    primaryNameAttribute?: string;
+}
+interface QueryBuilderField {
+    id: string;
+    label: string;
+    dataType: QueryBuilderDataType;
+    options?: QueryBuilderOption[];
+    /** Schema name (PascalCase attribute name, e.g., "CreatedOn") */
+    schemaName?: string;
+    /** Target entities for lookup fields (which entities can be referenced) */
+    targets?: QueryBuilderLookupTarget[];
+}
+/**
+ * FetchXML condition operators.
+ * Common operators are explicitly listed for IDE autocomplete.
+ * Additional FetchXML operators are supported via the string type.
+ */
+type QueryBuilderOperator = 'eq' | 'ne' | 'gt' | 'ge' | 'lt' | 'le' | 'null' | 'not-null' | 'notnull' | 'contains' | 'not-contain' | 'begins-with' | 'not-begin-with' | 'ends-with' | 'not-end-with' | 'like' | 'not-like' | 'notcontains' | 'startswith' | 'endswith' | 'containsdata' | 'in' | 'not-in' | 'between' | 'not-between' | 'contain-values' | 'not-contain-values' | 'on' | 'on-or-before' | 'on-or-after' | 'not-on' | 'today' | 'yesterday' | 'tomorrow' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'next-month' | 'this-year' | 'last-year' | 'next-year' | 'last-seven-days' | 'next-seven-days' | 'last-x-hours' | 'next-x-hours' | 'last-x-days' | 'next-x-days' | 'last-x-weeks' | 'next-x-weeks' | 'last-x-months' | 'next-x-months' | 'last-x-years' | 'next-x-years' | 'olderthan-x-minutes' | 'olderthan-x-hours' | 'olderthan-x-days' | 'olderthan-x-weeks' | 'olderthan-x-months' | 'olderthan-x-years' | 'this-fiscal-year' | 'this-fiscal-period' | 'last-fiscal-year' | 'last-fiscal-period' | 'next-fiscal-year' | 'next-fiscal-period' | 'last-x-fiscal-years' | 'last-x-fiscal-periods' | 'next-x-fiscal-years' | 'next-x-fiscal-periods' | 'in-fiscal-year' | 'in-fiscal-period' | 'in-fiscal-period-and-year' | 'in-or-before-fiscal-period-and-year' | 'in-or-after-fiscal-period-and-year' | 'eq-userid' | 'ne-userid' | 'eq-userteams' | 'eq-useroruserteams' | 'eq-useroruserhierarchy' | 'eq-useroruserhierarchyandteams' | 'eq-businessid' | 'ne-businessid' | 'eq-userlanguage' | 'above' | 'eq-or-above' | 'under' | 'eq-or-under' | 'not-under' | (string & {});
+interface QueryBuilderCondition {
+    id: string;
+    kind?: 'field' | 'relatedEntity';
+    fieldId: string;
+    operator: QueryBuilderOperator;
+    /** Single value or array of values (for in/not-in operators) */
+    value?: string | number | boolean | (string | number)[];
+    value2?: string | number | boolean;
+    /** Display name for lookup values (the GUID is stored in value) */
+    valueDisplayName?: string;
+    /** Entity alias when condition references a link-entity */
+    entityAlias?: string;
+    /** The lookup field ID that creates this relationship */
+    relatedEntityName?: string;
+    /** The target entity logical name */
+    relatedEntityTarget?: string;
+    /** Alias for the link-entity */
+    relatedEntityAlias?: string;
+    /** Nested conditions for related entity (link-entity filter) */
+    nestedConditions?: QueryBuilderCondition[];
+    /** Logic operator for nested conditions */
+    nestedLogic?: 'and' | 'or';
+    /** Fields available for the related entity (loaded dynamically) */
+    nestedFields?: QueryBuilderField[];
+}
+interface QueryBuilderGroup {
+    id: string;
+    logic: 'and' | 'or';
+    conditions: QueryBuilderCondition[];
+}
+interface QueryBuilderState {
+    groups: QueryBuilderGroup[];
+}
+interface QueryBuilderApplyResult {
+    state: QueryBuilderState;
+    fetchXmlFilter: string;
+    fetchXml: string;
+    odataFilter: string;
+    /** Full OData query URL (e.g., "accounts?$filter=...") - requires entitySetName */
+    odataQuery?: string;
+}
+interface QueryBuilderRelatedEntity {
+    /** Unique identifier - typically the lookup field name (e.g., "primarycontactid") */
+    id: string;
+    /** Display label for the relationship (e.g., "Primary Contact (Contact)") */
+    label: string;
+    /** The lookup field that creates this relationship */
+    lookupField?: string;
+    /** The target entity logical name (e.g., "contact") */
+    targetEntity?: string;
+    /** The target entity set name for OData (e.g., "contacts") */
+    targetEntitySetName?: string;
+}
+interface QueryBuilderLookupOption {
+    /** Unique identifier (typically a GUID) */
+    key: string;
+    /** Display text */
+    text: string;
+    /** Optional secondary text */
+    secondaryText?: string;
+}
+interface QueryBuilderOpenOptions {
+    title?: string;
+    entityName: string;
+    /** Entity set name for OData queries (e.g., "accounts"). If not provided, will be fetched from Xrm metadata. */
+    entitySetName?: string;
+    entityDisplayName?: string;
+    fields?: QueryBuilderField[];
+    /** Related entities for filtering. If not provided, will be auto-detected from lookup fields. */
+    relatedEntities?: QueryBuilderRelatedEntity[];
+    /** Initial query state object */
+    initialState?: QueryBuilderState;
+    /** Initial FetchXML string - will be parsed to populate the query builder */
+    initialFetchXml?: string;
+    defaultState?: QueryBuilderState;
+    allowGroups?: boolean;
+    allowRelatedEntity?: boolean;
+    showODataPreview?: boolean;
+    showFetchXmlPreview?: boolean;
+    showResetToDefaultButton?: boolean;
+    showDownloadFetchXmlButton?: boolean;
+    showUploadFetchXmlButton?: boolean;
+    showDeleteAllFiltersButton?: boolean;
+    showValidateButton?: boolean;
+    showDataSourceToggle?: boolean;
+    liveDataLabel?: string;
+    retainedDataLabel?: string;
+    changeToRetainedDataLabel?: string;
+    changeToLiveDataLabel?: string;
+    initialDataSource?: 'live' | 'retained';
+    width?: number;
+    height?: number;
+    applyButtonText?: string;
+    cancelButtonText?: string;
+    onApply?: (result: QueryBuilderApplyResult) => void | Promise<void>;
+    onCancel?: () => void;
+    onResetToDefault?: (state: QueryBuilderState) => void;
+    onDeleteAllFilters?: () => void;
+    onDataSourceChange?: (source: 'live' | 'retained') => void;
+    onStateChange?: (state: QueryBuilderState) => void;
+    /** Callback for lookup field search - returns options for the lookup dropdown */
+    onLookupSearch?: (fieldId: string, searchText: string) => Promise<QueryBuilderLookupOption[]> | QueryBuilderLookupOption[];
+}
+interface QueryBuilderOpenResult {
+    opened: boolean;
+    reason: 'applied' | 'cancelled' | 'closed' | 'error';
+    elapsedMs: number;
+    result?: QueryBuilderApplyResult;
+    error?: string;
+}
 interface ModalInstance {
     show(): Promise<void>;
     showAsync(): Promise<ModalResponse>;
@@ -421,6 +564,7 @@ declare class Modal implements ModalInstance {
     static open(options: ModalOptions): Modal;
     static alert(title: string, message: string, options?: Partial<ModalOptions>): Promise<void>;
     static confirm(title: string, message: string, options?: Partial<ModalOptions>): Promise<boolean>;
+    static openQueryBuilder(options: QueryBuilderOpenOptions): Promise<QueryBuilderOpenResult>;
     /**
      * Show a D365 web resource in the modal
      * @param webResourcePath - Path to the web resource (e.g., 'abdg_/html/datagrid.htm?data=ProductQuotedHistory&id=123')
