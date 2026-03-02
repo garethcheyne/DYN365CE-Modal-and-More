@@ -224,6 +224,7 @@ const modal = uiLib.Modal.open({ title: 'Form', fields: [...] }); // Creates, sh
   - `options`: Array of strings or objects `[{ label: 'Display', value: 'stored' }]`
   - `displayMode`: `'dropdown'` (default) or `'badges'` (pill-style buttons)
 - `lookup` - Inline D365-style dropdown lookup (entityName, lookupColumns, filters)
+  - `entityDisplayName`: Optional display name override (e.g., 'Account'). If omitted, auto-fetched from D365 entity metadata.
   - `lookupColumns`: Array of columns to fetch and display
     - String format: ['line1', 'city', 'postalcode'] - shows values only
     - Object format: [{attribute: 'line1', label: 'Address'}, ...] - shows "Label: value"
@@ -980,6 +981,7 @@ new uiLib.Modal({
       label: "Account",
       type: "lookup",
       entityName: "account",
+      entityDisplayName: "Account", // Optional - auto-fetched from D365 metadata if omitted
       lookupColumns: ["name", "accountnumber"], // Shows: name, accountnumber (values only, no labels)
       filters: "statecode eq 0", // Optional OData filter or FetchXML
       placeholder: "Search accounts...",
@@ -1006,8 +1008,38 @@ new uiLib.Modal({
 // - Returns: { id, name, subtitle, entityType, record }
 // - With labels: displays "Label: value"
 // - Without labels: displays value only
+// - Supports native D365 lookup values from form fields (e.g., formContext.getAttribute("ownerid")?.getValue())
+//   for both initial field value and runtime modal.setFieldValue()
 // - If columns don't exist, library auto-falls back to common names: 'name', 'fullname', 'subject', 'title'
 // - Field validation fetches entity metadata to check column existence
+// - entityDisplayName is auto-fetched from D365 metadata (localized) if not provided
+//   Priority: explicit entityDisplayName prop > metadata DisplayName > entityName
+
+// D365 lookup prefill (default value) - direct from form attribute
+const ownerLookup = formContext.getAttribute("ownerid")?.getValue();
+
+new uiLib.Modal({
+  fields: [
+    {
+      id: "salesperson",
+      label: "Sales Person",
+      type: "lookup",
+      entityName: "systemuser",
+      lookupColumns: ["fullname", "internalemailaddress"],
+      value: ownerLookup, // ✅ Native D365 array is supported
+      onChange: (selected) => {
+        // selected is object|null (not array)
+        if (selected?.id) {
+          console.debug("Selected user:", selected.id, selected.name);
+        }
+      }
+    }
+  ]
+});
+
+// Runtime update from another D365 lookup field
+const approverLookup = formContext.getAttribute("new_approverid")?.getValue();
+modal.setFieldValue("salesperson", approverLookup); // ✅ Native D365 array is supported
 
 // IMPORTANT: Multiple Entity Types (Polymorphic Lookups)
 // Inline lookup supports ONE entity at a time. For Customer-type fields (Account OR Contact),
@@ -1822,6 +1854,15 @@ modal.show();
 modal.setFieldValue('status', 'Active');
 modal.setFieldValue('priority', 'High');
 
+// Lookup fields also accept native D365 lookup arrays directly
+const ownerLookup = formContext.getAttribute('ownerid')?.getValue();
+modal.setFieldValue('salesperson', ownerLookup);
+
+// Equivalent supported shapes for lookup values:
+// 1) D365 array: [{ entityType, id, name }]
+// 2) Single object: { entityType, id, name }
+// 3) Internal object: { id, name, entityType, columns }
+
 // Get values
 const status = modal.getFieldValue('status');
 ```
@@ -2397,6 +2438,7 @@ modal.title('New Title').message('New message').width(800).height(600);
   displayMode: 'badges',            // select: dropdown | badges
   optionSet: { ... },               // select: D365 option set
   entityName: 'account',            // lookup
+  entityDisplayName: 'Account',     // lookup: optional, auto-fetched from D365 metadata if omitted
   lookupColumns: [...],             // lookup
   filters: 'statecode eq 0',        // lookup
   tableColumns: [...],              // table (each column supports: id, header, visible, sortable, width, minWidth, align, format)
@@ -2739,7 +2781,7 @@ wizard.show();
 | `select` | Dropdown | `options`, `displayMode` |
 | `checkbox` | Boolean (D365 style) | `value: true/false` |
 | `switch` | Boolean (modern toggle) | `value: true/false` |
-| `lookup` | D365 record selector | `entityName`, `lookupColumns`, `filters` |
+| `lookup` | D365 record selector | `entityName`, `entityDisplayName`, `lookupColumns`, `filters` |
 | `table` | Data grid | `tableColumns` (with `format`), `data`, `selectionMode`, `isRowSelectable` |
 | `file` | File upload | `fileUpload: { accept, maxFiles, maxSize }` |
 | `addressLookup` | Address autocomplete | `addressLookup: { provider, apiKey }` |

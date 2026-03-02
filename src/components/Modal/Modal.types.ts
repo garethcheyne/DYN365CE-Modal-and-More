@@ -135,6 +135,7 @@ export interface FieldConfig {
     };
     // Inline Lookup configuration (D365-style dropdown)
     entityName?: string;               // Entity logical name (e.g., 'account', 'contact')
+    entityDisplayName?: string;        // Display name override (e.g., 'Account', 'Contact')
     lookupColumns?: Array<string | {   // Columns to display with configuration
         attribute: string;              // Attribute name
         label?: string;                 // Display label

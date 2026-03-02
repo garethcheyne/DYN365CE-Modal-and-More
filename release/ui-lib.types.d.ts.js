@@ -174,6 +174,7 @@ interface FieldConfig {
         browseText?: string;
     };
     entityName?: string;
+    entityDisplayName?: string;
     lookupColumns?: Array<string | {
         attribute: string;
         label?: string;
@@ -465,11 +466,21 @@ declare class Modal implements ModalInstance {
     private pendingReactMounts;
     private initPromise;
     private updateButtonStatesTimer;
+    private reactRoots;
     constructor(options: ModalOptions);
     /**
      * Debug logging helper
      */
     private log;
+    private getLookupColumnAttributes;
+    private normalizeLookupValue;
+    /**
+     * Mount a React component and track the root for cleanup on close.
+     * Wraps mountFluentComponent to ensure all React roots created within
+     * the modal are properly unmounted when the modal closes — critical for
+     * components that use portals (e.g., Lookup's Popover dropdown).
+     */
+    private mountComponent;
     /**
      * Initialize modal asynchronously (for D365 option set fetching)
      */
@@ -544,6 +555,7 @@ declare class Modal implements ModalInstance {
     getFieldValue(fieldId: string): any;
     getFieldValues(): Record<string, any>;
     setFieldValue(fieldId: string, value: any): void;
+    private findFieldById;
     validateCurrentStep(): boolean;
     updateSideCart(_content: string | {
         imageUrl: string;

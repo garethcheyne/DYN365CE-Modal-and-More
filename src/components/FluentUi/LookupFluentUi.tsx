@@ -62,6 +62,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
     const [loading, setLoading] = React.useState(false);
     const [selectedOption, setSelectedOption] = React.useState<LookupOption | null>(value || null);
     const [searchText, setSearchText] = React.useState('');
+    const [resolvedDisplayName, setResolvedDisplayName] = React.useState<string | null>(null);
 
     React.useEffect(() => {
         setSelectedOption(value || null);
@@ -105,8 +106,8 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
     }, [selectedOption, toExtendedOption]);
 
     const headerContent = React.useMemo(() => {
-        return entityDisplayName || entityName;
-    }, [entityDisplayName, entityName]);
+        return entityDisplayName || resolvedDisplayName || entityName;
+    }, [entityDisplayName, resolvedDisplayName, entityName]);
 
     const footerContent = React.useMemo(() => {
         if (loading) {
@@ -131,10 +132,17 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
 
                 try {
                     if ((window as any).Xrm?.Utility?.getEntityMetadata) {
-                        const metadata = await (window as any).Xrm.Utility.getEntityMetadata(entityName, ['Attributes', 'PrimaryIdAttribute']);
+                        const metadata = await (window as any).Xrm.Utility.getEntityMetadata(entityName, ['Attributes', 'PrimaryIdAttribute', 'DisplayName']);
 
                         if (metadata?.PrimaryIdAttribute) {
                             primaryId = metadata.PrimaryIdAttribute;
+                        }
+
+                        // Extract localized display name from entity metadata
+                        if (metadata?.DisplayName?.UserLocalizedLabel?.Label) {
+                            setResolvedDisplayName(metadata.DisplayName.UserLocalizedLabel.Label);
+                        } else if (metadata?.DisplayName?.LocalizedLabels?.length > 0) {
+                            setResolvedDisplayName(metadata.DisplayName.LocalizedLabels[0].Label);
                         }
 
                         if (metadata?.Attributes && Array.isArray(metadata.Attributes)) {
@@ -256,7 +264,7 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                 options={options.map(toExtendedOption)}
                 header={headerContent}
                 footer={footerContent}
-                placeholder={placeholder || `Search ${entityDisplayName || entityName}...`}
+                placeholder={placeholder || `Search ${entityDisplayName || resolvedDisplayName || entityName}...`}
                 loading={loading}
                 clearable
                 disabled={disabled}

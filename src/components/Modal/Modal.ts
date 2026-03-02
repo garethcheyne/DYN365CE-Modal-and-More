@@ -49,6 +49,7 @@ import {
   unmountFluentComponent,
   defaultTheme,
 } from '../FluentUi';
+import type { Root } from '../FluentUi';
 import { FluentProvider, webLightTheme } from '@fluentui/react-components';
 import { QueryBuilder } from 'fluentui-extended';
 import type { QueryBuilderApplyResult } from 'fluentui-extended';
@@ -87,6 +88,7 @@ export class Modal implements ModalInstance {
   private pendingReactMounts: Array<() => void> = []; // Queue for React mounts to execute after show()
   private initPromise: Promise<void>; // Promise that resolves when modal initialization is complete
   private updateButtonStatesTimer: number | null = null; // Debounce timer for button state updates
+  private reactRoots: Root[] = []; // Track all React roots for cleanup on close
 
   constructor(options: ModalOptions) {
     this.options = {
@@ -127,6 +129,84 @@ export class Modal implements ModalInstance {
     if (this.debug) {
       console.debug(...UILIB, '[Modal Debug]', ...args);
     }
+  }
+
+  private getLookupColumnAttributes(field: FieldConfig): string[] {
+    if (!field.lookupColumns || field.lookupColumns.length === 0) {
+      return ['name'];
+    }
+
+    return field.lookupColumns
+      .map((column) => (typeof column === 'string' ? column : column.attribute))
+      .filter((column): column is string => !!column);
+  }
+
+  private normalizeLookupValue(value: any, field: FieldConfig): any {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        return null;
+      }
+      return this.normalizeLookupValue(value[0], field);
+    }
+
+    if (typeof value !== 'object') {
+      return null;
+    }
+
+    const rawValue = value as Record<string, any>;
+    const rawId = rawValue.id ?? rawValue.key ?? rawValue.value;
+    if (!rawId) {
+      return null;
+    }
+
+    const id = String(rawId).replace(/[{}]/g, '');
+    const name = String(rawValue.name ?? rawValue.text ?? rawValue.fullname ?? rawValue.primaryName ?? '');
+    const entityType = String(rawValue.entityType ?? rawValue.logicalName ?? field.entityName ?? '');
+
+    const columns: Record<string, string> =
+      rawValue.columns && typeof rawValue.columns === 'object'
+        ? { ...rawValue.columns }
+        : {};
+
+    const lookupAttributes = this.getLookupColumnAttributes(field);
+    lookupAttributes.forEach((attribute) => {
+      if (!columns[attribute] && rawValue[attribute] != null) {
+        columns[attribute] = String(rawValue[attribute]);
+      }
+    });
+
+    const primaryAttribute = lookupAttributes[0];
+    if (primaryAttribute && !columns[primaryAttribute] && name) {
+      columns[primaryAttribute] = name;
+    }
+
+    return {
+      ...rawValue,
+      id,
+      name,
+      entityType,
+      columns,
+    };
+  }
+
+  /**
+   * Mount a React component and track the root for cleanup on close.
+   * Wraps mountFluentComponent to ensure all React roots created within
+   * the modal are properly unmounted when the modal closes — critical for
+   * components that use portals (e.g., Lookup's Popover dropdown).
+   */
+  private mountComponent(
+    container: HTMLElement,
+    component: React.ReactElement,
+    theme = defaultTheme
+  ): Root {
+    const root = mountFluentComponent(container, component, theme);
+    this.reactRoots.push(root);
+    return root;
   }
 
   /**
@@ -271,7 +351,7 @@ export class Modal implements ModalInstance {
       this.updateFieldVisibility(field.id);
     };
 
-    mountFluentComponent(
+    this.mountComponent(
       container,
       React.createElement(AddressLookupFluentUi, {
         id: field.id,
@@ -480,14 +560,14 @@ export class Modal implements ModalInstance {
         height: '160px'
       }
     });
-    mountFluentComponent(backdropIcon, BackdropIconElement, defaultTheme);
+    this.mountComponent(backdropIcon, BackdropIconElement, defaultTheme);
 
     // Mount small header icon with full color
     const HeaderIconElement = React.createElement(iconConfig.component, {
       style: { color: iconConfig.color },
       primaryFill: iconConfig.color
     });
-    mountFluentComponent(headerIcon, HeaderIconElement, defaultTheme);
+    this.mountComponent(headerIcon, HeaderIconElement, defaultTheme);
 
     // Add backdrop to modal
     if (this.modal) {
@@ -578,7 +658,7 @@ export class Modal implements ModalInstance {
     const fullscreenIconContainer = doc.createElement('div');
     fullscreenIconContainer.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; margin: 0; margin-top: 4px;';
     const FullscreenIcon = React.createElement(FullScreenMaximizeRegular);
-    mountFluentComponent(fullscreenIconContainer, FullscreenIcon, defaultTheme);
+    this.mountComponent(fullscreenIconContainer, FullscreenIcon, defaultTheme);
     fullscreenBtn.appendChild(fullscreenIconContainer);
 
     fullscreenBtn.onclick = () => this.toggleFullscreen(fullscreenIconContainer);
@@ -848,7 +928,7 @@ export class Modal implements ModalInstance {
           );
         };
 
-        mountFluentComponent(circleWrapper, React.createElement(PopoverContent), defaultTheme);
+        this.mountComponent(circleWrapper, React.createElement(PopoverContent), defaultTheme);
       } else {
         // Regular circle without Popover
         const circle = doc.createElement('div');
@@ -1036,7 +1116,7 @@ export class Modal implements ModalInstance {
       );
     };
 
-    mountFluentComponent(tabListContainer, React.createElement(TabsComponent), defaultTheme);
+    this.mountComponent(tabListContainer, React.createElement(TabsComponent), defaultTheme);
 
     container.appendChild(tabListContainer);
     container.appendChild(tabPanelsContainer);
@@ -1096,7 +1176,7 @@ export class Modal implements ModalInstance {
       );
     };
 
-    mountFluentComponent(container, React.createElement(GroupWrapper), defaultTheme);
+    this.mountComponent(container, React.createElement(GroupWrapper), defaultTheme);
 
     return container;
   }
@@ -1172,8 +1252,10 @@ export class Modal implements ModalInstance {
         const lookupWrapper = doc.createElement('div');
         lookupWrapper.setAttribute('data-field-id', field.id);
 
+        const normalizedLookupValue = this.normalizeLookupValue(field.value, field);
+
         const LookupWrapper = () => {
-          const [selectedLookup, setSelectedLookup] = React.useState<any>(field.value || null);
+          const [selectedLookup, setSelectedLookup] = React.useState<any>(normalizedLookupValue);
 
           // Store setter for external updates
           React.useEffect(() => {
@@ -1188,26 +1270,29 @@ export class Modal implements ModalInstance {
             tooltip: field.tooltip,
             orientation: field.orientation || 'horizontal',
             entityName: field.entityName || 'account',
+            entityDisplayName: field.entityDisplayName,
             lookupColumns: field.lookupColumns || ['name'],
             filters: field.filters || '',
+
             value: selectedLookup,
             disabled: field.disabled,
             required: field.required,
             onChange: (selected: any) => {
-              setSelectedLookup(selected);
-              this.fieldValues.set(field.id, selected);
+              const normalizedSelected = this.normalizeLookupValue(selected, field);
+              setSelectedLookup(normalizedSelected);
+              this.fieldValues.set(field.id, normalizedSelected);
               this.updateFieldVisibility(field.id);
               this.updateButtonStates();
-              field.onChange?.(selected);
+              field.onChange?.(normalizedSelected);
             }
           });
         };
 
-        mountFluentComponent(lookupWrapper, React.createElement(LookupWrapper), defaultTheme);
+        this.mountComponent(lookupWrapper, React.createElement(LookupWrapper), defaultTheme);
         container.appendChild(lookupWrapper);
 
         // Store initial value
-        this.fieldValues.set(field.id, field.value || null);
+        this.fieldValues.set(field.id, normalizedLookupValue);
 
         return container;
       case 'addressLookup':
@@ -1248,7 +1333,7 @@ export class Modal implements ModalInstance {
           });
         };
 
-        mountFluentComponent(fileUploadWrapper, React.createElement(FileUploadWrapper), defaultTheme);
+        this.mountComponent(fileUploadWrapper, React.createElement(FileUploadWrapper), defaultTheme);
         container.appendChild(fileUploadWrapper);
 
         // Store initial value
@@ -1281,7 +1366,7 @@ export class Modal implements ModalInstance {
           });
         };
 
-        mountFluentComponent(checkboxWrapper, React.createElement(CheckboxWrapper), defaultTheme);
+        this.mountComponent(checkboxWrapper, React.createElement(CheckboxWrapper), defaultTheme);
         container.appendChild(checkboxWrapper);
 
         // Store initial value
@@ -1318,7 +1403,7 @@ export class Modal implements ModalInstance {
           });
         };
 
-        mountFluentComponent(switchWrapper, React.createElement(SwitchWrapper), defaultTheme);
+        this.mountComponent(switchWrapper, React.createElement(SwitchWrapper), defaultTheme);
         container.appendChild(switchWrapper);
 
         // Store initial value
@@ -1402,7 +1487,7 @@ export class Modal implements ModalInstance {
           });
         };
 
-        mountFluentComponent(textareaWrapper, React.createElement(TextareaWrapper), defaultTheme);
+        this.mountComponent(textareaWrapper, React.createElement(TextareaWrapper), defaultTheme);
         container.appendChild(textareaWrapper);
 
         this.fieldValues.set(field.id, field.value || '');
@@ -1453,7 +1538,7 @@ export class Modal implements ModalInstance {
           });
         };
 
-        mountFluentComponent(selectWrapper, React.createElement(SelectWrapper), defaultTheme);
+        this.mountComponent(selectWrapper, React.createElement(SelectWrapper), defaultTheme);
         container.appendChild(selectWrapper);
 
         this.fieldValues.set(field.id, field.value || '');
@@ -1502,7 +1587,7 @@ export class Modal implements ModalInstance {
           });
         };
 
-        mountFluentComponent(dateWrapper, React.createElement(DatePickerWrapper), defaultTheme);
+        this.mountComponent(dateWrapper, React.createElement(DatePickerWrapper), defaultTheme);
         container.appendChild(dateWrapper);
 
         // Store initial value
@@ -1596,7 +1681,7 @@ export class Modal implements ModalInstance {
         this.log('Queueing table React mount for:', field.id);
         this.pendingReactMounts.push(() => {
           this.log('Mounting table component for:', field.id);
-          mountFluentComponent(tableWrapper, React.createElement(TableWrapper), defaultTheme);
+          this.mountComponent(tableWrapper, React.createElement(TableWrapper), defaultTheme);
           this.log('Table mounted successfully:', field.id);
         });
 
@@ -1662,7 +1747,7 @@ export class Modal implements ModalInstance {
           );
         };
 
-        mountFluentComponent(sliderWrapper, React.createElement(SliderWrapper), defaultTheme);
+        this.mountComponent(sliderWrapper, React.createElement(SliderWrapper), defaultTheme);
         container.appendChild(sliderWrapper);
 
         this.fieldValues.set(field.id, field.value || 0);
@@ -1797,7 +1882,7 @@ export class Modal implements ModalInstance {
           });
         };
 
-        mountFluentComponent(inputWrapper, React.createElement(InputWrapper), defaultTheme);
+        this.mountComponent(inputWrapper, React.createElement(InputWrapper), defaultTheme);
         container.appendChild(inputWrapper);
 
         // Store initial value
@@ -2082,7 +2167,7 @@ export class Modal implements ModalInstance {
     };
 
     // Mount the Fluent UI button
-    mountFluentComponent(buttonContainer, React.createElement(ButtonWrapper), defaultTheme);
+    this.mountComponent(buttonContainer, React.createElement(ButtonWrapper), defaultTheme);
 
     if (btn.setFocus) {
       setTimeout(() => {
@@ -2160,7 +2245,7 @@ export class Modal implements ModalInstance {
       // Update icon to minimize
       const MinimizeIcon = React.createElement(FullScreenMinimizeRegular);
       iconContainer.innerHTML = '';
-      mountFluentComponent(iconContainer, MinimizeIcon, defaultTheme);
+      this.mountComponent(iconContainer, MinimizeIcon, defaultTheme);
     } else {
       // Restore normal mode
       const { width, height } = this.getModalDimensions();
@@ -2182,7 +2267,7 @@ export class Modal implements ModalInstance {
       // Update icon to maximize
       const MaximizeIcon = React.createElement(FullScreenMaximizeRegular);
       iconContainer.innerHTML = '';
-      mountFluentComponent(iconContainer, MaximizeIcon, defaultTheme);
+      this.mountComponent(iconContainer, MaximizeIcon, defaultTheme);
     }
   }
 
@@ -2256,6 +2341,20 @@ export class Modal implements ModalInstance {
 
     // Use animationend event for reliable cleanup timing
     const handleAnimationEnd = () => {
+      // Unmount all React roots BEFORE removing DOM elements.
+      // This is critical for components like Lookup that use Fluent UI Popover,
+      // which renders its dropdown via a portal to document.body.
+      // Without unmounting, the portaled popup remains visible after the modal is removed.
+      // Done here (after animation) so React content is visible during the fade-out.
+      for (const root of this.reactRoots) {
+        try {
+          unmountFluentComponent(root);
+        } catch {
+          // Ignore errors from already-unmounted roots
+        }
+      }
+      this.reactRoots = [];
+
       if (this.container?.parentElement) {
         this.container.parentElement.removeChild(this.container);
       }
@@ -2626,28 +2725,33 @@ export class Modal implements ModalInstance {
   }
 
   setFieldValue(fieldId: string, value: any): void {
+    const fieldConfig = this.findFieldById(fieldId);
+    const normalizedValue = fieldConfig?.type === 'lookup'
+      ? this.normalizeLookupValue(value, fieldConfig)
+      : value;
+
     const existingValue = this.fieldValues.get(fieldId);
 
     // If it's a Table instance, use its setValue method
     if (existingValue && typeof existingValue === 'object' && 'setValue' in existingValue) {
-      existingValue.setValue(value);
+      existingValue.setValue(normalizedValue);
       return;
     }
 
     // Handle table data updates
     const updateDataFn = this.fieldValues.get(fieldId + '_updateData');
     if (typeof updateDataFn === 'function') {
-      updateDataFn(value);
+      updateDataFn(normalizedValue);
       return;
     }
 
     // Update internal value map
-    this.fieldValues.set(fieldId, value);
+    this.fieldValues.set(fieldId, normalizedValue);
 
     // Use React state setter if available (for Fluent UI components)
     const setter = this.fieldSetters.get(fieldId);
     if (setter) {
-      setter(value);
+      setter(normalizedValue);
       return;
     }
 
@@ -2657,11 +2761,11 @@ export class Modal implements ModalInstance {
       const input = element.querySelector('input, textarea, select') as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
       if (input) {
         if (input instanceof HTMLInputElement && (input.type === 'checkbox' || input.type === 'radio')) {
-          input.checked = !!value;
+          input.checked = !!normalizedValue;
         } else if (input instanceof HTMLSelectElement) {
-          input.value = String(value);
+          input.value = String(normalizedValue);
         } else {
-          input.value = value != null ? String(value) : '';
+          input.value = normalizedValue != null ? String(normalizedValue) : '';
         }
         // Trigger change event
         input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -2670,6 +2774,45 @@ export class Modal implements ModalInstance {
 
     // Update button states based on new field value
     this.updateButtonStates();
+  }
+
+  private findFieldById(fieldId: string): FieldConfig | undefined {
+    const searchFields = (fields?: FieldConfig[]): FieldConfig | undefined => {
+      if (!fields) {
+        return undefined;
+      }
+
+      for (const field of fields) {
+        if (field.id === fieldId) {
+          return field;
+        }
+
+        if (field.fields && field.fields.length > 0) {
+          const nestedMatch = searchFields(field.fields);
+          if (nestedMatch) {
+            return nestedMatch;
+          }
+        }
+      }
+
+      return undefined;
+    };
+
+    const directMatch = searchFields(this.options.fields);
+    if (directMatch) {
+      return directMatch;
+    }
+
+    if (this.options.progress?.steps) {
+      for (const step of this.options.progress.steps) {
+        const stepMatch = searchFields(step.fields);
+        if (stepMatch) {
+          return stepMatch;
+        }
+      }
+    }
+
+    return undefined;
   }
 
   validateCurrentStep(): boolean {

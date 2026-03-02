@@ -2143,6 +2143,7 @@ new uiLib.Modal({
   - displayMode: 'dropdown' (default) or 'badges' for clickable badge buttons
 - 'lookup' - Inline D365-style dropdown lookup
   - entityName: D365 entity name
+  - entityDisplayName: Optional display name (e.g., 'Account'). Auto-fetched from D365 metadata if omitted.
   - lookupColumns: Array of columns to fetch and display
     - String format: ['line1', 'city', 'postalcode'] - shows values only (no labels)
     - Object format: [{attribute: 'line1', label: 'Address'}, ...] - shows "Label: value"
@@ -2261,6 +2262,7 @@ new uiLib.Modal({
   label: 'Account', 
   type: 'lookup',
   entityName: 'account',
+  entityDisplayName: 'Account',  // Optional - auto-fetched from D365 metadata if omitted
   lookupColumns: [
     { attribute: 'name', label: 'Account Name' },     // Custom label
     { attribute: 'accountnumber', label: 'Number' }   // Custom label
@@ -2289,6 +2291,9 @@ new uiLib.Modal({
 
 // If lookupColumns is omitted or columns don't exist:
 // Library automatically falls back to common names like 'name', 'fullname', 'title', 'subject'
+
+// entityDisplayName is auto-fetched from D365 metadata (localized) if not provided
+// Priority: explicit entityDisplayName prop > metadata DisplayName > entityName
 
 // Multiple Entity Types (Polymorphic Lookups):
 // The inline lookup currently supports ONE entity type at a time.

@@ -219,11 +219,12 @@ if (typeof window !== 'undefined') {
             // Already loaded in parent window, copy reference to current window
             (window as any).uiLib = existingInstance;
             (window as any).err403 = existingInstance; // Backward compatibility
-            console.debug(...UILIB, 'ui-Lib found in parent window, assigned to current window');
+            console.log(...UILIB, `ui-Lib v${PACKAGE_VERSION} found in parent window, assigned to current window`);
         } else {
             // First time loading or already in correct scope
             (window as any).uiLib = libraryObject;
             (window as any).err403 = libraryObject; // Backward compatibility
+            console.log(...UILIB, `ui-Lib v${PACKAGE_VERSION} loaded`);
             
             // Expose to parent window if in iframe (for first load scenario)
             try {
