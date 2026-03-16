@@ -1,9 +1,10 @@
 # uiLib AI Skills Installer
-# Registers AiSkills with Claude Code (CLAUDE.md) and GitHub Copilot (.github/copilot-instructions.md)
+# Downloads AiSkills docs from GitHub and registers them with Claude Code and GitHub Copilot
 #
 # Usage:
-#   .\AiSkills\scripts\install.ps1              # Project-level (run from repo root)
-#   .\AiSkills\scripts\install.ps1 -Global      # Global (user-level for all projects)
+#   irm https://raw.githubusercontent.com/garethcheyne/DYN365CE-Modal-and-More/main/AiSkills/scripts/install.ps1 | iex
+#   .\AiSkills\scripts\install.ps1                  # Local: project-level
+#   .\AiSkills\scripts\install.ps1 -Global           # Local: user-level (all projects)
 
 param(
     [string]$Target,
@@ -12,30 +13,69 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Resolve paths
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$AiSkillsDir = Split-Path -Parent $ScriptDir
+$REPO = "garethcheyne/DYN365CE-Modal-and-More"
+$BRANCH = "main"
+$RAW = "https://raw.githubusercontent.com/$REPO/$BRANCH"
 
-# Auto-detect repo root (parent of AiSkills/)
+$FILES = @(
+    "AiSkills/SKILL.md",
+    "AiSkills/API_REFERENCE.md",
+    "AiSkills/FIELD_TYPES.md",
+    "AiSkills/PATTERNS.md",
+    "AiSkills/ARCHITECTURE.md"
+)
+
+# ─────────────────────────────────────────────
+# Detect if running piped from irm (no local repo)
+# ─────────────────────────────────────────────
+$IsRemote = -not (Test-Path (Join-Path (Get-Location) "AiSkills") -ErrorAction SilentlyContinue)
+
 if (-not $Target) {
-    $Target = Split-Path -Parent $AiSkillsDir
+    $Target = (Get-Location).Path
 }
-
-$Target = (Resolve-Path $Target).Path
 
 Write-Host ""
 Write-Host "uiLib AI Skills Installer" -ForegroundColor Cyan
 Write-Host "=========================" -ForegroundColor Cyan
+Write-Host "Repo: https://github.com/$REPO" -ForegroundColor DarkGray
+Write-Host ""
 
 $Installed = 0
 
+# ─────────────────────────────────────────────
+# Download AiSkills files if not present locally
+# ─────────────────────────────────────────────
+function Download-AiSkills {
+    param([string]$DestRoot)
+
+    foreach ($file in $FILES) {
+        $url = "$RAW/$file"
+        $dest = Join-Path $DestRoot $file
+        $dir = Split-Path -Parent $dest
+
+        if (-not (Test-Path $dir)) {
+            New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        }
+
+        Write-Host "  Downloading $file..." -ForegroundColor DarkGray
+        try {
+            Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing -ErrorAction Stop
+        } catch {
+            Write-Host "  Failed to download $file : $_" -ForegroundColor Red
+            return $false
+        }
+    }
+    return $true
+}
+
 if ($Global) {
-    Write-Host "Mode: GLOBAL (user-level - applies to all projects)" -ForegroundColor Yellow
+    # ─────────────────────────────────────────────
+    # GLOBAL MODE
+    # ─────────────────────────────────────────────
+    Write-Host "Mode: GLOBAL (user-level)" -ForegroundColor Yellow
     Write-Host ""
 
-    # ─────────────────────────────────────────────
-    # Global: Claude Code — ~/.claude/CLAUDE.md
-    # ─────────────────────────────────────────────
+    # Claude Code — append to ~/.claude/CLAUDE.md
     $ClaudeGlobalDir = Join-Path $HOME ".claude"
     $ClaudeGlobal = Join-Path $ClaudeGlobalDir "CLAUDE.md"
 
@@ -58,34 +98,46 @@ Key rules:
 "@
 
     if ((Test-Path $ClaudeGlobal) -and (Get-Content $ClaudeGlobal -Raw) -match "uiLib") {
-        Write-Host "[Claude Code] uiLib reference already in $ClaudeGlobal — skipping" -ForegroundColor DarkGray
+        Write-Host "[Claude] Already configured — skipping" -ForegroundColor DarkGray
     } else {
-        Write-Host "[Claude Code] Appending uiLib reference to $ClaudeGlobal..." -ForegroundColor Yellow
+        Write-Host "[Claude] Appending to $ClaudeGlobal..." -ForegroundColor Yellow
         Add-Content -Path $ClaudeGlobal -Value $SkillSnippet -Encoding UTF8
-        Write-Host "[Claude Code] Updated: $ClaudeGlobal" -ForegroundColor Green
+        Write-Host "[Claude] Done" -ForegroundColor Green
         $Installed++
     }
 
-    # ─────────────────────────────────────────────
-    # Global: Copilot — VS Code user settings guidance
-    # ─────────────────────────────────────────────
+    # Copilot — print VS Code settings
     Write-Host ""
-    Write-Host "[Copilot] Global Copilot instructions require VS Code settings." -ForegroundColor Yellow
-    Write-Host "  Add this to your VS Code settings.json (Ctrl+Shift+P -> 'Preferences: Open User Settings (JSON)'):" -ForegroundColor White
-    Write-Host ""
+    Write-Host "[Copilot] Add this to your VS Code settings.json:" -ForegroundColor Yellow
     Write-Host '  "github.copilot.chat.codeGeneration.instructions": [' -ForegroundColor Cyan
     Write-Host '    { "text": "When using the uiLib D365 library: always use new uiLib.Button() constructor (never plain objects), use callback not onClick, use setFocus not type:primary, tabs use asTabs:true inside fields array, custom fields use type:custom with html or render property. Read AiSkills/ directory for full API docs." }' -ForegroundColor Cyan
     Write-Host '  ]' -ForegroundColor Cyan
     Write-Host ""
 
 } else {
-    Write-Host "Mode: PROJECT (this repo only)" -ForegroundColor Yellow
-    Write-Host "Target: $Target" -ForegroundColor DarkGray
+    # ─────────────────────────────────────────────
+    # PROJECT MODE
+    # ─────────────────────────────────────────────
+    Write-Host "Mode: PROJECT ($Target)" -ForegroundColor Yellow
     Write-Host ""
 
-    # ─────────────────────────────────────────────
-    # Project: Claude Code — CLAUDE.md at repo root
-    # ─────────────────────────────────────────────
+    # Download AiSkills if not already present
+    $AiSkillsLocal = Join-Path $Target "AiSkills"
+    if (-not (Test-Path (Join-Path $AiSkillsLocal "SKILL.md"))) {
+        Write-Host "Downloading AiSkills from GitHub..." -ForegroundColor Yellow
+        $ok = Download-AiSkills -DestRoot $Target
+        if (-not $ok) {
+            Write-Host "Download failed. Aborting." -ForegroundColor Red
+            exit 1
+        }
+        Write-Host "Downloaded 5 files to AiSkills/" -ForegroundColor Green
+        Write-Host ""
+    } else {
+        Write-Host "AiSkills/ already present — skipping download" -ForegroundColor DarkGray
+        Write-Host ""
+    }
+
+    # Claude Code — create CLAUDE.md
     $ClaudeTarget = Join-Path $Target "CLAUDE.md"
     $ClaudeContent = @"
 # Project Context for Claude
@@ -112,42 +164,31 @@ Detailed documentation lives in the ``AiSkills/`` directory. Read these files be
 4. Custom fields use ``type: 'custom'`` with ``html`` or ``render`` — NOT ``type: 'html'``
 5. Return ``true`` from callback to close modal, ``false`` to keep open
 6. Always provide explicit button IDs for reliable ``getButton()`` lookups
-
-## Quick Start
-
-``````javascript
-// Toast
-uiLib.Toast.success({ title: 'Saved', message: 'Record updated' });
-
-// Modal with form
-const modal = new uiLib.Modal({
-  title: 'Edit',
-  fields: [{ id: 'name', type: 'text', label: 'Name', required: true }],
-  buttons: [
-    new uiLib.Button({ label: 'Cancel', callback: () => true, id: 'cancelBtn' }),
-    new uiLib.Button({ label: 'Save', callback: () => true, setFocus: true, id: 'saveBtn' })
-  ]
-});
-modal.show();
-``````
 "@
 
-    Write-Host "[Claude Code] Creating CLAUDE.md..." -ForegroundColor Yellow
-    Set-Content -Path $ClaudeTarget -Value $ClaudeContent -Encoding UTF8
-    Write-Host "[Claude Code] Created: $ClaudeTarget" -ForegroundColor Green
-    $Installed++
+    if (Test-Path $ClaudeTarget) {
+        if ((Get-Content $ClaudeTarget -Raw) -match "AiSkills") {
+            Write-Host "[Claude] CLAUDE.md already references AiSkills — skipping" -ForegroundColor DarkGray
+        } else {
+            Write-Host "[Claude] Appending AiSkills reference to CLAUDE.md..." -ForegroundColor Yellow
+            Add-Content -Path $ClaudeTarget -Value "`n$ClaudeContent" -Encoding UTF8
+            Write-Host "[Claude] Updated" -ForegroundColor Green
+            $Installed++
+        }
+    } else {
+        Write-Host "[Claude] Creating CLAUDE.md..." -ForegroundColor Yellow
+        Set-Content -Path $ClaudeTarget -Value $ClaudeContent -Encoding UTF8
+        Write-Host "[Claude] Created" -ForegroundColor Green
+        $Installed++
+    }
 
-    # ─────────────────────────────────────────────
-    # Project: Copilot — append to .github/copilot-instructions.md
-    # ─────────────────────────────────────────────
+    # Copilot — append to .github/copilot-instructions.md
     $CopilotDir = Join-Path $Target ".github"
     $CopilotTarget = Join-Path $CopilotDir "copilot-instructions.md"
 
     if (Test-Path $CopilotTarget) {
-        $CopilotContent = Get-Content $CopilotTarget -Raw
-
-        if ($CopilotContent -match "AiSkills/SKILL\.md") {
-            Write-Host "[Copilot] Skill reference already present — skipping" -ForegroundColor DarkGray
+        if ((Get-Content $CopilotTarget -Raw) -match "AiSkills/SKILL\.md") {
+            Write-Host "[Copilot] Already configured — skipping" -ForegroundColor DarkGray
         } else {
             $SkillRef = @"
 
@@ -159,16 +200,33 @@ modal.show();
 > - [AiSkills/API_REFERENCE.md](../AiSkills/API_REFERENCE.md) — Complete API reference
 > - [AiSkills/FIELD_TYPES.md](../AiSkills/FIELD_TYPES.md) — All field types with examples
 > - [AiSkills/PATTERNS.md](../AiSkills/PATTERNS.md) — D365 integration patterns
-> - [AiSkills/ARCHITECTURE.md](../AiSkills/ARCHITECTURE.md) — Internal architecture and dev workflow
+> - [AiSkills/ARCHITECTURE.md](../AiSkills/ARCHITECTURE.md) — Internal architecture
 "@
-            Write-Host "[Copilot] Appending skill reference to copilot-instructions.md..." -ForegroundColor Yellow
+            Write-Host "[Copilot] Appending to copilot-instructions.md..." -ForegroundColor Yellow
             Add-Content -Path $CopilotTarget -Value $SkillRef -Encoding UTF8
-            Write-Host "[Copilot] Updated: $CopilotTarget" -ForegroundColor Green
+            Write-Host "[Copilot] Updated" -ForegroundColor Green
             $Installed++
         }
     } else {
-        Write-Host "[Copilot] copilot-instructions.md not found — skipping" -ForegroundColor DarkGray
-        Write-Host "         Create .github/copilot-instructions.md first, then re-run." -ForegroundColor DarkGray
+        Write-Host "[Copilot] No .github/copilot-instructions.md found — creating..." -ForegroundColor Yellow
+        if (-not (Test-Path $CopilotDir)) {
+            New-Item -ItemType Directory -Path $CopilotDir -Force | Out-Null
+        }
+        $CopilotNew = @"
+# Copilot Instructions
+
+## AI Skills Reference
+
+> For detailed API docs, field types, patterns, and architecture, see the ``AiSkills/`` directory:
+> - [AiSkills/SKILL.md](../AiSkills/SKILL.md) — Overview and critical rules
+> - [AiSkills/API_REFERENCE.md](../AiSkills/API_REFERENCE.md) — Complete API reference
+> - [AiSkills/FIELD_TYPES.md](../AiSkills/FIELD_TYPES.md) — All field types with examples
+> - [AiSkills/PATTERNS.md](../AiSkills/PATTERNS.md) — D365 integration patterns
+> - [AiSkills/ARCHITECTURE.md](../AiSkills/ARCHITECTURE.md) — Internal architecture
+"@
+        Set-Content -Path $CopilotTarget -Value $CopilotNew -Encoding UTF8
+        Write-Host "[Copilot] Created .github/copilot-instructions.md" -ForegroundColor Green
+        $Installed++
     }
 }
 
@@ -177,12 +235,8 @@ modal.show();
 # ─────────────────────────────────────────────
 Write-Host ""
 if ($Installed -gt 0) {
-    Write-Host "Done! $Installed AI system(s) configured." -ForegroundColor Green
+    Write-Host "Done! $Installed change(s) applied." -ForegroundColor Green
 } else {
-    Write-Host "No changes made (already installed or missing prerequisites)." -ForegroundColor Yellow
+    Write-Host "Already installed — no changes needed." -ForegroundColor DarkGray
 }
-Write-Host ""
-Write-Host "Verification:" -ForegroundColor Cyan
-Write-Host "  Claude Code  — CLAUDE.md at repo root (project) or ~/.claude/CLAUDE.md (global)"
-Write-Host "  Copilot      — .github/copilot-instructions.md references AiSkills/"
 Write-Host ""
