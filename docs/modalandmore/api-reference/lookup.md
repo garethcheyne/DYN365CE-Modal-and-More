@@ -1,6 +1,8 @@
 ---
 title: Lookup
 excerpt: Record selection with search, filter, sort, and multi-select
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # Lookup

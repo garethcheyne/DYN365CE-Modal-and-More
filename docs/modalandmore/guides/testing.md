@@ -1,6 +1,8 @@
 ---
 title: Testing
-excerpt: Demo page, test suite, and integration testing checklist
+description: Demo page, test suite, and integration testing checklist
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # Testing

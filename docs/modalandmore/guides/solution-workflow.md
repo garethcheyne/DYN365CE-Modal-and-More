@@ -1,6 +1,8 @@
 ---
 title: Solution Deployment
-excerpt: Build, package, and import the D365 solution
+description: Build, package, and import the D365 solution
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # Solution Deployment

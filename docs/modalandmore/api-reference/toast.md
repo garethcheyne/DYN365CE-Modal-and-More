@@ -1,6 +1,8 @@
 ---
 title: Toast Notifications
-excerpt: Slide-in notifications matching D365 native style
+description: Slide-in notifications matching D365 native style
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # Toast Notifications

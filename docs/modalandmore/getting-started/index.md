@@ -1,6 +1,8 @@
 ---
 title: Getting Started
-excerpt: Install and configure the UI Library for Dynamics 365
+description: Install and configure the UI Library for Dynamics 365
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # Getting Started

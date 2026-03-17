@@ -1,6 +1,8 @@
 ---
 title: Release Workflow
-excerpt: Automated release process using GitHub Actions and version management
+description: Automated release process using GitHub Actions and version management
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # Release Workflow

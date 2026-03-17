@@ -1,6 +1,8 @@
 ---
 title: Installation
-excerpt: How to install and set up the UI Library in your Dynamics 365 environment
+description: How to install and set up the UI Library in your Dynamics 365 environment
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # Installation

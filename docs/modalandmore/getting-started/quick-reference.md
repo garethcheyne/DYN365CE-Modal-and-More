@@ -1,6 +1,8 @@
 ---
 title: Quick Reference
-excerpt: Compact API cheat sheet for the most common uiLib operations
+description: Compact API cheat sheet for the most common uiLib operations
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # Quick Reference

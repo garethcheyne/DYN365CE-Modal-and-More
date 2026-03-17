@@ -1,6 +1,8 @@
 ---
 title: Modal Dialogs
-excerpt: Form dialogs, alerts, confirms, prompts, and wizards
+description: Form dialogs, alerts, confirms, prompts, and wizards
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # Modal Dialogs

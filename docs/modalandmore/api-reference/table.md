@@ -1,6 +1,8 @@
 ---
 title: Table
-excerpt: Data grid with sorting, selection, filtering, and formatting
+description: Data grid with sorting, selection, filtering, and formatting
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # Table

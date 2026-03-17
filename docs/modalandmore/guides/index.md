@@ -1,6 +1,8 @@
 ---
 title: Guides
-excerpt: Workflows for releasing, deploying, and testing the library
+description: Workflows for releasing, deploying, and testing the library
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # Guides

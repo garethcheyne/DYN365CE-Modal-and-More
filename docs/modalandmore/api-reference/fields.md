@@ -1,6 +1,8 @@
 ---
 title: Field Types
-excerpt: All available field types with configuration and examples
+description: All available field types with configuration and examples
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # Field Types

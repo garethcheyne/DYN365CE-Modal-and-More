@@ -1,6 +1,8 @@
 ---
 title: Modal & More — UI Library for Dynamics 365
-excerpt: Professional-grade UI components that seamlessly integrate with Dynamics 365 CE
+description: Professional-grade UI components that seamlessly integrate with Dynamics 365 CE
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # Modal & More

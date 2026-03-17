@@ -1,6 +1,8 @@
 ---
 title: API Reference
-excerpt: Complete API documentation for all uiLib components
+description: Complete API documentation for all uiLib components
+author: gareth-cheyne
+category: dynamics-365-ce
 ---
 
 # API Reference
