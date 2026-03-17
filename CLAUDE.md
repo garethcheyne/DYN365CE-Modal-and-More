@@ -2,17 +2,19 @@
 
 This is a UI component library for Microsoft Dynamics 365 CE (uiLib).
 
-## AI Skills Reference
+## Conventions
 
-Detailed documentation lives in the `AiSkills/` directory. Read these files before generating or modifying library code:
+Read and follow `.claude/modalandmore-conventions.md` for all library rules and API patterns.
+
+For deeper reference, see `AiSkills/ModalAndMore/`:
 
 | File | Contents |
 |------|----------|
-| [AiSkills/SKILL.md](AiSkills/SKILL.md) | Overview, critical API rules, quick examples |
-| [AiSkills/API_REFERENCE.md](AiSkills/API_REFERENCE.md) | Complete API — all classes, methods, properties, return types |
-| [AiSkills/FIELD_TYPES.md](AiSkills/FIELD_TYPES.md) | Every field type with config, examples, and value shapes |
-| [AiSkills/PATTERNS.md](AiSkills/PATTERNS.md) | D365 integration patterns and real-world recipes |
-| [AiSkills/ARCHITECTURE.md](AiSkills/ARCHITECTURE.md) | Internal structure, build system, and dev workflow |
+| `modalandmore-conventions.md` | Complete conventions — rules, examples, API quick reference |
+| `API_REFERENCE.md` | All classes, methods, properties, return types |
+| `FIELD_TYPES.md` | Every field type with config, examples, and value shapes |
+| `PATTERNS.md` | D365 integration patterns and real-world recipes |
+| `ARCHITECTURE.md` | Internal structure, build system, and dev workflow |
 
 ## Critical Rules
 

@@ -1,0 +1,10 @@
+{
+  "installation": {
+    "title": "Installation",
+    "icon": "Download"
+  },
+  "quick-reference": {
+    "title": "Quick Reference",
+    "icon": "Zap"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "toast": {
+    "title": "Toast Notifications",
+    "icon": "Bell"
+  },
+  "modal": {
+    "title": "Modal Dialogs",
+    "icon": "LayoutDashboard"
+  },
+  "fields": {
+    "title": "Field Types",
+    "icon": "FormInput"
+  },
+  "lookup": {
+    "title": "Lookups",
+    "icon": "Search"
+  },
+  "table": {
+    "title": "Tables",
+    "icon": "Table"
+  }
+}

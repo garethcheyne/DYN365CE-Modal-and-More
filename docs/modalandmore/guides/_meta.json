@@ -1,0 +1,14 @@
+{
+  "release-workflow": {
+    "title": "Release Workflow",
+    "icon": "Rocket"
+  },
+  "solution-workflow": {
+    "title": "Solution Deployment",
+    "icon": "Upload"
+  },
+  "testing": {
+    "title": "Testing",
+    "icon": "FlaskConical"
+  }
+}

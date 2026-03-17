@@ -1,0 +1,14 @@
+{
+  "getting-started": {
+    "title": "Getting Started",
+    "icon": "Rocket"
+  },
+  "api-reference": {
+    "title": "API Reference",
+    "icon": "Code"
+  },
+  "guides": {
+    "title": "Guides",
+    "icon": "BookOpen"
+  }
+}
