@@ -1,7 +1,11 @@
 {
   "modalandmore": {
-    "title": "Modal & More",
+    "title": "    Modal & More",
     "icon": "Package",
-    "description": "UI component library for Microsoft Dynamics 365 CE"
+    "description": "UI component library for Microsoft Dynamics 365 CE",
+    "restricted": true,
+    "restrictedRoles": [
+      "SGRP_CORP_D365_Commercial_Support"
+    ]
   }
 }
