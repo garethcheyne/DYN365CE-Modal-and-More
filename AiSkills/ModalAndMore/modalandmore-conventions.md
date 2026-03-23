@@ -487,7 +487,7 @@ For detailed API reference, field type configurations, integration patterns, and
 | File | Contents |
 |------|----------|
 | `SKILL.md` | Skill overview, critical rules, quick examples |
-| `API_REFERENCE.md` | Complete API: all classes, methods, properties, return types |
-| `FIELD_TYPES.md` | Every field type with full config, examples, and value shapes |
-| `PATTERNS.md` | D365 integration patterns, real-world recipes |
-| `ARCHITECTURE.md` | Internal structure, build system, dev workflow |
+| `modalandmore-api-reference.md` | Complete API: all classes, methods, properties, return types |
+| `modalandmore-field-types.md` | Every field type with full config, examples, and value shapes |
+| `modalandmore-patterns.md` | D365 integration patterns, real-world recipes |
+| `modalandmore-architecture.md` | Internal structure, build system, dev workflow |

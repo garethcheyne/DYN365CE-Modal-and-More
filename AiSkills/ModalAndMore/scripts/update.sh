@@ -32,6 +32,12 @@ CONVENTIONS="$REPO_ROOT/modalandmore-conventions.md"
 COPILOT_SNIPPET="$REPO_ROOT/copilot-instructions.md"
 VERSION_FILE="$REPO_ROOT/VERSION"
 
+# Supporting reference files
+API_REFERENCE="$REPO_ROOT/API_REFERENCE.md"
+FIELD_TYPES="$REPO_ROOT/FIELD_TYPES.md"
+PATTERNS="$REPO_ROOT/PATTERNS.md"
+ARCHITECTURE="$REPO_ROOT/ARCHITECTURE.md"
+
 # ── Version comparison ──────────────────────────────────────
 version_gt() {
     [ "$1" != "$2" ] && [ "$(printf '%s\n' "$1" "$2" | sort -V | tail -n1)" = "$1" ]

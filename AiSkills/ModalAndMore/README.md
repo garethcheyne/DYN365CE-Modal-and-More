@@ -43,10 +43,18 @@ $t="$env:TEMP\sk-$(Get-Random)"; git clone --depth 1 "https://github.com/garethc
 ├── commands/
 │   └── modalandmore.md              # /modalandmore slash command
 ├── modalandmore-conventions.md      # Conventions (Claude)
+├── modalandmore-api-reference.md    # Complete API reference
+├── modalandmore-field-types.md      # All field types with examples
+├── modalandmore-patterns.md         # D365 integration patterns
+├── modalandmore-architecture.md     # Internal structure & dev workflow
 └── modalandmore.version             # Installed version
 
 .github/
 ├── modalandmore-conventions.md      # Conventions (Copilot)
+├── modalandmore-api-reference.md    # Complete API reference
+├── modalandmore-field-types.md      # All field types with examples
+├── modalandmore-patterns.md         # D365 integration patterns
+├── modalandmore-architecture.md     # Internal structure & dev workflow
 └── copilot-instructions.md          # Reference appended (with markers)
 ```
 
@@ -57,6 +65,10 @@ $t="$env:TEMP\sk-$(Get-Random)"; git clone --depth 1 "https://github.com/garethc
 ├── commands/
 │   └── modalandmore.md              # /modalandmore slash command
 ├── modalandmore-conventions.md      # Conventions
+├── modalandmore-api-reference.md    # Complete API reference
+├── modalandmore-field-types.md      # All field types with examples
+├── modalandmore-patterns.md         # D365 integration patterns
+├── modalandmore-architecture.md     # Internal structure & dev workflow
 └── modalandmore.version             # Installed version
 ```
 
@@ -105,8 +117,16 @@ The updater checks versions automatically and only updates if a newer version is
 ```bash
 rm .claude/commands/modalandmore.md
 rm .claude/modalandmore-conventions.md
+rm .claude/modalandmore-api-reference.md
+rm .claude/modalandmore-field-types.md
+rm .claude/modalandmore-patterns.md
+rm .claude/modalandmore-architecture.md
 rm .claude/modalandmore.version
 rm .github/modalandmore-conventions.md
+rm .github/modalandmore-api-reference.md
+rm .github/modalandmore-field-types.md
+rm .github/modalandmore-patterns.md
+rm .github/modalandmore-architecture.md
 # Manually remove the MODALANDMORE-AI-SKILLS block from .github/copilot-instructions.md
 ```
 
@@ -115,6 +135,10 @@ rm .github/modalandmore-conventions.md
 ```bash
 rm ~/.claude/commands/modalandmore.md
 rm ~/.claude/modalandmore-conventions.md
+rm ~/.claude/modalandmore-api-reference.md
+rm ~/.claude/modalandmore-field-types.md
+rm ~/.claude/modalandmore-patterns.md
+rm ~/.claude/modalandmore-architecture.md
 rm ~/.claude/modalandmore.version
 ```
 

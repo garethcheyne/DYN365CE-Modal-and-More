@@ -1437,11 +1437,42 @@ export class Modal implements ModalInstance {
                 setValidationState('error');
                 setValidationMessage('This field is required');
               }
-            } else {
-              this.fieldValidationErrors.delete(field.id);
-              setValidationState('none');
-              setValidationMessage('');
+              return;
             }
+            
+            // Custom validation rules from field.validation.rules
+            if (field.validation?.rules && !isEmpty) {
+              for (const rule of field.validation.rules) {
+                let failed = false;
+                switch (rule.type) {
+                  case 'minLength':
+                    if (String(value).length < Number(rule.value)) failed = true;
+                    break;
+                  case 'maxLength':
+                    if (String(value).length > Number(rule.value)) failed = true;
+                    break;
+                  case 'pattern':
+                    if (rule.value instanceof RegExp && !rule.value.test(String(value))) failed = true;
+                    break;
+                  case 'custom':
+                    if (rule.validate && !rule.validate(value)) failed = true;
+                    break;
+                }
+                if (failed) {
+                  this.fieldValidationErrors.set(field.id, rule.message);
+                  if (showError && touched) {
+                    setValidationState('error');
+                    setValidationMessage(rule.message);
+                  }
+                  return;
+                }
+              }
+            }
+            
+            // All validations passed
+            this.fieldValidationErrors.delete(field.id);
+            setValidationState('none');
+            setValidationMessage('');
           };
 
           // Validate on mount (without showing error)
@@ -1562,6 +1593,52 @@ export class Modal implements ModalInstance {
         // Create a stateful wrapper component
         const DatePickerWrapper = () => {
           const [selectedDate, setSelectedDate] = React.useState<Date | null>(initialDate);
+          const [validationState, setValidationState] = React.useState<'error' | 'none'>('none');
+          const [validationMessage, setValidationMessage] = React.useState<string>('');
+          const [touched, setTouched] = React.useState(false);
+
+          const validateField = (value: Date | null, showError: boolean = true) => {
+            const isRequired = this.fieldRequiredMap.get(field.id) || false;
+            const isEmpty = !value;
+
+            if (isRequired && isEmpty) {
+              this.fieldValidationErrors.set(field.id, 'Required field is empty');
+              if (showError && touched) {
+                setValidationState('error');
+                setValidationMessage('This field is required');
+              }
+              return;
+            }
+
+            // Custom validation rules
+            if (field.validation?.rules && !isEmpty) {
+              for (const rule of field.validation.rules) {
+                let failed = false;
+                switch (rule.type) {
+                  case 'custom':
+                    if (rule.validate && !rule.validate(value)) failed = true;
+                    break;
+                }
+                if (failed) {
+                  this.fieldValidationErrors.set(field.id, rule.message);
+                  if (showError && touched) {
+                    setValidationState('error');
+                    setValidationMessage(rule.message);
+                  }
+                  return;
+                }
+              }
+            }
+
+            this.fieldValidationErrors.delete(field.id);
+            setValidationState('none');
+            setValidationMessage('');
+          };
+
+          // Validate on mount (without showing error)
+          React.useEffect(() => {
+            validateField(selectedDate, false);
+          }, []);
 
           return React.createElement(DatePickerFluentUi, {
             id: field.id,
@@ -1572,10 +1649,16 @@ export class Modal implements ModalInstance {
             disabled: field.disabled,
             placeholder: field.placeholder || 'Select a date...',
             orientation: field.orientation || 'horizontal',
+            validationState: validationState,
+            validationMessage: validationMessage,
+            minDate: field.startDate,
+            maxDate: field.endDate,
             onChange: (date: Date | null) => {
+              setTouched(true);
               setSelectedDate(date);
               field.value = date;
               this.fieldValues.set(field.id, date);
+              validateField(date, true);
               this.updateFieldVisibility(field.id);
               this.updateButtonStates();
               
@@ -1825,6 +1908,40 @@ export class Modal implements ModalInstance {
                   if (showError && touched) {
                     setValidationState('error');
                     setValidationMessage('Please enter a valid phone number');
+                  }
+                  return;
+                }
+              }
+            }
+            
+            // Custom validation rules from field.validation.rules
+            if (field.validation?.rules && !isEmpty) {
+              for (const rule of field.validation.rules) {
+                let failed = false;
+                switch (rule.type) {
+                  case 'minLength':
+                    if (String(value).length < Number(rule.value)) failed = true;
+                    break;
+                  case 'maxLength':
+                    if (String(value).length > Number(rule.value)) failed = true;
+                    break;
+                  case 'pattern':
+                    if (rule.value instanceof RegExp && !rule.value.test(String(value))) failed = true;
+                    break;
+                  case 'email': {
+                    const emailRule = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRule.test(String(value))) failed = true;
+                    break;
+                  }
+                  case 'custom':
+                    if (rule.validate && !rule.validate(value)) failed = true;
+                    break;
+                }
+                if (failed) {
+                  this.fieldValidationErrors.set(field.id, rule.message);
+                  if (showError && touched) {
+                    setValidationState('error');
+                    setValidationMessage(rule.message);
                   }
                   return;
                 }

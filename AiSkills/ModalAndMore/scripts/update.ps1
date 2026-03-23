@@ -18,6 +18,14 @@ $Conventions = Join-Path $RepoRoot "modalandmore-conventions.md"
 $CopilotSnippet = Join-Path $RepoRoot "copilot-instructions.md"
 $VersionFile = Join-Path $RepoRoot "VERSION"
 
+# Supporting reference files
+$ReferenceFiles = @(
+    @{ Source = Join-Path $RepoRoot "API_REFERENCE.md"; Dest = "modalandmore-api-reference.md" },
+    @{ Source = Join-Path $RepoRoot "FIELD_TYPES.md"; Dest = "modalandmore-field-types.md" },
+    @{ Source = Join-Path $RepoRoot "PATTERNS.md"; Dest = "modalandmore-patterns.md" },
+    @{ Source = Join-Path $RepoRoot "ARCHITECTURE.md"; Dest = "modalandmore-architecture.md" }
+)
+
 # ── Copilot snippet merge ───────────────────────────────────
 function Update-CopilotSnippet {
     param([string]$TargetFile, [string]$SourceFile)
@@ -97,6 +105,13 @@ if ($Global) {
         Copy-Item $Conventions $Conv -Force
         Write-Host "[OK] Updated conventions" -ForegroundColor Green; $updated++
     }
+    # Supporting reference files
+    foreach ($ref in $ReferenceFiles) {
+        if (Test-Path $ref.Source) {
+            Copy-Item -Path $ref.Source -Destination (Join-Path $ClaudeDir $ref.Dest) -Force
+            Write-Host "[OK] Updated $($ref.Dest)" -ForegroundColor Green; $updated++
+        }
+    }
 } else {
     $Cmd = Join-Path $ClaudeDir "commands\modalandmore.md"
     if (Test-Path $Cmd) {
@@ -117,6 +132,14 @@ if ($Global) {
     if ((Test-Path $CopilotSnippet) -and (Test-Path $CopilotInstr)) {
         if (Update-CopilotSnippet -TargetFile $CopilotInstr -SourceFile $CopilotSnippet) {
             Write-Host "[OK] Updated Copilot reference" -ForegroundColor Green; $updated++
+        }
+    }
+    # Supporting reference files
+    foreach ($ref in $ReferenceFiles) {
+        if (Test-Path $ref.Source) {
+            Copy-Item -Path $ref.Source -Destination (Join-Path $ClaudeDir $ref.Dest) -Force
+            Copy-Item -Path $ref.Source -Destination (Join-Path $GitHubDir $ref.Dest) -Force
+            Write-Host "[OK] Updated $($ref.Dest)" -ForegroundColor Green; $updated++
         }
     }
 }

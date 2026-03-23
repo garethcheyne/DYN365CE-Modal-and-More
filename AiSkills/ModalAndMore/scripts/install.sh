@@ -33,6 +33,12 @@ CONVENTIONS="$REPO_ROOT/modalandmore-conventions.md"
 COPILOT_SNIPPET="$REPO_ROOT/copilot-instructions.md"
 VERSION_FILE="$REPO_ROOT/VERSION"
 
+# Supporting reference files
+API_REFERENCE="$REPO_ROOT/API_REFERENCE.md"
+FIELD_TYPES="$REPO_ROOT/FIELD_TYPES.md"
+PATTERNS="$REPO_ROOT/PATTERNS.md"
+ARCHITECTURE="$REPO_ROOT/ARCHITECTURE.md"
+
 # ── Copilot snippet merge function ──────────────────────────
 install_copilot_snippet() {
     local target_file="$1"
@@ -101,6 +107,16 @@ if [ "$GLOBAL" = true ]; then
         echo -e "${GREEN}[Version] v$(cat "$VERSION_FILE" | tr -d '\n')${NC}"
     fi
 
+    # 4. Supporting reference files
+    for ref_file in "$API_REFERENCE" "$FIELD_TYPES" "$PATTERNS" "$ARCHITECTURE"; do
+        if [ -f "$ref_file" ]; then
+            ref_name=$(basename "$ref_file")
+            dest_name="modalandmore-$(echo "$ref_name" | tr '[:upper:]' '[:lower:]' | sed 's/_/-/g')"
+            cp "$ref_file" "$CLAUDE_DIR/$dest_name"
+            echo -e "${GREEN}[Claude] Installed $ref_name${NC}"
+        fi
+    done
+
     echo ""
     echo -e "${GRAY}[Copilot] Skipped — requires per-project install${NC}"
 else
@@ -134,7 +150,18 @@ else
         install_copilot_snippet "$GITHUB_DIR/copilot-instructions.md" "$COPILOT_SNIPPET"
     fi
 
-    # 5. Version tracker
+    # 5. Supporting reference files
+    for ref_file in "$API_REFERENCE" "$FIELD_TYPES" "$PATTERNS" "$ARCHITECTURE"; do
+        if [ -f "$ref_file" ]; then
+            ref_name=$(basename "$ref_file")
+            dest_name="modalandmore-$(echo "$ref_name" | tr '[:upper:]' '[:lower:]' | sed 's/_/-/g')"
+            cp "$ref_file" "$CLAUDE_DIR/$dest_name"
+            cp "$ref_file" "$GITHUB_DIR/$dest_name"
+            echo -e "${GREEN}[Docs] Installed $ref_name${NC}"
+        fi
+    done
+
+    # 6. Version tracker
     if [ -f "$VERSION_FILE" ]; then
         cp "$VERSION_FILE" "$CLAUDE_DIR/modalandmore.version"
         echo -e "${GREEN}[Version] v$(cat "$VERSION_FILE" | tr -d '\n')${NC}"

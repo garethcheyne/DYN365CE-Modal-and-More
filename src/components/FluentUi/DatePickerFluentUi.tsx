@@ -19,6 +19,10 @@ interface DatePickerFluentUiProps {
   required?: boolean;
   disabled?: boolean;
   orientation?: 'horizontal' | 'vertical';
+  validationState?: 'error' | 'none';
+  validationMessage?: string;
+  minDate?: Date;
+  maxDate?: Date;
 }
 
 export const DatePickerFluentUi: React.FC<DatePickerFluentUiProps> = ({
@@ -30,7 +34,11 @@ export const DatePickerFluentUi: React.FC<DatePickerFluentUiProps> = ({
   tooltip,
   required,
   disabled,
-  orientation = 'horizontal'
+  orientation = 'horizontal',
+  validationState,
+  validationMessage,
+  minDate,
+  maxDate
 }) => {
   const sharedStyles = useSharedStyles();
 
@@ -53,6 +61,8 @@ export const DatePickerFluentUi: React.FC<DatePickerFluentUiProps> = ({
       required={required}
       orientation={effectiveOrientation}
       className={sharedStyles.field}
+      validationState={validationState}
+      validationMessage={validationMessage}
     >
       <DatePicker
         id={id}
@@ -62,6 +72,8 @@ export const DatePickerFluentUi: React.FC<DatePickerFluentUiProps> = ({
         aria-label={label || 'Date picker'}
         disabled={disabled}
         appearance="filled-darker"
+        minDate={minDate}
+        maxDate={maxDate}
       />
     </Field>
   );
