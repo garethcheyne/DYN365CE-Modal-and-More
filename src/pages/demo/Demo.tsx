@@ -747,6 +747,36 @@ export const Demo: React.FC = () => {
     });
   };
 
+  const showPreFilterLookup = () => {
+    const env = detectEnvironment();
+    const dataSource = env.hasWebApi ? 'D365 Live Data' : 'Mock Data';
+
+    uiLib.Lookup.open({
+      entity: 'opportunity',
+      columns: ['name', 'estimatedvalue', 'closeprobability'],
+      columnLabels: { name: 'Opportunity', estimatedvalue: 'Est. Value', closeprobability: 'Probability' },
+      title: `Select Opportunity - PreFilters (${dataSource})`,
+      preFilters: [
+        { type: 'optionset', attribute: 'statecode', label: 'Status' },
+        {
+          type: 'select', attribute: 'prioritycode', label: 'Priority',
+          options: [
+            { label: 'High', value: '1' },
+            { label: 'Normal', value: '2' },
+            { label: 'Low', value: '3' }
+          ]
+        },
+        {
+          type: 'lookup', attribute: 'parentaccountid', label: 'Account',
+          entityName: 'account', lookupColumns: ['name', 'accountnumber']
+        }
+      ],
+      onSelect: (records: any[]) => {
+        uiLib.Toast.success({ title: 'Opportunity Selected', message: `Selected: ${records.map((r: any) => r.name).join(', ')}` });
+      }
+    });
+  };
+
   // Table handlers
   const showSimpleTable = () => {
     const sampleData = [
@@ -1939,12 +1969,27 @@ uiLib.Lookup.open({
   onSelect: (selected) => {
     console.debug('Selected contacts:', selected);
   }
+});
+
+// PreFilters — dropdowns between search and table
+uiLib.Lookup.open({
+  entity: 'opportunity',
+  columns: ['name', 'estimatedvalue'],
+  preFilters: [
+    { type: 'optionset', attribute: 'statecode', label: 'Status' },
+    { type: 'select', attribute: 'prioritycode', label: 'Priority',
+      options: [{ label: 'High', value: '1' }, { label: 'Normal', value: '2' }] },
+    { type: 'lookup', attribute: 'parentaccountid', label: 'Account',
+      entityName: 'account', lookupColumns: ['name'] }
+  ],
+  onSelect: (selected) => console.debug(selected)
 });`}
         >
           <Section title="Lookup Types">
             <div className={styles.btnGroup}>
               <Button appearance="primary" onClick={showSimpleLookup}>Simple Lookup</Button>
               <Button appearance="primary" onClick={showMultiSelectLookup}>Multi-Select</Button>
+              <Button appearance="secondary" onClick={showPreFilterLookup}>PreFilters</Button>
             </div>
           </Section>
           <DataSourceNote />

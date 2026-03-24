@@ -9,6 +9,8 @@ import { Info16Regular } from '@fluentui/react-icons';
 import { Lookup } from 'fluentui-extended';
 import { useSharedStyles } from './sharedStyles';
 import { UILIB } from '../Logger/Logger';
+import { getD365ApiMode } from '../../utils/dom';
+import { fetchEntityMetadata, retrieveMultipleRecords as directRetrieve, type D365EntityMeta } from '../../utils/d365-web-api';
 
 interface LookupColumn {
     attribute: string;
@@ -125,7 +127,10 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
         setLoading(true);
 
         try {
-            if (typeof window !== 'undefined' && (window as any).Xrm?.WebApi) {
+            const apiMode = await getD365ApiMode();
+
+            if (apiMode === 'xrm') {
+                // ---- Xrm SDK path (normal D365 context) ----
                 const xrmWebApi = (window as any).Xrm.WebApi;
                 let primaryId = `${entityName}id`;
                 let validColumns: string[] = [];
@@ -138,7 +143,6 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                             primaryId = metadata.PrimaryIdAttribute;
                         }
 
-                        // Extract localized display name from entity metadata
                         if (metadata?.DisplayName?.UserLocalizedLabel?.Label) {
                             setResolvedDisplayName(metadata.DisplayName.UserLocalizedLabel.Label);
                         } else if (metadata?.DisplayName?.LocalizedLabels?.length > 0) {
@@ -224,13 +228,89 @@ export const LookupFluentUi: React.FC<LookupFluentUiProps> = ({
                 });
 
                 setOptions(lookupOptions);
+
+            } else if (apiMode === 'direct') {
+                // ---- Direct REST API path (pop-out / broken Xrm) ----
+                console.debug(...UILIB, `[Lookup] Using direct Web API for ${entityName}`);
+
+                let meta: D365EntityMeta | null = null;
+                let primaryId = `${entityName}id`;
+                let entitySetName = `${entityName}s`;
+                let validColumns: string[] = columnConfigs.map(c => c.attribute);
+
+                try {
+                    meta = await fetchEntityMetadata(entityName);
+                    primaryId = meta.PrimaryIdAttribute;
+                    entitySetName = meta.EntitySetName;
+
+                    // Resolve display name
+                    const dn = meta.DisplayName?.UserLocalizedLabel?.Label
+                        ?? meta.DisplayName?.LocalizedLabels?.[0]?.Label;
+                    if (dn) setResolvedDisplayName(dn);
+
+                    // Validate columns against metadata
+                    if (meta.Attributes?.length) {
+                        const existing = new Set(meta.Attributes.map(a => a.LogicalName));
+                        const checked = validColumns.filter(c => existing.has(c));
+                        if (checked.length > 0) {
+                            validColumns = checked;
+                        } else {
+                            const fallbacks = ['name', 'fullname', 'title', 'subject'];
+                            validColumns = fallbacks.filter(c => existing.has(c));
+                            if (validColumns.length === 0) {
+                                validColumns = [meta.PrimaryNameAttribute];
+                            }
+                        }
+                    }
+                } catch (metaError) {
+                    console.warn(...UILIB, `[Lookup] Could not fetch metadata via direct API for ${entityName}`, metaError);
+                }
+
+                const selectColumns = validColumns;
+
+                // Build OData query
+                let filterQuery = (filters && !filters.includes('<filter') && !filters.includes('<condition')) ? filters : '';
+                if (term) {
+                    const searchFilters = selectColumns
+                        .map(col => `contains(${col}, '${term}')`)
+                        .join(' or ');
+                    filterQuery = filterQuery
+                        ? `(${filterQuery}) and (${searchFilters})`
+                        : searchFilters;
+                }
+
+                const query = `?$select=${selectColumns.join(',')}`
+                    + `${filterQuery ? `&$filter=${filterQuery}` : ''}`
+                    + `&$top=25&$orderby=${selectColumns[0]} asc`;
+
+                const result = await directRetrieve(entitySetName, query);
+
+                const lookupOptions: LookupOption[] = result.entities.map((record: any) => {
+                    const columns: { [key: string]: string } = {};
+                    columnConfigs.forEach(col => {
+                        columns[col.attribute] = record[col.attribute] || '';
+                    });
+
+                    return {
+                        id: record[primaryId],
+                        name: record[selectColumns[0]] || 'Unnamed',
+                        columns,
+                        entityType: entityName,
+                        record
+                    };
+                });
+
+                setOptions(lookupOptions);
+
             } else {
+                // ---- No D365 API available (standalone / dev) ----
                 const mockData = generateMockLookupData(entityName, term, columnConfigs);
                 setOptions(mockData);
             }
         } catch (error) {
-            console.error(...UILIB, '[Lookup] Failed to fetch records', error);
-            setOptions([]);
+            console.warn(...UILIB, `[Lookup] API call failed for ${entityName}, falling back to mock data`, error);
+            const mockData = generateMockLookupData(entityName, term, columnConfigs);
+            setOptions(mockData);
         } finally {
             setLoading(false);
         }

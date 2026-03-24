@@ -412,6 +412,20 @@ new uiLib.Lookup({
   multiSelect: true,
   onSelect: (records) => { /* records array */ }
 }).show();
+
+// With preFilters (option set + lookup)
+new uiLib.Lookup({
+  entity: 'opportunity',
+  columns: ['name', 'estimatedvalue'],
+  preFilters: [
+    { type: 'optionset', attribute: 'statecode', label: 'Status' },
+    { type: 'select', attribute: 'prioritycode', label: 'Priority',
+      options: [{ label: 'High', value: '1' }, { label: 'Normal', value: '2' }] },
+    { type: 'lookup', attribute: 'parentaccountid', label: 'Account',
+      entityName: 'account', lookupColumns: ['name'] }
+  ],
+  onSelect: (records) => { /* records array */ }
+}).show();
 ```
 
 ---

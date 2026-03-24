@@ -23,8 +23,9 @@ import type {
   QueryBuilderOpenResult
 } from './Modal.types';
 import { ModalButton } from './Modal.types';
-import { getTargetDocument } from '../../utils/dom';
+import { getTargetDocument, getD365ApiMode } from '../../utils/dom';
 import { UILIB } from '../Logger/Logger';
+import { fetchOptionSet as directFetchOptionSet } from '../../utils/d365-web-api';
 import {
   React,
   TabList,
@@ -226,32 +227,35 @@ export class Modal implements ModalInstance {
     sortByLabel: boolean = false
   ): Promise<Array<{ label: string; value: string }>> {
     try {
-      // Check if Xrm is available
-      if (typeof (window as any).Xrm === 'undefined') {
-        console.debug(...UILIB, 'Dynamics 365 Xrm object not available. Cannot fetch option set.');
-        return [];
-      }
+      const apiMode = await getD365ApiMode();
 
-      const Xrm = (window as any).Xrm;
-
-      // Retrieve attribute metadata
-      const attribute = await Xrm.Utility.getEntityMetadata(entityName, [attributeName]);
-      const attributeMetadata = attribute.Attributes._collection[attributeName];
-
-      if (!attributeMetadata || !attributeMetadata.OptionSet) {
-        console.debug(...UILIB, `No option set found for ${entityName}.${attributeName}`);
-        return [];
-      }
-
-      // Extract options
       let options: Array<{ label: string; value: string }> = [];
-      
-      const optionSet = attributeMetadata.OptionSet.Options;
-      for (const option of optionSet) {
-        options.push({
-          label: option.Label,
-          value: option.Value.toString()
-        });
+
+      if (apiMode === 'xrm') {
+        // ---- Xrm SDK path ----
+        const Xrm = (window as any).Xrm;
+        const attribute = await Xrm.Utility.getEntityMetadata(entityName, [attributeName]);
+        const attributeMetadata = attribute.Attributes._collection[attributeName];
+
+        if (!attributeMetadata || !attributeMetadata.OptionSet) {
+          console.debug(...UILIB, `No option set found for ${entityName}.${attributeName}`);
+          return [];
+        }
+
+        const optionSet = attributeMetadata.OptionSet.Options;
+        for (const option of optionSet) {
+          options.push({
+            label: option.Label,
+            value: option.Value.toString()
+          });
+        }
+      } else if (apiMode === 'direct') {
+        // ---- Direct REST API path (pop-out / broken Xrm) ----
+        console.debug(...UILIB, `[OptionSet] Using direct Web API for ${entityName}.${attributeName}`);
+        options = await directFetchOptionSet(entityName, attributeName);
+      } else {
+        console.debug(...UILIB, 'Dynamics 365 API not available. Cannot fetch option set.');
+        return [];
       }
 
       // Add null/blank option if requested
@@ -433,6 +437,8 @@ export class Modal implements ModalInstance {
       flex-direction: column;
       overflow: hidden;
       position: relative;
+      font-family: ${theme.typography.fontFamily};
+      color: ${theme.colors.neutralPrimary};
     `;
 
     this.createHeader();

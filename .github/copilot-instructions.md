@@ -1111,6 +1111,54 @@ new uiLib.Lookup({
 }).show();
 ```
 
+**PreFilters (Dropdown/Lookup filters between search and table):**
+
+Add `preFilters` to show a horizontal row of filter dropdowns and/or lookups between the search box and the results table. Supports option-set, select, and lookup types.
+
+```javascript
+new uiLib.Lookup({
+  entity: 'opportunity',
+  columns: ['name', 'estimatedvalue', 'closeprobability'],
+  columnLabels: { name: 'Opportunity', estimatedvalue: 'Est. Value', closeprobability: 'Probability' },
+  preFilters: [
+    // Option set — auto-fetched from D365 metadata
+    {
+      type: 'optionset',
+      attribute: 'statecode',
+      label: 'Status'
+    },
+    // Static dropdown with manual options
+    {
+      type: 'select',
+      attribute: 'prioritycode',
+      label: 'Priority',
+      options: [
+        { label: 'High', value: '1' },
+        { label: 'Normal', value: '2' },
+        { label: 'Low', value: '3' }
+      ]
+    },
+    // Lookup — filter by related record
+    {
+      type: 'lookup',
+      attribute: 'parentaccountid',
+      label: 'Account',
+      entityName: 'account',
+      lookupColumns: ['name', 'accountnumber']
+    }
+  ],
+  onSelect: (records) => console.debug('Selected:', records)
+}).show();
+```
+
+**PreFilter Types:**
+
+| Type | Description | Key Properties |
+|------|-------------|----------------|
+| `optionset` | Auto-populated from D365 metadata | `attribute`, `label`, `includeAll`, `defaultValue` |
+| `select` | Static dropdown with manual options | `attribute`, `label`, `options`, `includeAll`, `defaultValue` |
+| `lookup` | Related record picker | `attribute`, `label`, `entityName`, `entityDisplayName`, `lookupColumns`, `filters` |
+
 **Lookup Result Object:**
 ```javascript
 {

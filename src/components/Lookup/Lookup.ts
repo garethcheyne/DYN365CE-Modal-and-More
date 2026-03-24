@@ -6,8 +6,10 @@
 
 import { Modal } from '../Modal/Modal';
 import { ModalButton } from '../Modal/Modal.types';
-import type { LookupOptions, LookupResult, EntityMetadata } from './Lookup.types';
+import type { LookupOptions, LookupResult, EntityMetadata, PreFilter } from './Lookup.types';
 import { UILIB } from '../Logger/Logger';
+import { getD365ApiMode } from '../../utils/dom';
+import { fetchEntityMetadata as directFetchMeta, retrieveMultipleRecords as directRetrieve, fetchOptionSet as directFetchOptionSet } from '../../utils/d365-web-api';
 
 // Metadata cache to avoid repeated API calls
 const metadataCache: Map<string, EntityMetadata> = new Map();
@@ -72,18 +74,47 @@ async function getEntityMetadata(entityName: string): Promise<EntityMetadata | n
     return metadataCache.get(entityName)!;
   }
 
-  // Try to use Xrm API if available
-  if (typeof window !== 'undefined' && window.Xrm?.Utility?.getEntityMetadata) {
+  const apiMode = await getD365ApiMode();
+
+  // Try Xrm SDK first
+  if (apiMode === 'xrm' && window.Xrm?.Utility?.getEntityMetadata) {
     try {
       const metadata = await window.Xrm.Utility.getEntityMetadata(entityName);
       metadataCache.set(entityName, metadata);
       return metadata;
     } catch (error) {
-      console.debug(...UILIB, `Failed to fetch metadata for ${entityName}:`, error);
+      console.debug(...UILIB, `Failed to fetch metadata for ${entityName} via Xrm:`, error);
     }
   }
 
-  // Return mock metadata if Xrm not available
+  // Try direct REST API
+  if (apiMode === 'xrm' || apiMode === 'direct') {
+    try {
+      console.debug(...UILIB, `[Lookup] Using direct Web API for ${entityName} metadata`);
+      const meta = await directFetchMeta(entityName);
+      const converted: EntityMetadata = {
+        EntitySetName: meta.EntitySetName,
+        PrimaryIdAttribute: meta.PrimaryIdAttribute,
+        PrimaryNameAttribute: meta.PrimaryNameAttribute,
+        DisplayName: {
+          UserLocalizedLabel: {
+            Label: meta.DisplayName?.UserLocalizedLabel?.Label ?? entityName.charAt(0).toUpperCase() + entityName.slice(1)
+          }
+        },
+        Attributes: meta.Attributes?.map(a => ({
+          LogicalName: a.LogicalName,
+          DisplayName: { UserLocalizedLabel: { Label: a.DisplayName?.UserLocalizedLabel?.Label ?? a.LogicalName } },
+          AttributeType: a.AttributeType
+        })) ?? []
+      };
+      metadataCache.set(entityName, converted);
+      return converted;
+    } catch (error) {
+      console.debug(...UILIB, `Failed to fetch metadata for ${entityName} via direct API:`, error);
+    }
+  }
+
+  // Return mock metadata if no API available
   const mockMetadata: EntityMetadata = {
     EntitySetName: `${entityName}s`,
     PrimaryIdAttribute: `${entityName}id`,
@@ -108,8 +139,10 @@ async function fetchRecords(
   searchFields?: string[]
 ): Promise<{ entities: any[]; totalCount: number }> {
 
-  // Try to use Xrm API if available
-  if (typeof window !== 'undefined' && window.Xrm?.WebApi?.retrieveMultipleRecords) {
+  const apiMode = await getD365ApiMode();
+
+  // ---- Xrm SDK path ----
+  if (apiMode === 'xrm' && window.Xrm?.WebApi?.retrieveMultipleRecords) {
     try {
       // Combine columns with search fields to ensure all searchable fields are fetched
       const allColumns = [...new Set([...columns, ...(searchFields || [])])];
@@ -160,6 +193,50 @@ async function fetchRecords(
       };
     } catch (error) {
       console.debug(...UILIB, `Failed to fetch ${entity} records via Xrm.WebApi:`, error);
+    }
+  }
+
+  // ---- Direct REST API path (pop-out / broken Xrm) ----
+  if (apiMode === 'xrm' || apiMode === 'direct') {
+    try {
+      console.debug(...UILIB, `[Lookup] Using direct Web API for ${entity} records`);
+
+      // Resolve entity set name from metadata
+      const meta = await getEntityMetadata(entity);
+      const entitySetName = meta?.EntitySetName ?? `${entity}s`;
+
+      const allColumns = [...new Set([...columns, ...(searchFields || [])])];
+
+      // Build OData query
+      let filterParts: string[] = [];
+
+      if (searchTerm && searchFields && searchFields.length > 0) {
+        const searchFilter = searchFields
+          .map(f => `contains(${f}, '${searchTerm}')`)
+          .join(' or ');
+        filterParts.push(`(${searchFilter})`);
+      }
+
+      // Only use filters if they're OData (not FetchXML)
+      if (filters && !filters.includes('<filter') && !filters.includes('<condition')) {
+        filterParts.push(`(${filters})`);
+      }
+
+      let query = `?$select=${allColumns.join(',')}`;
+      if (filterParts.length > 0) {
+        query += `&$filter=${filterParts.join(' and ')}`;
+      }
+      query += `&$top=${pageSize}&$count=true`;
+
+      if (orderBy && orderBy.length > 0) {
+        const orderStr = orderBy.map(o => `${o.attribute} ${o.descending ? 'desc' : 'asc'}`).join(',');
+        query += `&$orderby=${orderStr}`;
+      }
+
+      const result = await directRetrieve(entitySetName, query);
+      return result;
+    } catch (error) {
+      console.debug(...UILIB, `Failed to fetch ${entity} records via direct API:`, error);
     }
   }
 
@@ -228,14 +305,50 @@ function formatValue(value: any, attributeType?: string): string {
   return String(value);
 }
 
+// Fetch option set values from D365
+async function fetchOptionSetValues(
+  entityName: string,
+  attributeName: string
+): Promise<Array<{ label: string; value: string }>> {
+  const apiMode = await getD365ApiMode();
+
+  if (apiMode === 'xrm' && (window as any).Xrm?.Utility?.getEntityMetadata) {
+    try {
+      const Xrm = (window as any).Xrm;
+      const attribute = await Xrm.Utility.getEntityMetadata(entityName, [attributeName]);
+      const attrMeta = attribute.Attributes._collection[attributeName];
+      if (attrMeta?.OptionSet?.Options) {
+        return attrMeta.OptionSet.Options.map((o: any) => ({
+          label: o.Label,
+          value: o.Value.toString()
+        }));
+      }
+    } catch (error) {
+      console.debug(...UILIB, `[Lookup] Could not fetch option set ${entityName}.${attributeName} via Xrm:`, error);
+    }
+  }
+
+  if (apiMode === 'xrm' || apiMode === 'direct') {
+    try {
+      return await directFetchOptionSet(entityName, attributeName);
+    } catch (error) {
+      console.debug(...UILIB, `[Lookup] Could not fetch option set ${entityName}.${attributeName} via direct API:`, error);
+    }
+  }
+
+  return [];
+}
+
 export class Lookup {
   private static activeModal: Modal | null = null;
 
-  private options: Required<LookupOptions>;
+  private options: Required<Omit<LookupOptions, 'preFilters'>> & { preFilters: PreFilter[] };
   private records: any[] = [];
   private filteredRecords: any[] = [];
   private selectedRecords: Set<string> = new Set();
   private searchTerm: string = '';
+  private preFilterValues: Map<string, string> = new Map();
+  private currentModal: Modal | null = null;
 
   private constructor(options: LookupOptions) {
     // Set defaults
@@ -249,6 +362,7 @@ export class Lookup {
       searchFields: options.searchFields || options.columns,
       additionalSearchFields: options.additionalSearchFields || [],
       defaultSearchTerm: options.defaultSearchTerm || '',
+      preFilters: options.preFilters || [],
       title: options.title || `Select ${options.entity?.charAt(0).toUpperCase()}${options.entity?.slice(1)}`,
       width: options.width || 900,
       height: options.height || 600,
@@ -260,43 +374,97 @@ export class Lookup {
     };
 
     this.searchTerm = this.options.defaultSearchTerm;
-    this.loadRecords();
+
+    // Set default preFilter values
+    for (const pf of this.options.preFilters) {
+      if (pf.type !== 'lookup' && pf.defaultValue) {
+        this.preFilterValues.set(pf.attribute, pf.defaultValue);
+      }
+    }
+
+    this.init();
   }
 
-  private async loadRecords(): Promise<void> {
+  /** Resolve option-set prefilter options, then load records and create modal */
+  private async init(): Promise<void> {
     await getEntityMetadata(this.options.entity);
-    
-    // Fetch records
-    const result = await fetchRecords(
-      this.options.entity,
-      this.options.columns,
-      this.options.filters,
-      this.options.orderBy,
-      1,
-      this.options.pageSize
-    );
 
-    this.records = result.entities;
-    this.filterRecords();
+    // Resolve option-set prefilter options from D365 metadata
+    for (const pf of this.options.preFilters) {
+      if (pf.type === 'optionset' && !pf.options) {
+        const fetched = await fetchOptionSetValues(this.options.entity, pf.attribute);
+        (pf as any)._resolvedOptions = fetched;
+      }
+    }
+
+    await this.loadRecords();
     this.createModal();
   }
 
-  private filterRecords(): void {
-    if (!this.searchTerm) {
-      this.filteredRecords = [...this.records];
-      return;
+  /** Build the combined filter string (base filter + prefilter values) */
+  private buildCombinedFilter(): string {
+    const parts: string[] = [];
+
+    // Base filter from options
+    if (this.options.filters) {
+      parts.push(this.options.filters);
     }
 
-    const searchLower = this.searchTerm.toLowerCase();
-    const searchFields = [...this.options.searchFields, ...this.options.additionalSearchFields];
+    // Add preFilter conditions
+    for (const [attr, val] of this.preFilterValues.entries()) {
+      if (!val) continue;
 
-    this.filteredRecords = this.records.filter(record => {
-      return searchFields.some(field => {
-        const value = record[field];
-        if (value === null || value === undefined) return false;
-        return String(value).toLowerCase().includes(searchLower);
+      const pf = this.options.preFilters.find(p => p.attribute === attr);
+      if (!pf) continue;
+
+      if (pf.type === 'lookup') {
+        // Lookup value is a GUID — filter the _value navigation property
+        parts.push(`_${attr}_value eq ${val}`);
+      } else {
+        // Option-set / select — numeric or string equality
+        const isNumeric = /^\d+$/.test(val);
+        parts.push(isNumeric ? `${attr} eq ${val}` : `${attr} eq '${val}'`);
+      }
+    }
+
+    return parts.join(' and ');
+  }
+
+  private async loadRecords(): Promise<void> {
+    const combinedFilter = this.buildCombinedFilter();
+
+    const result = await fetchRecords(
+      this.options.entity,
+      this.options.columns,
+      combinedFilter || undefined,
+      this.options.orderBy,
+      1,
+      this.options.pageSize,
+      this.searchTerm || undefined,
+      this.searchTerm ? [...this.options.searchFields, ...this.options.additionalSearchFields] : undefined
+    );
+
+    this.records = result.entities;
+    this.filteredRecords = [...this.records];
+  }
+
+  /** Re-fetch records with current prefilter + search state and update the table */
+  private async refreshTable(): Promise<void> {
+    await this.loadRecords();
+
+    if (this.currentModal) {
+      const metadata = metadataCache.get(this.options.entity);
+      const primaryIdAttr = metadata?.PrimaryIdAttribute || `${this.options.entity}id`;
+
+      const updatedData = this.filteredRecords.map(record => {
+        const row: any = { _id: record[primaryIdAttr] };
+        this.options.columns.forEach(col => {
+          row[col] = formatValue(record[col]);
+        });
+        return row;
       });
-    });
+      this.currentModal.setFieldValue('table', updatedData);
+    }
   }
 
   private createModal(): void {
@@ -311,7 +479,7 @@ export class Lookup {
       sortable: true
     }));
 
-    // Prepare table data - map records to match column structure
+    // Prepare table data
     const tableData = this.filteredRecords.map(record => {
       const row: any = { _id: record[primaryIdAttr] };
       this.options.columns.forEach(col => {
@@ -320,48 +488,102 @@ export class Lookup {
       return row;
     });
 
-    // Store reference to this for closure
     const self = this;
-    let currentModal: Modal | null = null;
 
-    // Create modal fields
-    const fields = [
+    // ---- Build fields array: search → prefilters (in a group) → table ----
+    const fields: any[] = [
       {
         id: 'search',
-        type: 'text',
+        type: 'search',
         placeholder: 'Search...',
         value: this.searchTerm,
-        label: 'Search',
-        labelPosition: 'top' as const,
+        label: '',
         onChange: (value: string) => {
-          // Update search term and filter records
           self.searchTerm = value;
-          self.filterRecords();
-
-          // Update table data in the modal
-          if (currentModal) {
-            const updatedTableData = self.filteredRecords.map(record => {
-              const row: any = { _id: record[primaryIdAttr] };
-              self.options.columns.forEach(col => {
-                row[col] = formatValue(record[col]);
-              });
-              return row;
-            });
-            currentModal.setFieldValue('table', updatedTableData);
-          }
-        }
-      },
-      {
-        id: 'table',
-        type: 'table',
-        tableColumns: columns,
-        data: tableData,
-        selectionMode: this.options.multiSelect ? 'multiple' as const : 'single' as const,
-        onRowSelect: (selectedRows: any[]) => {
-          this.selectedRecords = new Set(selectedRows.map(r => r._id));
+          self.refreshTable();
         }
       }
     ];
+
+    // Add prefilter fields in a horizontal group
+    if (this.options.preFilters.length > 0) {
+      const preFilterFields: any[] = [];
+
+      for (const pf of this.options.preFilters) {
+        if (pf.type === 'optionset' || pf.type === 'select') {
+          // Dropdown prefilter
+          let opts: Array<{ label: string; value: string }> = [];
+
+          if (pf.type === 'optionset') {
+            opts = pf.options ?? (pf as any)._resolvedOptions ?? [];
+          } else {
+            opts = pf.options ?? [];
+          }
+
+          const includeAll = pf.includeAll !== false; // default: true
+          const dropdownOptions = includeAll
+            ? [{ label: 'All', value: '' }, ...opts]
+            : [...opts];
+
+          preFilterFields.push({
+            id: `_pf_${pf.attribute}`,
+            type: 'select',
+            label: pf.label || pf.attribute,
+            options: dropdownOptions,
+            value: pf.defaultValue || '',
+            onChange: (value: string) => {
+              if (value) {
+                self.preFilterValues.set(pf.attribute, value);
+              } else {
+                self.preFilterValues.delete(pf.attribute);
+              }
+              self.refreshTable();
+            }
+          });
+
+        } else if (pf.type === 'lookup') {
+          // Lookup prefilter (related record picker)
+          preFilterFields.push({
+            id: `_pf_${pf.attribute}`,
+            type: 'lookup',
+            label: pf.label || pf.attribute,
+            entityName: pf.entityName,
+            entityDisplayName: pf.entityDisplayName,
+            lookupColumns: pf.lookupColumns || ['name'],
+            filters: pf.filters || '',
+            placeholder: `Filter by ${pf.label || pf.entityDisplayName || pf.entityName}...`,
+            onChange: (selected: any) => {
+              if (selected?.id) {
+                self.preFilterValues.set(pf.attribute, selected.id);
+              } else {
+                self.preFilterValues.delete(pf.attribute);
+              }
+              self.refreshTable();
+            }
+          });
+        }
+      }
+
+      // Wrap in a group so they render in a row
+      fields.push({
+        id: '_prefilters_group',
+        type: 'group',
+        label: '',
+        fields: preFilterFields
+      });
+    }
+
+    // Table field
+    fields.push({
+      id: 'table',
+      type: 'table',
+      tableColumns: columns,
+      data: tableData,
+      selectionMode: this.options.multiSelect ? 'multiple' as const : 'single' as const,
+      onRowSelect: (selectedRows: any[]) => {
+        this.selectedRecords = new Set(selectedRows.map(r => r._id));
+      }
+    });
 
     // Create modal buttons
     const buttons = [
@@ -384,8 +606,7 @@ export class Lookup {
       allowEscapeClose: true
     });
 
-    // Store reference for the onChange handler
-    currentModal = modal;
+    this.currentModal = modal;
     Lookup.activeModal = modal;
     modal.show();
   }

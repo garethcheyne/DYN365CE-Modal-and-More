@@ -73,55 +73,59 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
     '& .fui-DataGridHeader': {
       backgroundColor: 'transparent',
-      borderBottom: `1px solid rgba(0, 0, 0, 0.54)`,  // Darker border for header (D365 style)
+    },
+    '& .fui-DataGridHeader .fui-DataGridRow': {
+      borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,  // Darker border for header row
     },
     '& .fui-DataGridHeaderCell': {
       backgroundColor: 'transparent',
       fontFamily: '"Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif',
       WebkitFontSmoothing: 'antialiased',
-      fontSize: '14px',  // D365 header font size
-      fontWeight: 600,
-      color: 'rgb(36, 36, 36)',  // D365 header text color
-      padding: '0 12px',  // 12px left and right padding
+      fontSize: tokens.fontSizeBase300,
+      fontWeight: tokens.fontWeightSemibold,
+      color: tokens.colorNeutralForeground1,
+      padding: '0 12px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      height: '42px',  // D365 row height
+      height: '42px',
       borderRight: 'none',
       textTransform: 'none',
       letterSpacing: 'normal',
-      border: `2px solid transparent`,  // Transparent border by default (prevents size shift)
-      whiteSpace: 'nowrap',      // Prevent header text wrapping
+      outlineOffset: '-2px',  // Outline doesn't affect layout (unlike border)
+      whiteSpace: 'nowrap',
       '&:hover': {
-        backgroundColor: 'transparent',  // No background change
-        border: '2px solid #0078d4',  // Change border color only (D365 style)
+        backgroundColor: 'transparent',
+        outline: `2px solid ${tokens.colorBrandStroke1}`,
       },
       '&:active, &:focus': {
-        backgroundColor: 'transparent',  // No background change
-        border: '2px solid #0078d4',  // Change border color only (D365 style)
+        backgroundColor: 'transparent',
+        outline: `2px solid ${tokens.colorBrandStroke1}`,
       },
     },
+    '& .fui-DataGridRow': {
+      borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,  // Row-level border
+    },
     '& .fui-DataGridCell': {
-      fontSize: '14px',
-      color: '#323130',
-      padding: '0 12px',  // 12px left and right padding
-      height: '42px',  // D365 row height
+      fontSize: tokens.fontSizeBase300,
+      color: tokens.colorNeutralForeground1,
+      padding: '0 12px',
+      height: '42px',
       borderRight: 'none',
-      borderBottom: '1px solid #edebe9',  // Horizontal separator between rows (D365 style)
       overflow: 'hidden',
-      whiteSpace: 'nowrap',      // Prevent cell content wrapping
+      whiteSpace: 'nowrap',
     },
   },
   truncatedCell: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    maxWidth: '100%',            // Use maxWidth instead of width to allow shrinking
+    maxWidth: '100%',
     display: 'inline-block',
-    color: '#323130',            // Explicit color to prevent inheriting link colors from D365
-    textDecoration: 'none',      // Prevent underline inheritance
-    '& *': {                     // Apply to all child elements (spans, anchors, etc.)
-      color: 'inherit !important',  // Force inheritance of parent color
+    color: tokens.colorNeutralForeground1,
+    textDecoration: 'none',
+    '& *': {
+      color: 'inherit !important',
       textDecoration: 'inherit',
     },
   },
@@ -161,9 +165,9 @@ const useStyles = makeStyles({
     minWidth: 'auto',
     padding: '4px',
     height: '24px',
-    color: '#605e5c',
+    color: tokens.colorNeutralForeground2,
     '&:hover': {
-      backgroundColor: '#edebe9',
+      backgroundColor: tokens.colorNeutralBackground1Hover,
     },
   },
   filterInput: {
@@ -202,7 +206,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   if (!config || !config.tableColumns || config.tableColumns.length === 0) {
     console.error(...UILIB, '[TableFluentUi] Missing or empty tableColumns in config:', config);
     return (
-      <div style={{ padding: '20px', textAlign: 'center', color: '#a4262c' }}>
+      <div style={{ padding: '20px', textAlign: 'center', color: tokens.colorPaletteRedForeground1 }}>
         Error: Table configuration is missing column definitions
       </div>
     );
@@ -892,16 +896,6 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
       fixedColumns.reduce((sum, col) => sum + col.width, 0) +
       flexibleColumns.reduce((sum, col) => sum + (flexibleColumnWidths[col.id] || col.minWidth), 0);
     
-    console.debug(...UILIB, '[TableFluentUi] Column sizing calculation:', {
-      containerWidth,
-      availableWidth,
-      fixedColumns,
-      flexibleColumns,
-      flexibleColumnWidths,
-      totalWidth,
-      sizing
-    });
-    
     return { columnSizingOptions: sizing, calculatedTableWidth: totalWidth };
   }, [config.tableColumns, config.selectionMode, containerWidth]);
 
@@ -919,24 +913,10 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
 
   // Define columns
   const columns: TableColumnDefinition<TableRow>[] = useMemo(() => {
-    // Debug: Log what we're working with
-    console.debug(...UILIB, '[TableFluentUi] Building columns from config:', {
-      hasConfig: !!config,
-      hasTableColumns: !!config?.tableColumns,
-      isArray: Array.isArray(config?.tableColumns),
-      length: config?.tableColumns?.length,
-      tableColumns: config?.tableColumns
-    });
-
     const cols: TableColumnDefinition<TableRow>[] = [];
 
     // Data columns
     const visibleColumns = (config.tableColumns || []).filter(col => col.visible !== false);
-
-    // Debug: Log column configuration
-    if (visibleColumns.length === 0) {
-      console.debug(...UILIB, 'TableFluentUi: No visible columns found. tableColumns:', config.tableColumns);
-    }
 
     // Sort columns by columnOrder
     const orderedCols = columnOrder
@@ -1041,11 +1021,6 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
       );
     });
 
-    console.debug(...UILIB, '[TableFluentUi] Built columns array:', {
-      count: cols.length,
-      columnIds: cols.map(c => c.columnId)
-    });
-
     return cols;
   }, [config, data.length, selectedRows, handleSelectAll, handleRowSelect, styles.radioButton, columnOrder, columnFilters, filterInputs, handleMoveLeft, handleMoveRight, handleApplyFilter, handleClearFilter, groupByColumn, toggleGroupExpansion]);
 
@@ -1057,19 +1032,10 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     );
   }
 
-  // Safety check before rendering DataGrid
-  console.debug(...UILIB, '[TableFluentUi] About to render DataGrid with:', {
-    hasColumns: !!columns,
-    columnsLength: columns?.length,
-    isArray: Array.isArray(columns),
-    columns: columns,
-    hasSortableColumns: columns?.some(c => c.compare !== undefined)
-  });
-
   if (!columns || columns.length === 0) {
     console.error(...UILIB, '[TableFluentUi] Columns is empty or undefined before DataGrid render!');
     return (
-      <div style={{ padding: '20px', textAlign: 'center', color: '#a4262c' }}>
+      <div style={{ padding: '20px', textAlign: 'center', color: tokens.colorPaletteRedForeground1 }}>
         Error: Table columns became undefined
       </div>
     );

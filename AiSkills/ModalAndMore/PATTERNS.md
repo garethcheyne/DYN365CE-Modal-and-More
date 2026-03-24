@@ -310,6 +310,50 @@ modal.show();
 
 ---
 
+## Lookup PreFilters
+
+PreFilters add dropdown and/or lookup fields in a row between the search box and results table. They re-fetch data server-side when changed.
+
+```javascript
+uiLib.Lookup.open({
+  entity: 'opportunity',
+  columns: ['name', 'estimatedvalue', 'closeprobability'],
+  columnLabels: {
+    name: 'Opportunity',
+    estimatedvalue: 'Est. Value',
+    closeprobability: 'Probability'
+  },
+  preFilters: [
+    // Auto-populated from D365 option set metadata
+    { type: 'optionset', attribute: 'statecode', label: 'Status' },
+    // Static dropdown
+    {
+      type: 'select', attribute: 'prioritycode', label: 'Priority',
+      options: [
+        { label: 'High', value: '1' },
+        { label: 'Normal', value: '2' },
+        { label: 'Low', value: '3' }
+      ]
+    },
+    // Lookup — filter by parent account
+    {
+      type: 'lookup', attribute: 'parentaccountid', label: 'Account',
+      entityName: 'account', lookupColumns: ['name', 'accountnumber']
+    }
+  ],
+  onSelect: (records) => console.debug('Selected:', records)
+});
+```
+
+**PreFilter types:**
+- `optionset` — fetches option values from D365 metadata automatically
+- `select` — static options you provide
+- `lookup` — inline D365 lookup for filtering by a related record
+
+All include an "All" option by default (`includeAll: true`). Set `defaultValue` to pre-select a filter.
+
+---
+
 ## Cascading Lookups (Parent → Child)
 
 ```javascript

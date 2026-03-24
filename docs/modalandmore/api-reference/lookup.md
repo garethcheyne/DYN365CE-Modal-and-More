@@ -150,6 +150,7 @@ new uiLib.Lookup({
 | `searchFields` | string[] | columns | Fields to search |
 | `additionalSearchFields` | string[] | — | Extra search fields (not displayed) |
 | `defaultSearchTerm` | string | `''` | Pre-populate search box |
+| `preFilters` | PreFilter[] | — | Dropdown/lookup filters between search and table |
 | `multiSelect` | boolean | `false` | Allow selecting multiple records |
 | `pageSize` | number | `50` | Records per page |
 | `showPagination` | boolean | `true` | Show pagination controls |
@@ -172,3 +173,42 @@ new uiLib.Lookup({
   }
 }
 ```
+
+### PreFilters
+
+Add filter dropdowns and/or lookups between the search box and the results table. When a filter value changes, data is re-fetched server-side.
+
+```javascript
+new uiLib.Lookup({
+  entity: 'opportunity',
+  columns: ['name', 'estimatedvalue', 'closeprobability'],
+  columnLabels: { name: 'Opportunity', estimatedvalue: 'Est. Value', closeprobability: 'Probability' },
+  preFilters: [
+    // Option set — auto-populated from D365 metadata
+    { type: 'optionset', attribute: 'statecode', label: 'Status' },
+    // Static dropdown
+    {
+      type: 'select', attribute: 'prioritycode', label: 'Priority',
+      options: [
+        { label: 'High', value: '1' },
+        { label: 'Normal', value: '2' },
+        { label: 'Low', value: '3' }
+      ]
+    },
+    // Lookup — filter by parent account
+    {
+      type: 'lookup', attribute: 'parentaccountid', label: 'Account',
+      entityName: 'account', lookupColumns: ['name', 'accountnumber']
+    }
+  ],
+  onSelect: (records) => console.debug('Selected:', records)
+}).show();
+```
+
+**PreFilter types:**
+
+| Type | Description | Key Properties |
+|------|-------------|----------------|
+| `optionset` | Auto-populated from D365 metadata | `attribute`, `label`, `includeAll`, `defaultValue` |
+| `select` | Static dropdown with manual options | `attribute`, `label`, `options`, `includeAll`, `defaultValue` |
+| `lookup` | Related record picker | `attribute`, `label`, `entityName`, `lookupColumns`, `filters` |

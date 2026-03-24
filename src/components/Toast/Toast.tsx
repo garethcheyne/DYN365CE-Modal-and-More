@@ -117,6 +117,7 @@ const ToastContainerComponent: React.FC = () => {
         flexDirection: 'column',
         gap: '12px',
         pointerEvents: 'none',
+        fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', sans-serif",
       }}
     >
       {toasts.map(toast => (

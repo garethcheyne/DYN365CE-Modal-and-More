@@ -300,6 +300,52 @@ The inline lookup supports ONE entity at a time. For multi-entity (Customer-type
 
 ---
 
+## Lookup — Modal Dialog (`uiLib.Lookup`)
+
+Full-screen lookup modal with search, table, pagination, and optional preFilters.
+
+```javascript
+new uiLib.Lookup({
+  entity: 'account',
+  columns: ['name', 'telephone1', 'emailaddress1'],
+  columnLabels: { name: 'Account', telephone1: 'Phone' },
+  filters: 'statecode eq 0',
+  multiSelect: true,
+  onSelect: (records) => console.debug(records)
+}).show();
+```
+
+### PreFilters
+
+Add dropdown / lookup filters in a horizontal row between the search box and the results table. Data is re-fetched server-side when a filter value changes.
+
+```javascript
+new uiLib.Lookup({
+  entity: 'opportunity',
+  columns: ['name', 'estimatedvalue'],
+  preFilters: [
+    // Option set — auto-populated from D365 metadata
+    { type: 'optionset', attribute: 'statecode', label: 'Status' },
+    // Static dropdown
+    { type: 'select', attribute: 'prioritycode', label: 'Priority',
+      options: [{ label: 'High', value: '1' }, { label: 'Normal', value: '2' }] },
+    // Lookup — filter by related record
+    { type: 'lookup', attribute: 'parentaccountid', label: 'Account',
+      entityName: 'account', lookupColumns: ['name'] }
+  ],
+  onSelect: (records) => console.debug(records)
+}).show();
+```
+
+**PreFilter types:**
+| Type | Description | Key Properties |
+|------|-------------|----------------|
+| `optionset` | Auto-populated from D365 metadata | `attribute`, `label`, `includeAll`, `defaultValue` |
+| `select` | Static dropdown with manual options | `attribute`, `label`, `options`, `includeAll`, `defaultValue` |
+| `lookup` | Related record picker | `attribute`, `label`, `entityName`, `lookupColumns`, `filters` |
+
+---
+
 ## Table / Data Grid (`type: 'table'`)
 
 Sortable, filterable, selectable data grid.

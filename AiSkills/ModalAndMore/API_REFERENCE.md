@@ -290,6 +290,7 @@ interface LookupOptions {
   searchFields?: string[];                          // Fields to search (defaults to columns)
   additionalSearchFields?: string[];                // Extra non-displayed search fields
   defaultSearchTerm?: string;                       // Pre-populate search
+  preFilters?: PreFilter[];                         // Dropdown/lookup filters between search and table
   multiSelect?: boolean;                            // Allow multi-selection (default: false)
   pageSize?: number;                                // Records per page (default: 50)
   showPagination?: boolean;                         // Show pagination (default: true)
@@ -300,6 +301,43 @@ interface LookupOptions {
   onSelect?: (records: LookupResult[]) => void;     // Selection callback
   onCancel?: () => void;                            // Cancel callback
 }
+```
+
+### PreFilter
+
+```typescript
+// Option set — auto-populated from D365 entity metadata
+interface PreFilterOptionSet {
+  type: 'optionset';
+  attribute: string;         // Attribute on the main entity (e.g. 'statecode')
+  label?: string;            // Display label
+  includeAll?: boolean;      // Include blank "All" option (default: true)
+  defaultValue?: string;     // Default selection
+  options?: { label: string; value: string }[];  // Manual options (skips metadata fetch)
+}
+
+// Static dropdown with manual options
+interface PreFilterSelect {
+  type: 'select';
+  attribute: string;
+  label?: string;
+  options: { label: string; value: string }[];
+  includeAll?: boolean;      // default: true
+  defaultValue?: string;
+}
+
+// Lookup — filter by related record
+interface PreFilterLookup {
+  type: 'lookup';
+  attribute: string;         // e.g. 'parentaccountid'
+  label?: string;
+  entityName: string;        // Related entity (e.g. 'account')
+  entityDisplayName?: string;
+  lookupColumns?: string[];  // Columns in the lookup dropdown
+  filters?: string;          // OData filter for lookup records
+}
+
+type PreFilter = PreFilterOptionSet | PreFilterSelect | PreFilterLookup;
 ```
 
 ### LookupResult
@@ -322,6 +360,18 @@ new uiLib.Lookup({
   columnLabels: { name: 'Account Name', telephone1: 'Phone' },
   filters: 'statecode eq 0',
   multiSelect: true,
+  onSelect: (records) => console.debug(records)
+}).show();
+
+// With preFilters
+new uiLib.Lookup({
+  entity: 'opportunity',
+  columns: ['name', 'estimatedvalue'],
+  preFilters: [
+    { type: 'optionset', attribute: 'statecode', label: 'Status' },
+    { type: 'lookup', attribute: 'parentaccountid', label: 'Account',
+      entityName: 'account', lookupColumns: ['name'] }
+  ],
   onSelect: (records) => console.debug(records)
 }).show();
 ```
