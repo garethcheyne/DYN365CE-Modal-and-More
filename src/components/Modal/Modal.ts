@@ -712,10 +712,14 @@ export class Modal implements ModalInstance {
     // Check if wizard mode is enabled (has steps)
     const hasSteps = this.options.progress?.enabled && this.options.progress?.steps && this.options.progress.steps.length > 0;
 
+    // Check if fields contain a table — if so, the table container handles scrolling
+    const hasTableField = this.options.fields?.some(f => f.type === 'table');
+
     // Use the same body styling for both wizard and non-wizard modes
     this.body.style.cssText = `
       flex: 1;
-      overflow: auto;
+      min-height: 0;
+      overflow: ${hasTableField ? 'hidden' : 'auto'};
       padding: 20px;
       background: #ffffff;
       display: flex;
@@ -1247,8 +1251,6 @@ export class Modal implements ModalInstance {
       this.fieldRequiredMap.set(field.id, field.required || false);
     }
 
-    const labelPosition = field.labelPosition || 'left';
-
     // Note: For Fluent UI field components (Input, Dropdown, Switch, etc.),
     // labels are handled by the components themselves, not here
 
@@ -1691,11 +1693,12 @@ export class Modal implements ModalInstance {
         tableWrapper.style.cssText = `
           display: flex;
           flex-direction: column;
+          flex: 1;
           width: 100%;
           max-width: 100%;
+          min-height: 0;
           overflow: hidden;
           box-sizing: border-box;
-          ${labelPosition === 'left' ? 'flex: 1;' : ''}
         `;
 
         // Create a deep copy to preserve the field config in closure (especially tableColumns)

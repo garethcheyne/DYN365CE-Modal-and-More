@@ -73,7 +73,7 @@ export interface TableColumn {
     width?: string;              // Fixed width (e.g., '120px', '120', or '20%')
     minWidth?: string;           // Minimum width, allows stretching (e.g., '100px', '100')
     align?: 'left' | 'center' | 'right';
-    format?: 'currency' | 'number' | 'percent' | 'date';  // Auto-format cell values
+    format?: 'currency' | 'number' | 'percent' | 'date' | 'boolean';  // Auto-format cell values
 }
 
 export interface FieldConfig {
@@ -164,6 +164,7 @@ export interface FieldConfig {
     data?: any[];
     selectionMode?: 'none' | 'single' | 'multiple';
     onRowSelect?: (selectedRows: any[]) => void;
+    onRowDoubleClick?: (row: any) => void;  // Callback when a row is double-clicked
     isRowSelectable?: (row: any) => boolean;  // Function to determine if a row can be selected
 }
 

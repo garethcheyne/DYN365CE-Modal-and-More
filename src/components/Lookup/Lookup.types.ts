@@ -82,6 +82,7 @@ export interface LookupOptions {
   /** PreFilter dropdowns/lookups displayed in a horizontal row between search and table */
   preFilters?: PreFilter[];
   title?: string;
+  size?: { width?: number; height?: number };
   width?: number;
   height?: number;
   pageSize?: number;

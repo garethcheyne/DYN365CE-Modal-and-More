@@ -1179,7 +1179,51 @@ function selectAccount() {
 
 **Lookup Behavior:** The Modal Dialog Lookup provides a full-screen interface with search, filtering, sorting, and multi-select capabilities. Use inline lookup fields (`type: 'lookup'`) for simpler dropdown selection.
 
-### Example 12: Filtered Lookup (Active Accounts Only)
+### Example 12: Lookup with PreFilters
+
+Add dropdown or lookup filters between the search box and results table:
+
+```javascript
+function selectOpportunity() {
+  new uiLib.Lookup({
+    entityName: 'opportunity',
+    columns: ['name', 'estimatedvalue', 'closeprobability'],
+    columnLabels: { name: 'Opportunity', estimatedvalue: 'Est. Value', closeprobability: 'Probability' },
+    preFilters: [
+      // Auto-populated from D365 option set metadata
+      { type: 'optionset', attribute: 'statecode', label: 'Status' },
+      // Static dropdown
+      {
+        type: 'select', attribute: 'prioritycode', label: 'Priority',
+        options: [
+          { label: 'High', value: '1' },
+          { label: 'Normal', value: '2' },
+          { label: 'Low', value: '3' }
+        ]
+      },
+      // Lookup — filter by related record
+      {
+        type: 'lookup', attribute: 'parentaccountid', label: 'Account',
+        entityName: 'account', lookupColumns: ['name', 'accountnumber']
+      }
+    ],
+    onSelect: function(results) {
+      if (results.length > 0) {
+        uiLib.Toast.success({ message: 'Selected: ' + results[0].name });
+      }
+    }
+  }).show();
+}
+```
+
+**PreFilter types:**
+| Type | Description | Key Properties |
+|------|-------------|----------------|
+| `optionset` | Auto-populated from D365 metadata | `attribute`, `label`, `includeAll`, `defaultValue` |
+| `select` | Static dropdown with manual options | `attribute`, `label`, `options`, `includeAll`, `defaultValue` |
+| `lookup` | Related record picker | `attribute`, `label`, `entityName`, `lookupColumns`, `filters` |
+
+### Example 13: Filtered Lookup (Active Accounts Only)
 
 Show only records that match specific criteria:
 
@@ -1205,7 +1249,7 @@ function selectActiveAccount() {
 }
 ```
 
-### Example 13: Data Table with Sorting and Selection
+### Example 14: Data Table with Sorting and Selection
 
 Display tabular data with sorting, selection, and customizable columns:
 
@@ -1324,7 +1368,7 @@ modal.setFieldValue('productsTable', dataWithStyledValues);
 // HTML in cells will be rendered - you'll see styled, colored text
 ```
 
-### Example 14: Field Groups
+### Example 15: Field Groups
 
 Organize related fields visually with groups - supports titles, descriptions, borders, and collapsible sections:
 
@@ -1449,7 +1493,7 @@ function createContactWithGroups() {
 { type: 'group', border: true, fields: [...] }
 ```
 
-### Example 15: Form with Tabs
+### Example 16: Form with Tabs
 
 Organize complex forms with tabs:
 
@@ -1575,7 +1619,7 @@ function onCityChange(executionContext) {
 }
 ```
 
-### Example 15: Progress Indicator
+### Example 17: Progress Indicator
 
 Show progress during long operations:
 
@@ -1612,7 +1656,7 @@ function processRecords() {
 }
 ```
 
-### Example 16: Open Query Builder
+### Example 18: Open Query Builder
 
 Open the built-in ui-Lib query builder modal and receive both FetchXML and OData output:
 

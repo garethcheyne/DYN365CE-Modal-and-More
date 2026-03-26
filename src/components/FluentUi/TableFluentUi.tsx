@@ -20,6 +20,7 @@ import {
   Popover,
   PopoverSurface,
   Select,
+  Switch,
 } from '@fluentui/react-components';
 import {
   ChevronDown20Regular,
@@ -59,7 +60,7 @@ interface TableRow {
 // Fluent UI styles using design tokens
 const useStyles = makeStyles({
   container: {
-    maxHeight: '400px',
+    flex: 1,
     width: '100%',               // Fill available space
     overflow: 'auto',            // Allow both horizontal and vertical scroll
     backgroundColor: tokens.colorNeutralBackground1,
@@ -68,11 +69,15 @@ const useStyles = makeStyles({
     position: 'relative',        // Establish positioning context
   },
   dataGrid: {
-    width: 'fit-content',        // Size based on column widths - no stretching
+    width: '100%',               // Fill container by default
+    minWidth: 'fit-content',     // But grow if columns need more space
     tableLayout: 'fixed',        // Fixed layout respects column widths strictly
     backgroundColor: tokens.colorNeutralBackground1,
     '& .fui-DataGridHeader': {
-      backgroundColor: 'transparent',
+      backgroundColor: tokens.colorNeutralBackground1,
+      position: 'sticky' as any,
+      top: 0,
+      zIndex: 1,
     },
     '& .fui-DataGridHeader .fui-DataGridRow': {
       borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,  // Darker border for header row
@@ -168,6 +173,27 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground2,
     '&:hover': {
       backgroundColor: tokens.colorNeutralBackground1Hover,
+    },
+  },
+  columnHeaderButtonFiltered: {
+    minWidth: 'auto',
+    padding: '4px',
+    height: '24px',
+    color: tokens.colorBrandForeground1,
+    '&:hover': {
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+    },
+  },
+  clearFilterButton: {
+    minWidth: 'auto',
+    padding: '2px',
+    height: '20px',
+    width: '20px',
+    color: tokens.colorBrandForeground1,
+    borderRadius: '50%',
+    '&:hover': {
+      backgroundColor: tokens.colorPaletteRedBackground2,
+      color: tokens.colorPaletteRedForeground1,
     },
   },
   filterInput: {
@@ -454,7 +480,9 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     Object.entries(columnFilters).forEach(([columnId, { operator, value: filterValue }]) => {
       filtered = filtered.filter(row => {
         const cellValue = row[columnId];
-        const cellStr = cellValue != null ? String(cellValue).toLowerCase() : '';
+        // Strip HTML tags so filters compare against display text, not markup
+        const rawStr = cellValue != null ? String(cellValue) : '';
+        const cellStr = (rawStr.includes('<') ? rawStr.replace(/<[^>]*>/g, '') : rawStr).toLowerCase();
         const filterStr = filterValue.toLowerCase();
 
         switch (operator) {
@@ -576,17 +604,34 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     const canMoveRight = columnIndex < columnOrder.length - 1;
     const dataType = getColumnDataType(columnId);
     const operators = getFilterOperators(dataType);
+    const isFiltered = !!columnFilters[columnId];
 
     return (
       <>
+        {isFiltered && (
+          <Button
+            appearance="subtle"
+            icon={<span style={{ fontSize: '10px', lineHeight: 1 }}>✕</span>}
+            className={styles.clearFilterButton}
+            aria-label="Clear filter"
+            title={`Filtered: ${columnFilters[columnId].operator} '${columnFilters[columnId].value}'`}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClearFilter(columnId);
+              setFilterValue('');
+              setSelectedOperator('Equals');
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          />
+        )}
         <Menu open={isMenuOpen} onOpenChange={(_, data) => setIsMenuOpen(data.open)}>
           <MenuTrigger disableButtonEnhancement>
             <Button
               ref={menuButtonRef}
               appearance="subtle"
-              icon={<ChevronDown20Regular />}
-              className={styles.columnHeaderButton}
-              aria-label="Column options"
+              icon={isFiltered ? <Filter20Regular /> : <ChevronDown20Regular />}
+              className={isFiltered ? styles.columnHeaderButtonFiltered : styles.columnHeaderButton}
+              aria-label={isFiltered ? 'Column options (filtered)' : 'Column options'}
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             />
@@ -662,7 +707,11 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
           onOpenChange={(_, data) => setIsFilterDialogOpen(data.open)}
           positioning={{ target: menuButtonRef.current, position: 'below', align: 'start' }}
         >
-          <PopoverSurface style={{ padding: '16px', width: '240px' }}>
+          <PopoverSurface
+            style={{ padding: '16px', width: '240px' }}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            onMouseDown={(e: React.MouseEvent) => e.stopPropagation()}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <span style={{ fontWeight: 600, fontSize: '14px' }}>Filter by</span>
               <Button
@@ -738,7 +787,11 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
           onOpenChange={(_, data) => setIsWidthDialogOpen(data.open)}
           positioning={{ target: menuButtonRef.current, position: 'below', align: 'start' }}
         >
-          <PopoverSurface style={{ padding: '16px', width: '240px' }}>
+          <PopoverSurface
+            style={{ padding: '16px', width: '240px' }}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            onMouseDown={(e: React.MouseEvent) => e.stopPropagation()}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <span style={{ fontWeight: 600, fontSize: '14px' }}>Column width</span>
               <Button
@@ -974,6 +1027,20 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
             // Convert text-align to justify-content for flex layout
             const justifyContent = textAlign === 'right' ? 'flex-end' : textAlign === 'center' ? 'center' : 'flex-start';
 
+            // Boolean columns: render as disabled Switch
+            if ((column as any).format === 'boolean') {
+              const isChecked = cellValue === true || cellValue === 1 || cellValue === 'true';
+              return (
+                <TableCellLayout style={{ justifyContent }}>
+                  <Switch
+                    checked={isChecked}
+                    disabled
+                    style={{ pointerEvents: 'none' }}
+                  />
+                </TableCellLayout>
+              );
+            }
+
             // Apply formatting if column has format property
             const displayValue = (column as any).format ? formatCellValue(cellValue, (column as any).format) : cellValue;
 
@@ -1070,8 +1137,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
         className={styles.dataGrid}
         style={{ 
           tableLayout: 'fixed', 
-          minWidth: '100%',  // At minimum, fill container
-          width: calculatedTableWidth > 0 ? `${calculatedTableWidth}px` : '100%'  // Use full calculated width to enable horizontal scroll
+          width: calculatedTableWidth > containerWidth ? `${calculatedTableWidth}px` : '100%'
         }}
       >
         <DataGridHeader>
@@ -1096,6 +1162,12 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
               <DataGridRow<TableRow> 
                 key={rowId}
                 className={!isSelectable && !isGroupHeader ? styles.disabledRow : undefined}
+                onDoubleClick={() => {
+                  if (!isGroupHeader && config.onRowDoubleClick) {
+                    config.onRowDoubleClick(item);
+                  }
+                }}
+                style={config.onRowDoubleClick && !isGroupHeader ? { cursor: 'pointer' } : undefined}
               >
                 {({ renderCell, columnId }) => {
                   const colWidth = columnWidthMap[columnId as string];

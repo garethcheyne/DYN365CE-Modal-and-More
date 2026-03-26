@@ -115,7 +115,7 @@ interface TableColumn {
     width?: string;
     minWidth?: string;
     align?: 'left' | 'center' | 'right';
-    format?: 'currency' | 'number' | 'percent' | 'date';
+    format?: 'currency' | 'number' | 'percent' | 'date' | 'boolean';
 }
 interface FieldConfig {
     id: string;
@@ -202,6 +202,7 @@ interface FieldConfig {
     data?: any[];
     selectionMode?: 'none' | 'single' | 'multiple';
     onRowSelect?: (selectedRows: any[]) => void;
+    onRowDoubleClick?: (row: any) => void;
     isRowSelectable?: (row: any) => boolean;
 }
 interface ValidationConfig {
@@ -677,6 +678,63 @@ interface OrderByOption {
     attribute: string;
     descending?: boolean;
 }
+/**
+ * PreFilter: option-set dropdown auto-populated from D365 metadata
+ */
+interface PreFilterOptionSet {
+    type: 'optionset';
+    /** The attribute logical name on the main entity (e.g. 'statecode') */
+    attribute: string;
+    /** Display label shown above the dropdown */
+    label?: string;
+    /** Include a blank "All" option at the top (default: true) */
+    includeAll?: boolean;
+    /** Default selected value */
+    defaultValue?: string;
+    /** Manually provided options (skips D365 metadata fetch) */
+    options?: Array<{
+        label: string;
+        value: string;
+    }>;
+}
+/**
+ * PreFilter: lookup field for filtering by a related record
+ */
+interface PreFilterLookup {
+    type: 'lookup';
+    /** The attribute logical name on the main entity (e.g. '_parentaccountid_value') */
+    attribute: string;
+    /** Display label shown above the lookup */
+    label?: string;
+    /** Related entity logical name (e.g. 'account') */
+    entityName: string;
+    /** Display name override for the lookup header */
+    entityDisplayName?: string;
+    /** Columns to show in the lookup dropdown */
+    lookupColumns?: string[];
+    /** Optional OData filter for the lookup records */
+    filters?: string;
+}
+/**
+ * PreFilter: static dropdown with manually provided options
+ */
+interface PreFilterSelect {
+    type: 'select';
+    /** The attribute logical name on the main entity to filter */
+    attribute: string;
+    /** Display label shown above the dropdown */
+    label?: string;
+    /** Dropdown options */
+    options: Array<{
+        label: string;
+        value: string;
+    }>;
+    /** Include a blank "All" option at the top (default: true) */
+    includeAll?: boolean;
+    /** Default selected value */
+    defaultValue?: string;
+}
+type PreFilter = PreFilterOptionSet | PreFilterLookup | PreFilterSelect;
 interface LookupOptions {
     entity: string;
     columns: string[];
@@ -687,7 +745,13 @@ interface LookupOptions {
     searchFields?: string[];
     additionalSearchFields?: string[];
     defaultSearchTerm?: string;
+    /** PreFilter dropdowns/lookups displayed in a horizontal row between search and table */
+    preFilters?: PreFilter[];
     title?: string;
+    size?: {
+        width?: number;
+        height?: number;
+    };
     width?: number;
     height?: number;
     pageSize?: number;
@@ -710,12 +774,20 @@ declare class Lookup {
     private filteredRecords;
     private selectedRecords;
     private searchTerm;
+    private preFilterValues;
+    private currentModal;
     private constructor();
+    /** Resolve option-set prefilter options, then load records and create modal */
+    private init;
+    /** Build the combined filter string (base filter + prefilter values) */
+    private buildCombinedFilter;
     private loadRecords;
-    private filterRecords;
+    /** Re-fetch records with current prefilter + search state and update the table */
+    private refreshTable;
     private createModal;
     private select;
     private cancel;
+    private openRecord;
     private clear;
     static open(options: LookupOptions): void;
 }

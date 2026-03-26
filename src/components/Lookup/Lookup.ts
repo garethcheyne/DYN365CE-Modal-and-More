@@ -79,7 +79,36 @@ async function getEntityMetadata(entityName: string): Promise<EntityMetadata | n
   // Try Xrm SDK first
   if (apiMode === 'xrm' && window.Xrm?.Utility?.getEntityMetadata) {
     try {
-      const metadata = await window.Xrm.Utility.getEntityMetadata(entityName);
+      const raw = await window.Xrm.Utility.getEntityMetadata(entityName);
+
+      // Xrm returns Attributes as a collection object (._collection / .get()),
+      // not a plain array. Convert it so .find() / .filter() work everywhere.
+      let attrs: EntityMetadata['Attributes'] = [];
+      if (raw.Attributes) {
+        if (Array.isArray(raw.Attributes)) {
+          attrs = raw.Attributes;
+        } else if (raw.Attributes._collection) {
+          attrs = Object.values(raw.Attributes._collection).map((a: any) => ({
+            LogicalName: a.LogicalName,
+            DisplayName: a.DisplayName ?? { UserLocalizedLabel: { Label: a.LogicalName } },
+            AttributeType: a.AttributeType
+          }));
+        } else if (typeof raw.Attributes.get === 'function') {
+          attrs = raw.Attributes.get().map((a: any) => ({
+            LogicalName: a.LogicalName,
+            DisplayName: a.DisplayName ?? { UserLocalizedLabel: { Label: a.LogicalName } },
+            AttributeType: a.AttributeType
+          }));
+        }
+      }
+
+      const metadata: EntityMetadata = {
+        EntitySetName: raw.EntitySetName,
+        PrimaryIdAttribute: raw.PrimaryIdAttribute,
+        PrimaryNameAttribute: raw.PrimaryNameAttribute,
+        DisplayName: raw.DisplayName ?? { UserLocalizedLabel: { Label: entityName } },
+        Attributes: attrs
+      };
       metadataCache.set(entityName, metadata);
       return metadata;
     } catch (error) {
@@ -127,6 +156,56 @@ async function getEntityMetadata(entityName: string): Promise<EntityMetadata | n
   return mockMetadata;
 }
 
+/**
+ * Convert simple OData filter expressions to FetchXML conditions.
+ * Handles patterns produced by buildCombinedFilter():
+ *   - `attr eq 123`  (numeric)
+ *   - `attr eq 'text'`  (string)
+ *   - `_attr_value eq guid`  (lookup)
+ *   - Multiple conditions joined by ` and `
+ * Returns a <filter type="and">...</filter> string, or '' if empty.
+ */
+function odataFilterToFetchXml(odata: string): string {
+  if (!odata || odata.trim() === '') return '';
+
+  // If it already looks like FetchXML, return as-is
+  if (odata.includes('<filter') || odata.includes('<condition')) return odata;
+
+  const conditions: string[] = [];
+  // Split on ' and ' (case-insensitive, surrounded by spaces)
+  const parts = odata.split(/\s+and\s+/i);
+
+  for (const part of parts) {
+    const trimmed = part.trim();
+    // Match: attribute operator value
+    // e.g. "statecode eq 0", "_hnc_x_value eq guid", "name eq 'text'"
+    const match = trimmed.match(/^([a-zA-Z0-9_]+)\s+(eq|ne|gt|ge|lt|le)\s+(.+)$/);
+    if (match) {
+      let [, attr, op, val] = match;
+
+      // Map OData operators to FetchXML operators
+      const opMap: Record<string, string> = { eq: 'eq', ne: 'ne', gt: 'gt', ge: 'ge', lt: 'lt', le: 'le' };
+      const fetchOp = opMap[op] || 'eq';
+
+      // Strip quotes from string values
+      val = val.replace(/^'(.*)'$/, '$1');
+
+      // Convert _xxx_value lookup columns to logical name for FetchXML
+      if (isLookupColumn(attr)) {
+        attr = lookupToLogicalName(attr);
+      }
+
+      conditions.push(`<condition attribute='${attr}' operator='${fetchOp}' value='${val}' />`);
+    } else {
+      // Unrecognised pattern — skip (will be handled by OData fallback if FetchXML fails)
+      console.debug(...UILIB, `[Lookup] Skipping unrecognised filter fragment for FetchXML: ${trimmed}`);
+    }
+  }
+
+  if (conditions.length === 0) return '';
+  return `<filter type="and">${conditions.join('')}</filter>`;
+}
+
 // Fetch entity records
 async function fetchRecords(
   entity: string,
@@ -141,36 +220,61 @@ async function fetchRecords(
 
   const apiMode = await getD365ApiMode();
 
+  // Filter searchFields to exclude non-string types AND lookup columns (GUIDs aren't searchable)
+  let safeSearchFields = searchFields;
+  if (searchFields && searchFields.length > 0) {
+    // Always exclude lookup columns (_xxx_value) — they contain GUIDs, not text
+    safeSearchFields = searchFields.filter(f => !isLookupColumn(f));
+
+    const meta = metadataCache.get(entity);
+    if (meta?.Attributes && meta.Attributes.length > 0) {
+      safeSearchFields = safeSearchFields.filter(f => {
+        const attr = meta.Attributes!.find(a => a.LogicalName === f);
+        // If attribute not found in metadata, INCLUDE it (likely a string custom field)
+        // Only exclude attributes we KNOW are non-string types
+        return attr ? !NON_STRING_ATTR_TYPES.has(attr.AttributeType) : true;
+      });
+      // Fall back to primary name attribute if no string fields match
+      if (safeSearchFields.length === 0 && meta.PrimaryNameAttribute) {
+        safeSearchFields = [meta.PrimaryNameAttribute];
+      }
+    }
+  }
+
   // ---- Xrm SDK path ----
   if (apiMode === 'xrm' && window.Xrm?.WebApi?.retrieveMultipleRecords) {
     try {
       // Combine columns with search fields to ensure all searchable fields are fetched
-      const allColumns = [...new Set([...columns, ...(searchFields || [])])];
+      const allColumns = [...new Set([...columns, ...(safeSearchFields || [])])];
 
       let fetchXml = `<fetch mapping='logical' page='${pageNumber}' count='${pageSize}' returntotalrecordcount='true'>
         <entity name='${entity}'>`;
 
       allColumns.forEach(col => {
-        fetchXml += `<attribute name='${col}' />`;
+        // Convert _xxx_value → xxx for FetchXML (lookup columns)
+        fetchXml += `<attribute name='${toFetchXmlAttr(col)}' />`;
       });
 
       // Add search filter if provided
       let combinedFilters = '';
-      if (searchTerm && searchFields && searchFields.length > 0) {
+      // Convert OData filters to FetchXML conditions
+      const fetchXmlFilters = filters ? odataFilterToFetchXml(filters) : '';
+
+      if (searchTerm && safeSearchFields && safeSearchFields.length > 0) {
         let searchFilter = '<filter type="or">';
-        searchFields.forEach(field => {
+        safeSearchFields.forEach(field => {
           // Use 'like' operator for contains behavior
           searchFilter += `<condition attribute='${field}' operator='like' value='%${searchTerm}%' />`;
         });
         searchFilter += '</filter>';
 
-        if (filters) {
-          combinedFilters = `<filter type="and">${searchFilter}${filters}</filter>`;
+        if (fetchXmlFilters) {
+          combinedFilters = `<filter type="and">${searchFilter}${fetchXmlFilters}</filter>`;
         } else {
           combinedFilters = searchFilter;
         }
-      } else if (filters) {
-        combinedFilters = filters;
+      } else if (fetchXmlFilters) {
+        combinedFilters = fetchXmlFilters;
       }
 
       if (combinedFilters) {
@@ -205,13 +309,13 @@ async function fetchRecords(
       const meta = await getEntityMetadata(entity);
       const entitySetName = meta?.EntitySetName ?? `${entity}s`;
 
-      const allColumns = [...new Set([...columns, ...(searchFields || [])])];
+      const allColumns = [...new Set([...columns, ...(safeSearchFields || [])])];
 
       // Build OData query
       let filterParts: string[] = [];
 
-      if (searchTerm && searchFields && searchFields.length > 0) {
-        const searchFilter = searchFields
+      if (searchTerm && safeSearchFields && safeSearchFields.length > 0) {
+        const searchFilter = safeSearchFields
           .map(f => `contains(${f}, '${searchTerm}')`)
           .join(' or ');
         filterParts.push(`(${searchFilter})`);
@@ -278,31 +382,166 @@ async function fetchRecords(
   };
 }
 
-// Format value for display
-function formatValue(value: any, attributeType?: string): string {
-  if (value === null || value === undefined) {
-    return '';
-  }
+// D365 attribute types that are NOT searchable with contains/like
+const NON_STRING_ATTR_TYPES = new Set([
+  'Money', 'Boolean', 'Picklist', 'State', 'Status',
+  'Integer', 'BigInt', 'Decimal', 'Double',
+  'DateTime', 'Lookup', 'Customer', 'Owner',
+  'Uniqueidentifier', 'Virtual', 'EntityName',
+  'ManagedProperty', 'CalendarRules'
+]);
 
-  if (attributeType === 'DateTime' || value instanceof Date || /^\d{4}-\d{2}-\d{2}T/.test(value)) {
-    try {
-      const date = new Date(value);
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-    } catch {
-      return String(value);
+/**
+ * Detect if a column name is a D365 lookup/navigation property (e.g. _hnc_supplier_value).
+ * OData uses `_logicalname_value`, FetchXML uses `logicalname`.
+ */
+function isLookupColumn(col: string): boolean {
+  return col.startsWith('_') && col.endsWith('_value');
+}
+
+/** Convert OData lookup column `_hnc_supplier_value` → FetchXML attribute `hnc_supplier` */
+function lookupToLogicalName(col: string): string {
+  return col.slice(1, -6); // strip leading '_' and trailing '_value'
+}
+
+/** Convert FetchXML attribute name to the OData column name used in results */
+function toFetchXmlAttr(col: string): string {
+  return isLookupColumn(col) ? lookupToLogicalName(col) : col;
+}
+
+// D365 attribute types for styled formatting
+const MONEY_TYPES = new Set(['Money']);
+const BOOLEAN_TYPES = new Set(['Boolean']);
+const OPTIONSET_TYPES = new Set(['Picklist', 'State', 'Status']);
+
+// Attribute types that always produce narrow/fixed-width content
+const FIXED_WIDTH_TYPES: Record<string, { min: number; max: number }> = {
+  'Boolean':  { min: 80, max: 120 },
+  'Money':    { min: 100, max: 160 },
+  'Picklist': { min: 80, max: 200 },
+  'State':    { min: 80, max: 160 },
+  'Status':   { min: 80, max: 180 },
+  'Integer':  { min: 70, max: 130 },
+  'BigInt':   { min: 70, max: 130 },
+  'Decimal':  { min: 80, max: 140 },
+  'Double':   { min: 80, max: 140 },
+  'DateTime': { min: 130, max: 200 },
+};
+
+/**
+ * Calculate smart column widths based on actual data content and attribute metadata.
+ * - Fixed-width types (boolean, money, etc.) get a `width` (won't expand)
+ * - Text/string columns get a `minWidth` (flexible, fill remaining space)
+ */
+function calculateSmartColumnWidths(
+  columns: string[],
+  tableData: any[],
+  columnLabels: Record<string, string>,
+  metadata: any | undefined
+): Record<string, { width?: string; minWidth?: string }> {
+  const CHAR_WIDTH = 8;    // ~px per character
+  const PADDING = 32;      // cell padding (16px each side)
+  const HEADER_EXTRA = 40; // space for sort arrow icon
+  const ABS_MIN = 60;
+  const ABS_MAX = 400;
+
+  const result: Record<string, { width?: string; minWidth?: string }> = {};
+
+  for (const col of columns) {
+    const attrMeta = metadata?.Attributes?.find((a: any) => a.LogicalName === col);
+    const attrType: string | undefined = attrMeta?.AttributeType;
+
+    // --- Header width ---
+    const headerText = columnLabels[col] || col;
+    const headerWidth = (headerText.length * CHAR_WIDTH) + HEADER_EXTRA;
+
+    // --- Max data content width (strip HTML to get display text) ---
+    let maxContentLen = 0;
+    for (const row of tableData) {
+      const val = row[col];
+      if (val == null || val === '') continue;
+      const text = typeof val === 'string' && val.includes('<')
+        ? val.replace(/<[^>]*>/g, '')
+        : String(val);
+      maxContentLen = Math.max(maxContentLen, text.length);
+    }
+    const contentWidth = (maxContentLen * CHAR_WIDTH) + PADDING;
+
+    // --- Type-based sizing ---
+    const typeConstraint = attrType ? FIXED_WIDTH_TYPES[attrType] : undefined;
+
+    if (typeConstraint) {
+      // Known narrow type → fixed width clamped by type constraints
+      const ideal = Math.max(headerWidth, contentWidth);
+      const clamped = Math.max(typeConstraint.min, Math.min(typeConstraint.max, ideal));
+      result[col] = { width: `${clamped}px` };
+    } else {
+      // String/text/unknown → flexible, fill remaining space
+      const ideal = Math.max(headerWidth, contentWidth);
+      const minW = Math.max(ABS_MIN, Math.min(ABS_MAX, ideal));
+      result[col] = { minWidth: `${minW}px` };
     }
   }
 
-  if (typeof value === 'number') {
-    return value.toLocaleString();
+  return result;
+}
+
+/**
+ * Format a cell value for display in the lookup table.
+ * Uses D365 formatted value annotations when available, falls back to type-based formatting.
+ * Returns HTML strings for styled rendering (money, boolean, optionset).
+ */
+function formatCellValue(record: any, column: string, attributeType?: string): string | boolean {
+  const formattedKey = `${column}@OData.Community.Display.V1.FormattedValue`;
+  const formattedValue = record[formattedKey];
+  const rawValue = record[column];
+
+  if (rawValue === null || rawValue === undefined) {
+    return '';
   }
 
-  if (typeof value === 'object' && value._value !== undefined) {
-    // Lookup field
-    return value._value || '';
+  // --- Money: green for positive, red for negative ---
+  if (attributeType && MONEY_TYPES.has(attributeType)) {
+    const display = formattedValue ?? (typeof rawValue === 'number' ? rawValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : String(rawValue));
+    const color = (typeof rawValue === 'number' && rawValue < 0) ? '#d13438' : '#107c10';
+    return `<span style="color:${color};font-weight:600">${display}</span>`;
   }
 
-  return String(value);
+  // --- Boolean: return raw boolean for Switch rendering in table ---
+  if (attributeType && BOOLEAN_TYPES.has(attributeType)) {
+    return rawValue === true || rawValue === 1 ? true : false;
+  }
+
+  // --- OptionSet / Status / State: use formatted label with subtle badge ---
+  if (attributeType && OPTIONSET_TYPES.has(attributeType)) {
+    const label = formattedValue ?? String(rawValue);
+    return `<span style="background:#f0f0f0;color:#242424;padding:2px 10px;border-radius:12px;font-size:12px">${label}</span>`;
+  }
+
+  // --- Use D365 formatted value if available (dates, lookups, etc.) ---
+  if (formattedValue) {
+    return formattedValue;
+  }
+
+  // --- Fallback: basic type detection ---
+  if (attributeType === 'DateTime' || rawValue instanceof Date || (typeof rawValue === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(rawValue))) {
+    try {
+      const date = new Date(rawValue);
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    } catch {
+      return String(rawValue);
+    }
+  }
+
+  if (typeof rawValue === 'number') {
+    return rawValue.toLocaleString();
+  }
+
+  if (typeof rawValue === 'object' && rawValue._value !== undefined) {
+    return rawValue._value || '';
+  }
+
+  return String(rawValue);
 }
 
 // Fetch option set values from D365
@@ -342,7 +581,7 @@ async function fetchOptionSetValues(
 export class Lookup {
   private static activeModal: Modal | null = null;
 
-  private options: Required<Omit<LookupOptions, 'preFilters'>> & { preFilters: PreFilter[] };
+  private options: Required<Omit<LookupOptions, 'preFilters' | 'size'>> & { preFilters: PreFilter[] };
   private records: any[] = [];
   private filteredRecords: any[] = [];
   private selectedRecords: Set<string> = new Set();
@@ -364,8 +603,8 @@ export class Lookup {
       defaultSearchTerm: options.defaultSearchTerm || '',
       preFilters: options.preFilters || [],
       title: options.title || `Select ${options.entity?.charAt(0).toUpperCase()}${options.entity?.slice(1)}`,
-      width: options.width || 900,
-      height: options.height || 600,
+      width: options.width || (options.size as any)?.width || 900,
+      height: options.height || (options.size as any)?.height || 600,
       pageSize: options.pageSize || 50,
       showPagination: options.showPagination ?? true,
       allowClear: options.allowClear ?? false,
@@ -418,8 +657,10 @@ export class Lookup {
       if (!pf) continue;
 
       if (pf.type === 'lookup') {
-        // Lookup value is a GUID — filter the _value navigation property
-        parts.push(`_${attr}_value eq ${val}`);
+        // Lookup value is a GUID — need _xxx_value format for OData
+        // User may pass 'hnc_supplier' or '_hnc_supplier_value' — normalise to OData format
+        const odataAttr = isLookupColumn(attr) ? attr : `_${attr}_value`;
+        parts.push(`${odataAttr} eq ${val}`);
       } else {
         // Option-set / select — numeric or string equality
         const isNumeric = /^\d+$/.test(val);
@@ -459,7 +700,8 @@ export class Lookup {
       const updatedData = this.filteredRecords.map(record => {
         const row: any = { _id: record[primaryIdAttr] };
         this.options.columns.forEach(col => {
-          row[col] = formatValue(record[col]);
+          const attrMeta = metadata?.Attributes?.find(a => a.LogicalName === col);
+          row[col] = formatCellValue(record, col, attrMeta?.AttributeType);
         });
         return row;
       });
@@ -471,21 +713,39 @@ export class Lookup {
     const metadata = metadataCache.get(this.options.entity);
     const primaryIdAttr = metadata?.PrimaryIdAttribute || `${this.options.entity}id`;
 
-    // Prepare table columns
-    const columns = this.options.columns.map(col => ({
-      id: col,
-      header: this.options.columnLabels[col] || col,
-      visible: true,
-      sortable: true
-    }));
-
-    // Prepare table data
+    // Prepare table data first (needed for smart width calculation)
     const tableData = this.filteredRecords.map(record => {
       const row: any = { _id: record[primaryIdAttr] };
       this.options.columns.forEach(col => {
-        row[col] = formatValue(record[col]);
+        const attrMeta = metadata?.Attributes?.find(a => a.LogicalName === col);
+        row[col] = formatCellValue(record, col, attrMeta?.AttributeType);
       });
       return row;
+    });
+
+    // Prepare table columns with smart widths based on data content
+    const smartWidths = calculateSmartColumnWidths(
+      this.options.columns,
+      tableData,
+      this.options.columnLabels,
+      metadata
+    );
+
+    const columns = this.options.columns.map(col => {
+      const attrMeta = metadata?.Attributes?.find((a: any) => a.LogicalName === col);
+      const attrType: string | undefined = attrMeta?.AttributeType;
+      const colDef: any = {
+        id: col,
+        header: this.options.columnLabels[col] || col,
+        visible: true,
+        sortable: true,
+        ...smartWidths[col]
+      };
+      if (attrType && BOOLEAN_TYPES.has(attrType)) {
+        colDef.format = 'boolean';
+        colDef.align = 'center';
+      }
+      return colDef;
     });
 
     const self = this;
@@ -582,6 +842,12 @@ export class Lookup {
       selectionMode: this.options.multiSelect ? 'multiple' as const : 'single' as const,
       onRowSelect: (selectedRows: any[]) => {
         this.selectedRecords = new Set(selectedRows.map(r => r._id));
+      },
+      onRowDoubleClick: (row: any) => {
+        // Open the D365 record in a new tab
+        const recordId = row._id;
+        if (!recordId) return;
+        self.openRecord(recordId);
       }
     });
 
@@ -638,6 +904,31 @@ export class Lookup {
     this.options.onCancel();
     if (Lookup.activeModal) {
       Lookup.activeModal.close();
+    }
+  }
+
+  private openRecord(recordId: string): void {
+    const entityName = this.options.entity;
+    const Xrm = (window as any).Xrm;
+
+    // Try Xrm.Navigation.openForm (D365 native)
+    if (Xrm?.Navigation?.openForm) {
+      Xrm.Navigation.openForm({
+        entityName,
+        entityId: recordId,
+        openInNewWindow: true
+      });
+      return;
+    }
+
+    // Fallback: construct D365 URL and open in new tab
+    try {
+      const baseUrl = Xrm?.Utility?.getGlobalContext?.()?.getClientUrl?.()
+        || window.location.origin;
+      const url = `${baseUrl}/main.aspx?etn=${entityName}&id=${recordId}&pagetype=entityrecord`;
+      window.open(url, '_blank', 'noopener');
+    } catch {
+      console.warn(...UILIB, '[Lookup] Could not open record — no Xrm context available');
     }
   }
 
