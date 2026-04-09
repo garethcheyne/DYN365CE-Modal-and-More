@@ -76,8 +76,13 @@ const useStyles = makeStyles({
     '& .fui-DataGridHeader': {
       backgroundColor: tokens.colorNeutralBackground1,
       position: 'sticky' as any,
-      top: 0,
-      zIndex: 1,
+      // Pull up 1px to cover any subpixel gap that lets rows show through
+      // above the sticky header when the body scrolls
+      top: '-1px',
+      zIndex: 2,
+      // Paint a solid block above the header so scrolling content can never
+      // peek through (covers the -1px offset and any rounding artifacts)
+      boxShadow: `0 -2px 0 0 ${tokens.colorNeutralBackground1}`,
     },
     '& .fui-DataGridHeader .fui-DataGridRow': {
       borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,  // Darker border for header row
@@ -367,9 +372,9 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     });
   }, []);
 
-  const handleApplyFilter = useCallback((columnId: string) => {
-    const filterValue = filterInputs[columnId] || '';
-    const operator = filterOperators[columnId] || 'Equals';
+  const handleApplyFilter = useCallback((columnId: string, directValue?: string, directOperator?: string) => {
+    const filterValue = directValue ?? filterInputs[columnId] ?? '';
+    const operator = directOperator ?? filterOperators[columnId] ?? 'Equals';
     setColumnFilters(prev => ({
       ...prev,
       [columnId]: { operator, value: filterValue },
@@ -746,7 +751,8 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   setFilterInputs(prev => ({ ...prev, [columnId]: filterValue }));
-                  handleApplyFilter(columnId);
+                  setFilterOperators(prev => ({ ...prev, [columnId]: selectedOperator }));
+                  handleApplyFilter(columnId, filterValue, selectedOperator);
                   setIsFilterDialogOpen(false);
                 }
               }}
@@ -758,7 +764,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                 onClick={() => {
                   setFilterInputs(prev => ({ ...prev, [columnId]: filterValue }));
                   setFilterOperators(prev => ({ ...prev, [columnId]: selectedOperator }));
-                  handleApplyFilter(columnId);
+                  handleApplyFilter(columnId, filterValue, selectedOperator);
                   setIsFilterDialogOpen(false);
                 }}
                 style={{ flex: 1 }}

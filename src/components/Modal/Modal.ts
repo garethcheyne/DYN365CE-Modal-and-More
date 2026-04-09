@@ -203,9 +203,10 @@ export class Modal implements ModalInstance {
   private mountComponent(
     container: HTMLElement,
     component: React.ReactElement,
-    theme = defaultTheme
+    theme = defaultTheme,
+    providerStyle?: React.CSSProperties
   ): Root {
-    const root = mountFluentComponent(container, component, theme);
+    const root = mountFluentComponent(container, component, theme, providerStyle);
     this.reactRoots.push(root);
     return root;
   }
@@ -778,6 +779,7 @@ export class Modal implements ModalInstance {
           flex-direction: column;
           gap: ${theme.spacing.m};
           flex: 1;
+          min-height: 0;
           padding-top: ${theme.spacing.m};
         `;
 
@@ -825,6 +827,7 @@ export class Modal implements ModalInstance {
         flex-direction: column;
         gap: ${theme.spacing.m};
         flex: 1;
+        min-height: 0;
         padding-top: ${theme.spacing.m};
       `;
 
@@ -1228,6 +1231,7 @@ export class Modal implements ModalInstance {
     }
 
     const container = doc.createElement('div');
+    container.setAttribute('data-field-id', field.id);
 
     // Set initial visibility based on visibleWhen condition
     if (field.visibleWhen) {
@@ -1688,6 +1692,20 @@ export class Modal implements ModalInstance {
       case 'table':
         this.log('Creating table field:', field.id);
 
+        // Table container needs flex properties to participate in the flex layout chain.
+        // Without this, the table overflows outside the dialog.
+        // Use individual style properties (not cssText) so we don't clobber any
+        // earlier inline styles like `display: none` from the visibleWhen block above.
+        const isTableHidden = container.style.display === 'none';
+        container.style.display = isTableHidden ? 'none' : 'flex';
+        container.style.flexDirection = 'column';
+        container.style.flex = '1';
+        container.style.minHeight = '0';
+        container.style.overflow = 'hidden';
+        container.style.width = '100%';
+        container.style.maxWidth = '100%';
+        container.style.boxSizing = 'border-box';
+
         const tableWrapper = doc.createElement('div');
         tableWrapper.setAttribute('data-field-id', field.id);
         tableWrapper.style.cssText = `
@@ -1771,9 +1789,22 @@ export class Modal implements ModalInstance {
         // This is critical for cross-document rendering in D365 iframes
         // Pass wrapper directly instead of querying DOM later
         this.log('Queueing table React mount for:', field.id);
+        // The FluentProvider div mounted inside tableWrapper must participate in
+        // the flex chain, otherwise the inner DataGrid can't compute a bounded
+        // height and overflows the modal (and its sticky header can't stick).
+        const tableProviderStyle: React.CSSProperties = {
+          display: 'flex',
+          flexDirection: 'column',
+          flex: '1 1 auto',
+          minHeight: 0,
+          width: '100%',
+          height: '100%',
+          overflow: 'hidden'
+        };
+
         this.pendingReactMounts.push(() => {
           this.log('Mounting table component for:', field.id);
-          this.mountComponent(tableWrapper, React.createElement(TableWrapper), defaultTheme);
+          this.mountComponent(tableWrapper, React.createElement(TableWrapper), defaultTheme, tableProviderStyle);
           this.log('Table mounted successfully:', field.id);
         });
 

@@ -36,7 +36,8 @@ function getSharedRenderer(targetDocument: Document): ReturnType<typeof createDO
 export function createFluentProvider(
   children: React.ReactElement,
   theme: Theme = defaultTheme,
-  targetDocument?: Document
+  targetDocument?: Document,
+  providerStyle?: React.CSSProperties
 ): React.ReactElement {
   const doc = targetDocument || getTargetDocument();
   const renderer = getSharedRenderer(doc);
@@ -44,9 +45,14 @@ export function createFluentProvider(
   // Wrap with RendererProvider first, then FluentProvider
   // Both need targetDocument - RendererProvider for style injection, FluentProvider for portals
   // See: https://griffel.js.org/react/api/create-dom-renderer/
+  // providerStyle is forwarded to FluentProvider's root div, which lets callers
+  // make the provider participate in a parent flex layout (e.g. table fields
+  // that need the provider div to be flex:1 / min-height:0 so the inner DataGrid
+  // can compute a bounded height and scroll instead of overflowing).
   const fluentProviderElement = React.createElement(FluentProvider, {
     theme,
-    targetDocument: doc
+    targetDocument: doc,
+    style: providerStyle
   }, children);
 
   return React.createElement(
@@ -62,19 +68,20 @@ export function createFluentProvider(
 export function mountFluentComponent(
   container: HTMLElement,
   component: React.ReactElement,
-  theme: Theme = defaultTheme
+  theme: Theme = defaultTheme,
+  providerStyle?: React.CSSProperties
 ): Root {
   const root = createRoot(container);
   // Get the owner document of the container to ensure styles go to the same document
   const targetDoc = container.ownerDocument || getTargetDocument();
-  
+
   // Ensure Griffel renderer is ready before rendering
   // This prevents race conditions where components render before CSS is injected
   getSharedRenderer(targetDoc);
-  
+
   // Use flushSync to force synchronous DOM updates - critical for cross-document rendering
   flushSync(() => {
-    root.render(createFluentProvider(component, theme, targetDoc));
+    root.render(createFluentProvider(component, theme, targetDoc, providerStyle));
   });
   
   // Force a reflow to ensure styles are applied before returning
