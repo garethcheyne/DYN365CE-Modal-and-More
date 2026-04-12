@@ -724,7 +724,20 @@ export const Demo: React.FC = () => {
 
     uiLib.Lookup.open({
       entity: 'account',
-      columns: ['name', 'accountnumber', 'telephone1', 'address1_city'],
+      message: 'Pick an account to demo every format type in one screen.',
+      tableColumns: [
+        { id: 'name', header: 'Account Name' },
+        { id: 'accountnumber', header: 'Account #' },
+        { id: 'industrycode', header: 'Industry', format: 'badge' },
+        { id: 'address1_city', header: 'City' },
+        { id: 'numberofemployees', header: 'Employees', format: 'integer', align: 'right' },
+        { id: 'revenue', header: 'Annual Revenue', format: 'currency', align: 'right' },
+        { id: 'creditlimit', header: 'Credit Limit', format: 'currency', align: 'right' },
+        { id: 'yoy_growth', header: 'YoY Growth', format: 'percent', align: 'right' },
+        { id: 'is_preferred', header: 'Preferred', format: 'boolean-check', align: 'center' },
+        { id: 'is_active', header: 'Active', format: 'boolean', align: 'center' },
+        { id: 'lastcontacted', header: 'Last Contacted', format: 'date' }
+      ],
       title: `Select Account (${dataSource})`,
       onSelect: (records: any[]) => {
         uiLib.Toast.success({ title: 'Account Selected', message: `Selected: ${records.map((r: any) => r.name).join(', ')}` });
@@ -738,7 +751,18 @@ export const Demo: React.FC = () => {
 
     uiLib.Lookup.open({
       entity: 'contact',
-      columns: ['name', 'emailaddress1', 'telephone1'],
+      tableColumns: [
+        { id: 'name', header: 'Full Name' },
+        { id: 'jobtitle', header: 'Title' },
+        { id: 'emailaddress1', header: 'Email' },
+        { id: 'telephone1', header: 'Phone' },
+        { id: 'parentcustomerid', header: 'Account' },
+        { id: 'annualincome', header: 'Annual Income', format: 'currency', align: 'right' },
+        { id: 'commissionrate', header: 'Commission', format: 'percent', align: 'right' },
+        { id: 'vacationdays', header: 'PTO Days', format: 'integer', align: 'right' },
+        { id: 'donotemail', header: 'Do Not Email', format: 'boolean-check', align: 'center' },
+        { id: 'is_active', header: 'Active', format: 'boolean', align: 'center' }
+      ],
       multiSelect: true,
       title: `Select Contacts (${dataSource})`,
       onSelect: (records: any[]) => {
@@ -753,8 +777,13 @@ export const Demo: React.FC = () => {
 
     uiLib.Lookup.open({
       entity: 'opportunity',
-      columns: ['name', 'estimatedvalue', 'closeprobability'],
-      columnLabels: { name: 'Opportunity', estimatedvalue: 'Est. Value', closeprobability: 'Probability' },
+      tableColumns: [
+        { id: 'name', header: 'Opportunity' },
+        { id: 'estimatedvalue', header: 'Est. Value', format: 'currency', align: 'right' },
+        { id: 'closeprobability', header: 'Probability', format: 'percent', align: 'right' },
+        { id: 'is_won', header: 'Won', format: 'boolean-check', align: 'center' },
+        { id: 'estimatedclosedate', header: 'Est. Close', format: 'date' }
+      ],
       title: `Select Opportunity - PreFilters (${dataSource})`,
       preFilters: [
         { type: 'optionset', attribute: 'statecode', label: 'Status' },
@@ -773,6 +802,43 @@ export const Demo: React.FC = () => {
       ],
       onSelect: (records: any[]) => {
         uiLib.Toast.success({ title: 'Opportunity Selected', message: `Selected: ${records.map((r: any) => r.name).join(', ')}` });
+      }
+    });
+  };
+
+  // Product lookup — exercises every format type in one screen
+  const showProductLookup = () => {
+    const env = detectEnvironment();
+    const dataSource = env.hasWebApi ? 'D365 Live Data' : 'Mock Data';
+
+    uiLib.Lookup.open({
+      entity: 'product',
+      title: `Select Product (${dataSource})`,
+      content: `<div style="font-size: 12px; line-height: 1.6; color: #323130;">
+        <p style="margin: 0 0 6px 0;">Search by <strong>product name</strong>, <strong>SAP code</strong>, or <strong>BC/GP number</strong>. Use the <em>Hierarchy</em> filter to narrow results.</p>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px;">
+          <span style="color: #107c10;">&#10003; Multi-select enabled</span>
+          <span style="color: #0078d4;">&#9432; Currency / percent / boolean columns demonstrated</span>
+          <span style="color: #605e5c;">&#9881; Sparse data renders as &mdash;</span>
+        </div>
+      </div>`,
+      size: { width: '95vw', height: '90vh' },
+      tableColumns: [
+        { id: 'name', header: 'Product Name', width: '250px' },
+        { id: 'hnc_productidpos', header: 'Code (SAP)', width: '120px' },
+        { id: 'hnc_bc_productnumber', header: 'Code (BC/GP)', width: '120px' },
+        { id: 'hnc_hierarchy', header: 'Hierarchy', format: 'badge' },
+        { id: 'hnc_localcorerange', header: 'Core Range', format: 'percent', align: 'right' },
+        { id: 'hnc_corestocked', header: 'Core Stocked', format: 'boolean-check', align: 'center' },
+        { id: 'hnc_fx_basecostex', header: 'Base Cost Ex', format: 'currency', align: 'right' },
+        { id: 'hnc_margin', header: 'Margin', format: 'percent', align: 'right' },
+        { id: 'hnc_stockonhand', header: 'On Hand', format: 'integer', align: 'right' },
+        { id: 'statuscode', header: 'Status', format: 'badge' },
+        { id: 'hnc_lastreceived', header: 'Last Received', format: 'date' }
+      ],
+      multiSelect: true,
+      onSelect: (records: any[]) => {
+        uiLib.Toast.success({ title: `${records.length} Product(s) Selected`, message: `Selected: ${records.map((r: any) => r.name).join(', ')}` });
       }
     });
   };
@@ -1950,31 +2016,40 @@ const uploadModal = new uiLib.Modal({
           title="Lookup Component"
           badge="ready"
           description="Advanced entity record lookup with search, pagination, and sorting."
-          code={`// Simple Lookup
+          code={`// Simple Lookup — same tableColumns shape as Modal type: 'table'
 uiLib.Lookup.open({
   entity: 'account',
   title: 'Select Account',
-  columns: ['name', 'emailaddress1', 'telephone1'],
-  onSelect: (selected) => {
-    console.debug('Selected:', selected);
-  }
+  tableColumns: [
+    { id: 'name', header: 'Account Name' },
+    { id: 'emailaddress1', header: 'Email' },
+    { id: 'telephone1', header: 'Phone' }
+  ],
+  onSelect: (selected) => console.debug('Selected:', selected)
 });
 
-// Multi-Select Lookup
+// Multi-Select with format overrides
 uiLib.Lookup.open({
   entity: 'contact',
   title: 'Select Contacts',
-  allowMultiSelect: true,
-  columns: ['fullname', 'emailaddress1', 'jobtitle'],
-  onSelect: (selected) => {
-    console.debug('Selected contacts:', selected);
-  }
+  multiSelect: true,
+  tableColumns: [
+    { id: 'name', header: 'Full Name' },
+    { id: 'emailaddress1', header: 'Email' },
+    { id: 'annualincome', header: 'Income', format: 'currency', align: 'right' },
+    { id: 'is_active', header: 'Active', format: 'boolean-check', align: 'center' }
+  ],
+  onSelect: (selected) => console.debug('Selected:', selected)
 });
 
 // PreFilters — dropdowns between search and table
 uiLib.Lookup.open({
   entity: 'opportunity',
-  columns: ['name', 'estimatedvalue'],
+  tableColumns: [
+    { id: 'name', header: 'Opportunity' },
+    { id: 'estimatedvalue', header: 'Est. Value', format: 'currency', align: 'right' },
+    { id: 'closeprobability', header: 'Probability', format: 'percent', align: 'right' }
+  ],
   preFilters: [
     { type: 'optionset', attribute: 'statecode', label: 'Status' },
     { type: 'select', attribute: 'prioritycode', label: 'Priority',
@@ -1990,6 +2065,7 @@ uiLib.Lookup.open({
               <Button appearance="primary" onClick={showSimpleLookup}>Simple Lookup</Button>
               <Button appearance="primary" onClick={showMultiSelectLookup}>Multi-Select</Button>
               <Button appearance="secondary" onClick={showPreFilterLookup}>PreFilters</Button>
+              <Button appearance="secondary" onClick={showProductLookup}>Product (all displayTypes)</Button>
             </div>
           </Section>
           <DataSourceNote />

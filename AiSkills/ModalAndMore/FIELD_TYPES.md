@@ -304,16 +304,93 @@ The inline lookup supports ONE entity at a time. For multi-entity (Customer-type
 
 Full-screen lookup modal with search, table, pagination, and optional preFilters.
 
+The Lookup uses the same `TableColumn` shape as `type: 'table'` fields for column configuration. Columns are defined via the `tableColumns` property.
+
 ```javascript
 new uiLib.Lookup({
   entity: 'account',
-  columns: ['name', 'telephone1', 'emailaddress1'],
-  columnLabels: { name: 'Account', telephone1: 'Phone' },
+  tableColumns: [
+    { id: 'name', header: 'Account', sortable: true, elastic: true },
+    { id: 'telephone1', header: 'Phone', width: '150px' },
+    { id: 'emailaddress1', header: 'Email', minWidth: '200px' }
+  ],
   filters: 'statecode eq 0',
   multiSelect: true,
   onSelect: (records) => console.debug(records)
 }).show();
 ```
+
+### Additional Lookup properties
+
+- `message` — informational text displayed above the results table.
+- `content` — custom HTML content area above the results table.
+- Viewport-relative sizing — `width` and `height` accept `%`, `vw`, and `vh` units (e.g. `width: '80vw'`, `height: '70vh'`).
+- Column resizing — users can drag column borders to resize columns at runtime.
+
+### Column configuration with `tableColumns`
+
+Columns are defined using the `TableColumn` interface (shared with `type: 'table'` fields):
+
+```typescript
+interface TableColumn {
+    id: string;              // Attribute / field logical name
+    header: string;          // Column header text
+    visible?: boolean;       // Show/hide column (default: true)
+    sortable?: boolean;      // Allow sorting on this column
+    width?: string;          // Fixed width (e.g. '150px')
+    minWidth?: string;       // Flexible floor (e.g. '100px')
+    elastic?: boolean;       // Absorbs all remaining space (one per table)
+    align?: 'left' | 'center' | 'right';
+    format?: TableColumnFormat;
+}
+
+type TableColumnFormat =
+  | 'currency' | 'percent' | 'number' | 'decimal' | 'integer'
+  | 'date' | 'datetime'
+  | 'boolean' | 'boolean-check'
+  | 'badge' | 'text';
+```
+
+### Column format types
+
+By default `Lookup` auto-formats each column from D365 entity metadata --
+`Money` renders as colored currency, `Boolean` as a Switch, `Picklist` as a
+badge, etc. Use `format` on a `TableColumn` to **override** the format on a
+per-column basis when the metadata is missing/wrong, or when you want a
+`Decimal` field shown as currency or percent, or a Boolean shown as a check icon.
+
+```javascript
+new uiLib.Lookup({
+  entity: 'product',
+  tableColumns: [
+    { id: 'name', header: 'Product Name', sortable: true, elastic: true },
+    { id: 'hnc_fx_basecostex', header: 'Base Cost Ex', format: 'currency', width: '140px' },
+    { id: 'hnc_localcorerange', header: 'Core Range', format: 'percent', width: '120px' },
+    { id: 'hnc_corestocked', header: 'Core Stocked', format: 'boolean-check', width: '120px', align: 'center' }
+  ],
+  onSelect: (records) => console.debug(records)
+});
+```
+
+**Available `TableColumn.format` values:**
+
+| Value            | Render                                                                                                  |
+|------------------|---------------------------------------------------------------------------------------------------------|
+| `currency`       | `$1,234.56` with thousands separator; green if positive, red if negative, grey if zero; right-aligned   |
+| `percent`        | `25.00%` -- auto-detects fraction (`0.25 -> 25%`) vs whole (`25 -> 25%`); green/red; right-aligned       |
+| `number`         | locale-formatted number with thousands separator, right-aligned                                         |
+| `decimal`        | 2-decimal locale-formatted number, right-aligned                                                        |
+| `integer`        | rounded locale-formatted integer, right-aligned                                                         |
+| `date`           | date only                                                                                               |
+| `datetime`       | date + time                                                                                             |
+| `boolean`        | disabled Fluent Switch (default for `Boolean` attributes)                                               |
+| `boolean-check`  | Fluent Checkmark icon when true, Subtract icon when false                                               |
+| `badge`          | pill/badge wrapper around the text                                                                      |
+| `text`           | raw string, skips D365 `FormattedValue` annotation                                                      |
+
+> `currency` is hard-coded `USD` because the forced path has no transaction-currency
+> context. Real `Money` attributes (no override) keep using D365's per-row
+> `FormattedValue` annotation, so they show the user's regional currency.
 
 ### PreFilters
 
@@ -322,7 +399,10 @@ Add dropdown / lookup filters in a horizontal row between the search box and the
 ```javascript
 new uiLib.Lookup({
   entity: 'opportunity',
-  columns: ['name', 'estimatedvalue'],
+  tableColumns: [
+    { id: 'name', header: 'Opportunity', sortable: true, elastic: true },
+    { id: 'estimatedvalue', header: 'Est. Value', format: 'currency', align: 'right', width: '140px' }
+  ],
   preFilters: [
     // Option set — auto-populated from D365 metadata
     { type: 'optionset', attribute: 'statecode', label: 'Status' },
@@ -353,10 +433,10 @@ Sortable, filterable, selectable data grid.
 ```javascript
 { id: 'productsTable', type: 'table', label: 'Products',
   tableColumns: [
-    { id: 'name', header: 'Product', visible: true, sortable: true, width: '250px' },
+    { id: 'name', header: 'Product', visible: true, sortable: true, elastic: true },
     { id: 'price', header: 'Price', visible: true, sortable: true, width: '120px',
       align: 'right', format: 'currency' },
-    { id: 'margin', header: 'Margin', visible: true, format: 'percent' }
+    { id: 'margin', header: 'Margin', visible: true, width: '100px', format: 'percent' }
   ],
   data: [
     { id: 1, name: 'Product A', price: 1299.99, margin: 0.32 },
@@ -367,15 +447,38 @@ Sortable, filterable, selectable data grid.
   isRowSelectable: (row) => row.price > 0 }
 ```
 
-**Value type:** Use `onRowSelect` callback — not `getFieldValue`.
+**Value type:** Use `onRowSelect` callback -- not `getFieldValue`.
+
+**`TableColumn` properties:**
+
+```typescript
+interface TableColumn {
+    id: string;              // Field / property name in data rows
+    header: string;          // Column header text
+    visible?: boolean;       // Show/hide column (default: true)
+    sortable?: boolean;      // Allow sorting on this column
+    width?: string;          // Fixed width (e.g. '150px')
+    minWidth?: string;       // Flexible floor (e.g. '100px')
+    elastic?: boolean;       // Absorbs all remaining space (one per table)
+    align?: 'left' | 'center' | 'right';
+    format?: TableColumnFormat;
+}
+```
+
+> **`elastic`:** Set `elastic: true` on exactly one column to make it absorb all remaining horizontal space. Other columns keep their `width` or `minWidth`. This avoids empty gaps on wide screens.
+
+**Column resizing:** Users can drag column borders to resize columns at runtime.
+
+**Viewport-relative sizing:** Both `uiLib.Lookup` and Modal `width`/`height` accept viewport-relative units (`%`, `vw`, `vh`) in addition to fixed pixel values.
 
 **Built-in features (no configuration needed):**
 - Click column headers to sort
-- Right-click header → Filter (Equals, Contains, Greater Than, etc.)
-- Right-click header → Group By
-- Right-click header → Show/Hide Columns
+- Right-click header to Filter (Equals, Contains, Greater Than, etc.)
+- Right-click header to Group By
+- Right-click header to Show/Hide Columns
 - Select All checkbox (respects `isRowSelectable`)
 - HTML rendering in cell values (auto-detected)
+- Drag column borders to resize
 
 **Dynamic update:**
 

@@ -408,15 +408,44 @@ fields: [
 // Full modal lookup
 new uiLib.Lookup({
   entity: 'account',
-  columns: ['name', 'telephone1'],
+  tableColumns: [
+    { id: 'name', header: 'Name', sortable: true, elastic: true },
+    { id: 'telephone1', header: 'Phone', width: '150px' }
+  ],
   multiSelect: true,
+  onSelect: (records) => { /* records array */ }
+}).show();
+
+// With message and content
+new uiLib.Lookup({
+  entity: 'account',
+  tableColumns: [
+    { id: 'name', header: 'Name', sortable: true, elastic: true }
+  ],
+  message: 'Select the parent account for this contact.',
+  content: '<p>Only <strong>active</strong> accounts are shown.</p>',
+  onSelect: (records) => { /* records array */ }
+}).show();
+
+// With viewport-relative sizing
+new uiLib.Lookup({
+  entity: 'account',
+  tableColumns: [
+    { id: 'name', header: 'Name', sortable: true, elastic: true },
+    { id: 'telephone1', header: 'Phone', width: '150px' }
+  ],
+  width: '80vw',
+  height: '70vh',
   onSelect: (records) => { /* records array */ }
 }).show();
 
 // With preFilters (option set + lookup)
 new uiLib.Lookup({
   entity: 'opportunity',
-  columns: ['name', 'estimatedvalue'],
+  tableColumns: [
+    { id: 'name', header: 'Opportunity', sortable: true, elastic: true },
+    { id: 'estimatedvalue', header: 'Est. Value', format: 'currency', align: 'right', width: '140px' }
+  ],
   preFilters: [
     { type: 'optionset', attribute: 'statecode', label: 'Status' },
     { type: 'select', attribute: 'prioritycode', label: 'Priority',
@@ -426,7 +455,26 @@ new uiLib.Lookup({
   ],
   onSelect: (records) => { /* records array */ }
 }).show();
+
+// With per-column format overrides — wins over D365 metadata.
+// Use when metadata is missing/wrong, or to force a Decimal as currency/percent,
+// or to render a Boolean as a check icon instead of a Switch.
+new uiLib.Lookup({
+  entity: 'product',
+  tableColumns: [
+    { id: 'name', header: 'Product Name', sortable: true, elastic: true },
+    { id: 'hnc_fx_basecostex', header: 'Base Cost Ex', format: 'currency', align: 'right', width: '140px' },
+    { id: 'hnc_localcorerange', header: 'Core Range', format: 'percent', align: 'right', width: '120px' },
+    { id: 'hnc_corestocked', header: 'Core Stocked', format: 'boolean-check', width: '120px' }
+  ],
+  onSelect: (records) => { /* records array */ }
+}).show();
 ```
+
+**TableColumn shape:** `{ id, header, visible?, sortable?, width?, minWidth?, elastic?, align?, format? }`.
+The `format` property accepts: `currency`, `percent`, `number`, `decimal`, `integer`,
+`date`, `datetime`, `boolean`, `boolean-check`, `badge`, `text` (type `TableColumnFormat`).
+See `FIELD_TYPES.md` and `API_REFERENCE.md` for the full table.
 
 ---
 
@@ -436,8 +484,8 @@ new uiLib.Lookup({
 {
   id: 'products', type: 'table',
   tableColumns: [
-    { id: 'name', header: 'Product', visible: true, sortable: true, width: '200px' },
-    { id: 'price', header: 'Price', visible: true, sortable: true, align: 'right', format: 'currency' }
+    { id: 'name', header: 'Product', visible: true, sortable: true, elastic: true },
+    { id: 'price', header: 'Price', visible: true, sortable: true, align: 'right', format: 'currency', width: '140px' }
   ],
   data: [
     { id: 1, name: 'Product A', price: 100 },

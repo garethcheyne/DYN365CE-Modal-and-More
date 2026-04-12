@@ -107,6 +107,14 @@ interface SideCartConfig {
     imageUrl?: string;
     backgroundColor?: string;
 }
+/**
+ * Supported column format types. Used by both Modal `type: 'table'` and
+ * `uiLib.Lookup` — a single rendering pipeline in TableFluentUi.
+ *
+ * Numeric formats render with colour: green (positive), red (negative),
+ * grey (zero / null placeholder em-dash).
+ */
+type TableColumnFormat = 'currency' | 'percent' | 'number' | 'decimal' | 'integer' | 'date' | 'datetime' | 'boolean' | 'boolean-check' | 'badge' | 'text';
 interface TableColumn {
     id: string;
     header: string;
@@ -114,8 +122,9 @@ interface TableColumn {
     sortable?: boolean;
     width?: string;
     minWidth?: string;
+    elastic?: boolean;
     align?: 'left' | 'center' | 'right';
-    format?: 'currency' | 'number' | 'percent' | 'date' | 'boolean';
+    format?: TableColumnFormat;
 }
 interface FieldConfig {
     id: string;
@@ -667,7 +676,12 @@ declare namespace ModalHelpers_d {
 
 /**
  * Lookup Component Type Definitions
+ *
+ * The Lookup uses the same `TableColumn` shape as Modal `type: 'table'` fields.
+ * One rendering pipeline (TableFluentUi) handles both — same format types,
+ * same width handling, same cell renderer.
  */
+
 interface LookupResult {
     id: string;
     name: string;
@@ -679,7 +693,7 @@ interface OrderByOption {
     descending?: boolean;
 }
 /**
- * PreFilter: option-set dropdown auto-populated from D365 metadata
+ * PreFilter: option-set dropdown auto-populated from D365 entity metadata
  */
 interface PreFilterOptionSet {
     type: 'optionset';
@@ -736,28 +750,68 @@ interface PreFilterSelect {
 }
 type PreFilter = PreFilterOptionSet | PreFilterLookup | PreFilterSelect;
 interface LookupOptions {
+    /** D365 entity logical name (e.g. 'product', 'account') */
     entity: string;
-    columns: string[];
-    columnLabels?: Record<string, string>;
+    /**
+     * Column definitions — same shape as Modal `type: 'table'` fields.
+     *
+     * `id` is the D365 attribute logical name (used for both OData fetch and display).
+     * `header` is the column label. `format` controls rendering (currency, percent,
+     * boolean-check, badge, etc.). `width` / `minWidth` control sizing. `align`
+     * controls text alignment. `sortable` enables click-to-sort.
+     *
+     * Columns without an explicit `width` or `minWidth` get auto-sized based on
+     * header text width and D365 attribute type.
+     *
+     * ```js
+     * tableColumns: [
+     *   { id: 'name', header: 'Product Name', sortable: true },
+     *   { id: 'hnc_productidpos', header: 'Code (SAP)', sortable: true, width: '120px' },
+     *   { id: 'hnc_fx_basecostex', header: 'Base Cost Ex', format: 'currency', align: 'right' },
+     *   { id: 'hnc_corestocked', header: 'Core Stocked', format: 'boolean-check', align: 'center' }
+     * ]
+     * ```
+     */
+    tableColumns: TableColumn[];
+    /** OData filter expression */
     filters?: string;
+    /** Order-by clauses */
     orderBy?: OrderByOption[];
+    /** Allow multi-selection (default: false) */
     multiSelect?: boolean;
+    /** Fields to search (defaults to all tableColumns ids) */
     searchFields?: string[];
+    /** Additional fields to search but not display */
     additionalSearchFields?: string[];
+    /** Pre-populate search box */
     defaultSearchTerm?: string;
-    /** PreFilter dropdowns/lookups displayed in a horizontal row between search and table */
+    /** PreFilter dropdowns/lookups displayed between search and table */
     preFilters?: PreFilter[];
+    /** Modal title */
     title?: string;
+    /** Plain-text message rendered above the search box */
+    message?: string;
+    /** HTML content rendered above the search box (renders via innerHTML) */
+    content?: string;
+    /**
+     * Modal size. Numbers are pixels; strings accept any CSS unit ('98%', '90vw').
+     * Viewport-relative units (%, vw, vh) bypass the default 95vw/90vh safety cap.
+     */
     size?: {
-        width?: number;
-        height?: number;
+        width?: number | string;
+        height?: number | string;
     };
-    width?: number;
-    height?: number;
+    width?: number | string;
+    height?: number | string;
+    /** Records per page (default: 50) */
     pageSize?: number;
+    /** Show pagination controls (default: true) */
     showPagination?: boolean;
+    /** Show clear/deselect button (default: false) */
     allowClear?: boolean;
+    /** Called when user confirms selection */
     onSelect: (records: LookupResult[]) => void;
+    /** Called when user cancels */
     onCancel?: () => void;
 }
 
@@ -770,6 +824,8 @@ interface LookupOptions {
 declare class Lookup {
     private static activeModal;
     private options;
+    /** Column IDs derived from tableColumns — used for OData fetch / search */
+    private columnIds;
     private records;
     private filteredRecords;
     private selectedRecords;

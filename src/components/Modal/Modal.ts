@@ -399,16 +399,23 @@ export class Modal implements ModalInstance {
     }
 
     this.container = doc.createElement('div');
-    // Fluent UI v9 Dialog surface container
+    // Fluent UI v9 Dialog surface container.
+    // width/height: 100vw/100vh gives percentage-based modal sizes (e.g. '95%')
+    // a full-viewport reference. Without these, `position: fixed` with no
+    // explicit dimensions makes the container shrink-to-fit, and '95%' would
+    // resolve to 95% of the content width — not 95% of the screen.
     this.container.style.cssText = `
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
+      width: 100vw;
+      height: 100vh;
       z-index: ${theme.zIndex.modal};
       display: flex;
       align-items: center;
       justify-content: center;
+      pointer-events: none;
     `;
     this.container.onclick = (e) => e.stopPropagation();
 
@@ -424,6 +431,18 @@ export class Modal implements ModalInstance {
       return `${value}px`; // Convert number to px
     };
 
+    // When the caller explicitly asks for a viewport-relative size (%, vw, vh),
+    // trust them and lift the max cap to 100vw / 100vh. The 95vw / 90vh cap is
+    // a safety net for pixel sizes (so a stale `width: 5000` doesn't overflow)
+    // and for default predefined sizes — it shouldn't override an explicit
+    // request like `size: { width: '98%' }`.
+    const isViewportRelative = (value: number | string | null | undefined, units: string[]): boolean => {
+      if (typeof value !== 'string') return false;
+      return units.some(u => value.trim().endsWith(u));
+    };
+    const maxWidth = isViewportRelative(width, ['%', 'vw']) ? '100vw' : '95vw';
+    const maxHeight = isViewportRelative(height, ['%', 'vh']) ? '100vh' : '90vh';
+
     // Fluent UI v9 Dialog surface styling
     this.modal.style.cssText = `
       background: #ffffff;
@@ -432,12 +451,13 @@ export class Modal implements ModalInstance {
       border: 1px solid rgba(0, 0, 0, 0.1);
       animation: fadeInScale 0.3s cubic-bezier(0.33, 0, 0.67, 1) forwards;
       width: ${formatSize(width)};
-      max-width: 95vw;
-      ${height ? `height: ${formatSize(height)}; max-height: 90vh;` : 'max-height: 90vh;'}
+      max-width: ${maxWidth};
+      ${height ? `height: ${formatSize(height)}; max-height: ${maxHeight};` : `max-height: ${maxHeight};`}
       display: flex;
       flex-direction: column;
       overflow: hidden;
       position: relative;
+      pointer-events: auto;
       font-family: ${theme.typography.fontFamily};
       color: ${theme.colors.neutralPrimary};
     `;

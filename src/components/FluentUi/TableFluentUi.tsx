@@ -31,6 +31,8 @@ import {
   ArrowRight20Regular,
   ArrowSortUp20Regular,
   ArrowSortDown20Regular,
+  Checkmark20Filled,
+  Subtract20Regular,
 } from '@fluentui/react-icons';
 import { FieldConfig } from '../Modal/Modal.types';
 import { UILIB } from '../Logger/Logger';
@@ -62,27 +64,81 @@ const useStyles = makeStyles({
   container: {
     flex: 1,
     width: '100%',               // Fill available space
-    overflow: 'auto',            // Allow both horizontal and vertical scroll
+    minWidth: 0,                 // Allow flex parent to shrink us
+    minHeight: 0,                // Allow flex child to shrink so inner body can scroll
+    // Horizontal scroll lives on the outer container so the header scrolls
+    // sideways with the body. Vertical scroll lives on the DataGridBody (see
+    // below) so the scrollbar starts at the rows, not next to the header.
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
     backgroundColor: tokens.colorNeutralBackground1,
     padding: '0',                // No padding - maximize table space
     boxSizing: 'border-box',
     position: 'relative',        // Establish positioning context
+    // Thin scrollbars (Firefox + WebKit). Applied here so the horizontal
+    // scrollbar (when it does appear) matches the vertical one on the body.
+    scrollbarWidth: 'thin' as any,
+    scrollbarColor: `${tokens.colorNeutralStroke1} transparent`,
+    '&::-webkit-scrollbar': {
+      width: '8px',
+      height: '8px',
+    },
+    '&::-webkit-scrollbar-track': {
+      background: 'transparent',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: tokens.colorNeutralStroke1,
+      borderRadius: '4px',
+    },
+    '&::-webkit-scrollbar-thumb:hover': {
+      backgroundColor: tokens.colorNeutralStroke1Hover,
+    },
   },
   dataGrid: {
-    width: '100%',               // Fill container by default
-    minWidth: 'fit-content',     // But grow if columns need more space
+    width: '100%',               // Fill container exactly
+    minWidth: 0,                 // CRITICAL: do NOT use fit-content here — it forces the
+                                  // grid to be at least as wide as the sum of column widths,
+                                  // which beats `width: 100%` and triggers a phantom
+                                  // horizontal scrollbar from sub-pixel rounding.
     tableLayout: 'fixed',        // Fixed layout respects column widths strictly
     backgroundColor: tokens.colorNeutralBackground1,
+    // Make the DataGrid itself a flex column so the body can take the
+    // remaining height after the (auto-sized) header.
+    display: 'flex',
+    flexDirection: 'column',
+    flex: 1,
+    minHeight: 0,
     '& .fui-DataGridHeader': {
       backgroundColor: tokens.colorNeutralBackground1,
-      position: 'sticky' as any,
-      // Pull up 1px to cover any subpixel gap that lets rows show through
-      // above the sticky header when the body scrolls
-      top: '-1px',
-      zIndex: 2,
-      // Paint a solid block above the header so scrolling content can never
-      // peek through (covers the -1px offset and any rounding artifacts)
-      boxShadow: `0 -2px 0 0 ${tokens.colorNeutralBackground1}`,
+      flex: '0 0 auto',
+    },
+    // The body — not the outer container — is the vertical scroll surface.
+    // This puts the scrollbar alongside the rows only, leaving the header
+    // pinned cleanly above with no scrollbar gutter next to it.
+    '& .fui-DataGridBody': {
+      flex: '1 1 auto',
+      minHeight: 0,
+      overflowY: 'auto',
+      overflowX: 'hidden',
+      // Thin scrollbars matching the outer container.
+      scrollbarWidth: 'thin' as any,
+      scrollbarColor: `${tokens.colorNeutralStroke1} transparent`,
+      '&::-webkit-scrollbar': {
+        width: '8px',
+        height: '8px',
+      },
+      '&::-webkit-scrollbar-track': {
+        background: 'transparent',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: tokens.colorNeutralStroke1,
+        borderRadius: '4px',
+      },
+      '&::-webkit-scrollbar-thumb:hover': {
+        backgroundColor: tokens.colorNeutralStroke1Hover,
+      },
     },
     '& .fui-DataGridHeader .fui-DataGridRow': {
       borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,  // Darker border for header row
@@ -102,15 +158,13 @@ const useStyles = makeStyles({
       borderRight: 'none',
       textTransform: 'none',
       letterSpacing: 'normal',
-      outlineOffset: '-2px',  // Outline doesn't affect layout (unlike border)
       whiteSpace: 'nowrap',
-      '&:hover': {
+      // No hover/focus outline — the user found the brand-blue ring around
+      // headers visually noisy. The header still highlights via the underlying
+      // Fluent DataGrid hover background, which is enough affordance for sort.
+      '&:hover, &:active, &:focus, &:focus-visible': {
         backgroundColor: 'transparent',
-        outline: `2px solid ${tokens.colorBrandStroke1}`,
-      },
-      '&:active, &:focus': {
-        backgroundColor: 'transparent',
-        outline: `2px solid ${tokens.colorBrandStroke1}`,
+        outline: 'none',
       },
     },
     '& .fui-DataGridRow': {
@@ -204,6 +258,50 @@ const useStyles = makeStyles({
   filterInput: {
     width: '200px',
   },
+  // Static one-shot styles lifted out of inline JSX style props so the
+  // "no inline styles" lint rule stops firing on every render site.
+  errorFallback: {
+    padding: '20px',
+    textAlign: 'center',
+    color: tokens.colorPaletteRedForeground1,
+  },
+  clearFilterIcon: {
+    fontSize: '10px',
+    lineHeight: 1,
+  },
+  popoverHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px',
+  },
+  popoverTitle: {
+    fontWeight: 600,
+    fontSize: '14px',
+  },
+  popoverCloseIcon: {
+    fontSize: '12px',
+  },
+  popoverFieldLabel: {
+    display: 'block',
+    marginBottom: '4px',
+    fontSize: '12px',
+    fontWeight: 600,
+  },
+  popoverButtonRow: {
+    display: 'flex',
+    gap: '8px',
+  },
+  groupHeaderRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  groupExpandIcon: {
+    fontSize: '16px',
+  },
 });
 
 export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectionChange }) => {
@@ -237,7 +335,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   if (!config || !config.tableColumns || config.tableColumns.length === 0) {
     console.error(...UILIB, '[TableFluentUi] Missing or empty tableColumns in config:', config);
     return (
-      <div style={{ padding: '20px', textAlign: 'center', color: tokens.colorPaletteRedForeground1 }}>
+      <div className={styles.errorFallback}>
         Error: Table configuration is missing column definitions
       </div>
     );
@@ -258,6 +356,10 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   const [groupByColumn, setGroupByColumn] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
+  // User-applied column width overrides from the "Column width" popover.
+  // Keyed by column ID, value is width in pixels. Merged into columnSizingOptions.
+  const [columnWidthOverrides, setColumnWidthOverrides] = useState<Record<string, number>>({});
+
   // Detect column data type based on first non-null value
   const getColumnDataType = useCallback((columnId: string): 'string' | 'number' | 'boolean' | 'date' => {
     for (const row of data) {
@@ -274,47 +376,88 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     return 'string'; // Default to string
   }, [data]);
 
-  // Format cell value based on column format property
-  const formatCellValue = useCallback((value: any, format?: 'currency' | 'number' | 'percent' | 'date'): string => {
-    if (value == null) return '';
+  // ── Unified cell formatter ──────────────────────────────────────────
+  // Single source of truth for both Modal `type: 'table'` and `uiLib.Lookup`.
+  // Returns either a plain string OR an HTML string (check for '<' prefix to
+  // decide whether to use dangerouslySetInnerHTML in the cell renderer).
+  const formatCellValue = useCallback((value: any, format?: string): string => {
+    const toNum = (v: any): number | null => {
+      if (typeof v === 'number') return v;
+      const n = parseFloat(v);
+      return isNaN(n) ? null : n;
+    };
+    // Colour helper: positive → green, negative → red, zero/null → muted grey.
+    const numColor = (n: number | null): string =>
+      n == null ? '#a19f9d' : n < 0 ? '#d13438' : n > 0 ? '#107c10' : '#a19f9d';
+
+    // Null / undefined → em-dash placeholder for numeric/date formats, empty for others.
+    if (value == null || value === '') {
+      const numericFormats = ['currency', 'percent', 'number', 'decimal', 'integer', 'date', 'datetime'];
+      if (format && numericFormats.indexOf(format) !== -1) {
+        return '<span style="color:#a19f9d">\u2014</span>';
+      }
+      return '';
+    }
 
     switch (format) {
-      case 'currency':
-        // Format as USD currency with $ symbol and thousands separator
-        const numValue = typeof value === 'number' ? value : parseFloat(value);
-        if (isNaN(numValue)) return String(value);
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }).format(numValue);
+      case 'currency': {
+        const n = toNum(value);
+        if (n == null) return String(value);
+        // narrowSymbol → '$' instead of 'US$' in non-US locales.
+        const display = new Intl.NumberFormat(undefined, {
+          style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol',
+          minimumFractionDigits: 2, maximumFractionDigits: 2
+        } as any).format(n);
+        return `<span style="color:${numColor(n)}">${display}</span>`;
+      }
 
-      case 'number':
-        // Format number with thousands separator
-        const num = typeof value === 'number' ? value : parseFloat(value);
-        if (isNaN(num)) return String(value);
-        return new Intl.NumberFormat('en-US').format(num);
+      case 'percent': {
+        const n = toNum(value);
+        if (n == null) return String(value);
+        // Auto-detect: |n| < 1 treated as fraction (0.25 → 25.00%), else as-is.
+        const pct = Math.abs(n) < 1 ? n * 100 : n;
+        const display = `${pct.toFixed(2)}%`;
+        return `<span style="color:${numColor(n)}">${display}</span>`;
+      }
 
-      case 'percent':
-        // Format as percentage (assumes value is decimal, e.g., 0.25 = 25%)
-        const pct = typeof value === 'number' ? value : parseFloat(value);
-        if (isNaN(pct)) return String(value);
-        return new Intl.NumberFormat('en-US', {
-          style: 'percent',
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }).format(pct);
+      case 'number': {
+        const n = toNum(value);
+        if (n == null) return String(value);
+        return n.toLocaleString();
+      }
 
-      case 'date':
-        // Format as localized date (MM/DD/YYYY for en-US)
-        const date = value instanceof Date ? value : new Date(value);
-        if (isNaN(date.getTime())) return String(value);
-        return new Intl.DateTimeFormat('en-US', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        }).format(date);
+      case 'decimal': {
+        const n = toNum(value);
+        if (n == null) return String(value);
+        return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      case 'integer': {
+        const n = toNum(value);
+        if (n == null) return String(value);
+        return Math.round(n).toLocaleString();
+      }
+
+      case 'date': {
+        try {
+          return new Date(value).toLocaleDateString();
+        } catch { return String(value); }
+      }
+
+      case 'datetime': {
+        try {
+          const d = new Date(value);
+          return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+        } catch { return String(value); }
+      }
+
+      case 'badge': {
+        const label = String(value);
+        return `<span style="background:#f0f0f0;color:#242424;padding:2px 10px;border-radius:12px;font-size:12px">${label}</span>`;
+      }
+
+      case 'text':
+        return String(value);
 
       default:
         return String(value);
@@ -594,6 +737,14 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   }, [filteredData, groupByColumn, expandedGroups]);
 
   // Column header menu component (sorting handled by DataGrid natively)
+  // Callback for the column width popover — parses the user's input and
+  // stores an override that is merged into columnSizingOptions.
+  const applyColumnWidth = useCallback((columnId: string, widthInput: string) => {
+    const parsed = parseInt(widthInput, 10);
+    if (isNaN(parsed) || parsed < 20) return; // Ignore junk / too-small values
+    setColumnWidthOverrides(prev => ({ ...prev, [columnId]: parsed }));
+  }, []);
+
   const ColumnHeaderMenu: React.FC<{ columnId: string; columnIndex: number }> = ({
     columnId,
     columnIndex,
@@ -616,7 +767,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
         {isFiltered && (
           <Button
             appearance="subtle"
-            icon={<span style={{ fontSize: '10px', lineHeight: 1 }}>✕</span>}
+            icon={<span className={styles.clearFilterIcon}>✕</span>}
             className={styles.clearFilterButton}
             aria-label="Clear filter"
             title={`Filtered: ${columnFilters[columnId].operator} '${columnFilters[columnId].value}'`}
@@ -717,17 +868,17 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
             onMouseDown={(e: React.MouseEvent) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <span style={{ fontWeight: 600, fontSize: '14px' }}>Filter by</span>
+            <div className={styles.popoverHeader}>
+              <span className={styles.popoverTitle}>Filter by</span>
               <Button
                 appearance="subtle"
-                icon={<span style={{ fontSize: '12px' }}>✕</span>}
+                icon={<span className={styles.popoverCloseIcon}>✕</span>}
                 onClick={() => setIsFilterDialogOpen(false)}
                 size="small"
                 style={{ minWidth: 'auto', padding: '4px' }}
               />
             </div>
-            <label htmlFor={`filter-operator-${columnId}`} style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 600 }}>
+            <label htmlFor={`filter-operator-${columnId}`} className={styles.popoverFieldLabel}>
               Operator
             </label>
             <Select
@@ -758,7 +909,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
               }}
               style={{ width: '100%', marginBottom: '12px', boxSizing: 'border-box' }}
             />
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div className={styles.popoverButtonRow}>
               <Button
                 appearance="primary"
                 onClick={() => {
@@ -798,11 +949,11 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
             onMouseDown={(e: React.MouseEvent) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <span style={{ fontWeight: 600, fontSize: '14px' }}>Column width</span>
+            <div className={styles.popoverHeader}>
+              <span className={styles.popoverTitle}>Column width</span>
               <Button
                 appearance="subtle"
-                icon={<span style={{ fontSize: '12px' }}>✕</span>}
+                icon={<span className={styles.popoverCloseIcon}>✕</span>}
                 onClick={() => setIsWidthDialogOpen(false)}
                 size="small"
                 style={{ minWidth: 'auto', padding: '4px' }}
@@ -814,17 +965,17 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
               onChange={(e) => setColumnWidth(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  // Column width adjustment would be implemented here
+                  applyColumnWidth(columnId, columnWidth);
                   setIsWidthDialogOpen(false);
                 }
               }}
               style={{ width: '100%', marginBottom: '12px', boxSizing: 'border-box' }}
             />
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div className={styles.popoverButtonRow}>
               <Button
                 appearance="primary"
                 onClick={() => {
-                  // Column width adjustment would be implemented here
+                  applyColumnWidth(columnId, columnWidth);
                   setIsWidthDialogOpen(false);
                 }}
                 style={{ flex: 1 }}
@@ -848,7 +999,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   // Calculate column widths based on container width
   // - Fixed columns (width property): exact pixel width, won't change
   // - Flexible columns (minWidth property): expand to fill remaining space
-  const { columnSizingOptions, calculatedTableWidth } = useMemo(() => {
+  const { columnSizingOptions } = useMemo(() => {
     const visibleColumns = (config.tableColumns || []).filter(col => col.visible !== false);
     
     // Selection column takes space if enabled
@@ -857,64 +1008,101 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     // Available width for data columns
     const availableWidth = containerWidth > 0 ? containerWidth - selectionColumnWidth : 0;
     
+    // Find the elastic column (only one allowed — first one wins)
+    const elasticCol = visibleColumns.find(col => col.elastic);
+
     // Separate fixed and flexible columns
     const fixedColumns: { id: string; width: number }[] = [];
     const flexibleColumns: { id: string; minWidth: number }[] = [];
-    
+
     visibleColumns.forEach(col => {
+      // The elastic column is always flexible — skip any explicit width on it
+      if (col.elastic) {
+        const minW = col.minWidth ? parseInt(String(col.minWidth)) || 100 : 100;
+        flexibleColumns.push({ id: col.id, minWidth: minW });
+        return;
+      }
+
       if (col.width) {
         const widthStr = String(col.width).toLowerCase();
-        
-        // 'auto' means flexible column that fills remaining space
+
         if (widthStr === 'auto') {
           flexibleColumns.push({ id: col.id, minWidth: 100 });
         } else {
-          // Fixed width column
           const numericWidth = parseInt(widthStr);
           if (!isNaN(numericWidth) && !widthStr.includes('%')) {
             fixedColumns.push({ id: col.id, width: numericWidth });
           } else {
-            // Percentage or invalid - treat as flexible with default minWidth
             flexibleColumns.push({ id: col.id, minWidth: 100 });
           }
         }
       } else if (col.minWidth) {
-        // Flexible column with minimum width
         const minWidthStr = String(col.minWidth);
         const numericMinWidth = parseInt(minWidthStr);
         if (!isNaN(numericMinWidth) && !minWidthStr.includes('%')) {
-          flexibleColumns.push({ id: col.id, minWidth: numericMinWidth });
+          // When an elastic column exists, treat non-elastic flexible columns
+          // as fixed at their minWidth so only the elastic one grows.
+          if (elasticCol) {
+            fixedColumns.push({ id: col.id, width: numericMinWidth });
+          } else {
+            flexibleColumns.push({ id: col.id, minWidth: numericMinWidth });
+          }
         } else {
           flexibleColumns.push({ id: col.id, minWidth: 100 });
         }
       } else {
-        // No width specified - flexible with default
-        flexibleColumns.push({ id: col.id, minWidth: 100 });
+        // No width specified
+        if (elasticCol) {
+          fixedColumns.push({ id: col.id, width: 100 });
+        } else {
+          flexibleColumns.push({ id: col.id, minWidth: 100 });
+        }
       }
     });
-    
+
     // Calculate total fixed width
     const totalFixedWidth = fixedColumns.reduce((sum, col) => sum + col.width, 0);
-    
+
     // Calculate minimum width needed for flexible columns
     const totalFlexibleMinWidth = flexibleColumns.reduce((sum, col) => sum + col.minWidth, 0);
-    
+
     // Calculate remaining space for flexible columns
     const remainingSpace = availableWidth - totalFixedWidth;
-    
-    // Distribute remaining space among flexible columns
-    // If remaining space > total min width, expand flexible columns proportionally
-    // If remaining space < total min width, use min widths (will cause horizontal scroll)
+
+    // Distribute remaining space among flexible columns.
+    // When an elastic column is set, it gets ALL the remaining space (minus
+    // other flexible columns' minimums). Otherwise distribute proportionally.
     const flexibleColumnWidths: { [id: string]: number } = {};
-    
+
     if (flexibleColumns.length > 0 && remainingSpace > 0) {
-      if (remainingSpace >= totalFlexibleMinWidth) {
-        // We have extra space - distribute proportionally based on minWidth
-        const extraSpace = remainingSpace - totalFlexibleMinWidth;
+      if (elasticCol && remainingSpace >= totalFlexibleMinWidth) {
+        // Elastic mode: non-elastic flexibles get their minWidth,
+        // the elastic column absorbs everything else.
+        let elasticWidth = remainingSpace;
         flexibleColumns.forEach(col => {
-          const proportion = col.minWidth / totalFlexibleMinWidth;
-          flexibleColumnWidths[col.id] = Math.floor(col.minWidth + (extraSpace * proportion));
+          if (col.id === elasticCol.id) return; // handle last
+          flexibleColumnWidths[col.id] = col.minWidth;
+          elasticWidth -= col.minWidth;
         });
+        flexibleColumnWidths[elasticCol.id] = Math.max(
+          flexibleColumns.find(c => c.id === elasticCol.id)!.minWidth,
+          elasticWidth
+        );
+      } else if (remainingSpace >= totalFlexibleMinWidth) {
+        // No elastic column — distribute proportionally.
+        const extraSpace = remainingSpace - totalFlexibleMinWidth;
+        let allocated = 0;
+        flexibleColumns.forEach((col) => {
+          const proportion = col.minWidth / totalFlexibleMinWidth;
+          const w = Math.floor(col.minWidth + (extraSpace * proportion));
+          flexibleColumnWidths[col.id] = w;
+          allocated += w;
+        });
+        // Rounding remainder goes to the first flexible column.
+        const remainder = remainingSpace - allocated;
+        if (remainder > 0 && flexibleColumns.length > 0) {
+          flexibleColumnWidths[flexibleColumns[0].id] += remainder;
+        }
       } else {
         // Not enough space - use minWidth (will scroll)
         flexibleColumns.forEach(col => {
@@ -958,17 +1146,33 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     return { columnSizingOptions: sizing, calculatedTableWidth: totalWidth };
   }, [config.tableColumns, config.selectionMode, containerWidth]);
 
-  // Create a map of column IDs to their calculated widths for direct application
-  const columnWidthMap = useMemo(() => {
-    const widthMap: { [columnId: string]: number } = {};
-    
-    // Get calculated widths from columnSizingOptions
-    Object.entries(columnSizingOptions).forEach(([colId, sizing]) => {
-      widthMap[colId] = sizing.defaultWidth || sizing.idealWidth || sizing.minWidth || 100;
-    });
-    
-    return widthMap;
-  }, [columnSizingOptions]);
+  // Merge user-applied width overrides (from the "Column width" popover) into
+  // the auto-calculated sizing. Overrides replace all three sizing fields so
+  // the column becomes fixed at the user-specified width.
+  const mergedSizingOptions = useMemo(() => {
+    const merged = { ...columnSizingOptions };
+    for (const [colId, widthPx] of Object.entries(columnWidthOverrides)) {
+      merged[colId] = {
+        minWidth: widthPx,
+        idealWidth: widthPx,
+        defaultWidth: widthPx,
+      };
+    }
+    return merged;
+  }, [columnSizingOptions, columnWidthOverrides]);
+
+  // Recalculate total table width including overrides.
+  const mergedTableWidth = useMemo(() => {
+    let total = 0;
+    for (const sizing of Object.values(mergedSizingOptions)) {
+      total += sizing.defaultWidth || sizing.idealWidth || sizing.minWidth || 100;
+    }
+    // Add selection column width
+    if (config.selectionMode && config.selectionMode !== 'none') {
+      total += 48;
+    }
+    return total;
+  }, [mergedSizingOptions, config.selectionMode]);
 
   // Define columns
   const columns: TableColumnDefinition<TableRow>[] = useMemo(() => {
@@ -1010,16 +1214,10 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                 return (
                   <TableCellLayout>
                     <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
+                      className={styles.groupHeaderRow}
                       onClick={() => toggleGroupExpansion(groupKey)}
                     >
-                      <span style={{ fontSize: '16px' }}>{isExpanded ? '▼' : '▶'}</span>
+                      <span className={styles.groupExpandIcon}>{isExpanded ? '▼' : '▶'}</span>
                       <span>{groupKey} ({groupCount})</span>
                     </div>
                   </TableCellLayout>
@@ -1043,6 +1241,26 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                     disabled
                     style={{ pointerEvents: 'none' }}
                   />
+                </TableCellLayout>
+              );
+            }
+
+            // Boolean (check) columns: Fluent check icon when true, Fluent subtract (em-dash) when false
+            if ((column as any).format === 'boolean-check') {
+              const isChecked = cellValue === true || cellValue === 1 || cellValue === 'true';
+              return (
+                <TableCellLayout style={{ justifyContent }}>
+                  {isChecked ? (
+                    <Checkmark20Filled
+                      aria-label="true"
+                      primaryFill={tokens.colorPaletteGreenForeground1}
+                    />
+                  ) : (
+                    <Subtract20Regular
+                      aria-label="false"
+                      primaryFill={tokens.colorNeutralForeground3}
+                    />
+                  )}
                 </TableCellLayout>
               );
             }
@@ -1108,7 +1326,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   if (!columns || columns.length === 0) {
     console.error(...UILIB, '[TableFluentUi] Columns is empty or undefined before DataGrid render!');
     return (
-      <div style={{ padding: '20px', textAlign: 'center', color: tokens.colorPaletteRedForeground1 }}>
+      <div className={styles.errorFallback}>
         Error: Table columns became undefined
       </div>
     );
@@ -1120,11 +1338,11 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
         items={displayData}
         columns={columns as any}
         sortable={!groupByColumn}
-        resizableColumns={false}  // Disable resizing to prevent space distribution
-        columnSizingOptions={columnSizingOptions}
+        resizableColumns  // Allow user to drag column borders to resize
+        columnSizingOptions={mergedSizingOptions}
         selectionMode={config.selectionMode === 'none' ? undefined : config.selectionMode === 'multiple' ? 'multiselect' : 'single'}
         selectedItems={Array.from(selectedRows)}
-        key={`datagrid-${config.tableColumns?.length || 0}-${data.length}-${containerWidth}`}
+        key={`datagrid-${config.tableColumns?.length || 0}-${data.length}-${containerWidth}-${Object.keys(columnWidthOverrides).length}`}
         onSelectionChange={(_, data) => {
           const newSelectedIndexes = new Set<number>();
           const selectedItemsArray = Array.from(data.selectedItems);
@@ -1141,21 +1359,22 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
           }
         }}
         className={styles.dataGrid}
-        style={{ 
-          tableLayout: 'fixed', 
-          width: calculatedTableWidth > containerWidth ? `${calculatedTableWidth}px` : '100%'
+        style={{
+          tableLayout: 'fixed',
+          // Use the exact calculated width so columns don't stretch to fill
+          // leftover space (which makes the last column balloon out). If the
+          // columns need more room than the container, honour that too so the
+          // outer container's overflowX: auto can scroll.
+          width: `${mergedTableWidth}px`
         }}
       >
         <DataGridHeader>
           <DataGridRow>
-            {({ renderHeaderCell, columnId }) => {
-              const colWidth = columnWidthMap[columnId as string];
-              return (
-                <DataGridHeaderCell style={colWidth ? { width: `${colWidth}px`, minWidth: `${colWidth}px`, maxWidth: `${colWidth}px` } : undefined}>
-                  {renderHeaderCell()}
-                </DataGridHeaderCell>
-              );
-            }}
+            {({ renderHeaderCell }) => (
+              <DataGridHeaderCell>
+                {renderHeaderCell()}
+              </DataGridHeaderCell>
+            )}
           </DataGridRow>
         </DataGridHeader>
         <DataGridBody<TableRow>>
@@ -1163,9 +1382,9 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
             const rowIndex = item._index;
             const isSelectable = rowIndex >= 0 ? isRowSelectableCheck(rowIndex) : true;
             const isGroupHeader = (item as any)._isGroupHeader;
-            
+
             return (
-              <DataGridRow<TableRow> 
+              <DataGridRow<TableRow>
                 key={rowId}
                 className={!isSelectable && !isGroupHeader ? styles.disabledRow : undefined}
                 onDoubleClick={() => {
@@ -1175,14 +1394,11 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                 }}
                 style={config.onRowDoubleClick && !isGroupHeader ? { cursor: 'pointer' } : undefined}
               >
-                {({ renderCell, columnId }) => {
-                  const colWidth = columnWidthMap[columnId as string];
-                  return (
-                    <DataGridCell style={colWidth ? { width: `${colWidth}px`, minWidth: `${colWidth}px`, maxWidth: `${colWidth}px` } : undefined}>
-                      {renderCell(item)}
-                    </DataGridCell>
-                  );
-                }}
+                {({ renderCell }) => (
+                  <DataGridCell>
+                    {renderCell(item)}
+                  </DataGridCell>
+                )}
               </DataGridRow>
             );
           }}

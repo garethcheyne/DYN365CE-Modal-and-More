@@ -415,7 +415,11 @@ export const Tests: React.FC = () => {
     { label: 'Basic Lookup', handler: () => {
       err403.Lookup.open({
         entity: 'account',
-        columns: ['name', 'accountnumber', 'telephone1'],
+        tableColumns: [
+          { id: 'name', header: 'Account Name' },
+          { id: 'accountnumber', header: 'Account #' },
+          { id: 'telephone1', header: 'Phone' }
+        ],
         onSelect: (r: any[]) => addLog(setLookupLogs, `✓ Selected: ${r.map(x => x.name).join(', ')}`)
       });
       addLog(setLookupLogs, '✓ Basic lookup opened');
@@ -423,17 +427,23 @@ export const Tests: React.FC = () => {
     { label: 'Multi-Select', handler: () => {
       err403.Lookup.open({
         entity: 'contact',
-        columns: ['fullname', 'emailaddress1'],
+        tableColumns: [
+          { id: 'fullname', header: 'Full Name' },
+          { id: 'emailaddress1', header: 'Email' }
+        ],
         multiSelect: true,
         onSelect: (r: any[]) => addLog(setLookupLogs, `✓ Selected ${r.length} contact(s)`)
       });
       addLog(setLookupLogs, '✓ Multi-select lookup opened');
     }},
-    { label: 'Custom Labels', handler: () => {
+    { label: 'Custom Labels + Format', handler: () => {
       err403.Lookup.open({
         entity: 'account',
-        columns: ['name', 'accountnumber', 'revenue'],
-        columnLabels: { name: 'Account Name', accountnumber: 'Account #', revenue: 'Annual Revenue' },
+        tableColumns: [
+          { id: 'name', header: 'Account Name' },
+          { id: 'accountnumber', header: 'Account #' },
+          { id: 'revenue', header: 'Annual Revenue', format: 'currency', align: 'right' }
+        ],
         onSelect: (r: any[]) => addLog(setLookupLogs, `✓ Selected: ${r[0]?.name || 'none'}`)
       });
       addLog(setLookupLogs, '✓ Custom labels lookup opened');
@@ -441,7 +451,10 @@ export const Tests: React.FC = () => {
     { label: 'Search Fields', handler: () => {
       err403.Lookup.open({
         entity: 'account',
-        columns: ['name', 'accountnumber'],
+        tableColumns: [
+          { id: 'name', header: 'Account Name' },
+          { id: 'accountnumber', header: 'Account #' }
+        ],
         searchFields: ['name', 'accountnumber'],
         onSelect: () => addLog(setLookupLogs, '✓ Search test completed')
       });

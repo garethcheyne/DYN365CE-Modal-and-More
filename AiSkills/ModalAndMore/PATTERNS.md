@@ -317,12 +317,11 @@ PreFilters add dropdown and/or lookup fields in a row between the search box and
 ```javascript
 uiLib.Lookup.open({
   entity: 'opportunity',
-  columns: ['name', 'estimatedvalue', 'closeprobability'],
-  columnLabels: {
-    name: 'Opportunity',
-    estimatedvalue: 'Est. Value',
-    closeprobability: 'Probability'
-  },
+  tableColumns: [
+    { id: 'name', header: 'Opportunity', visible: true, sortable: true, elastic: true },
+    { id: 'estimatedvalue', header: 'Est. Value', visible: true, sortable: true, align: 'right', format: 'currency' },
+    { id: 'closeprobability', header: 'Probability', visible: true, sortable: true, align: 'right', format: 'percent' }
+  ],
   preFilters: [
     // Auto-populated from D365 option set metadata
     { type: 'optionset', attribute: 'statecode', label: 'Status' },
@@ -351,6 +350,62 @@ uiLib.Lookup.open({
 - `lookup` — inline D365 lookup for filtering by a related record
 
 All include an "All" option by default (`includeAll: true`). Set `defaultValue` to pre-select a filter.
+
+---
+
+## Lookup Column Formatting
+
+Lookup uses the same `tableColumns: TableColumn[]` API as Modal `type: 'table'`
+fields. Each column's `format` property controls how the value is rendered —
+currency gets colored formatting, percent auto-detects `0.25` vs `25`, boolean
+shows a switch or check icon, and so on. If you omit `format`, the Lookup reads
+the column's D365 attribute type from entity metadata and renders accordingly.
+
+```javascript
+uiLib.Lookup.open({
+  entity: 'product',
+  title: 'Select Products',
+  size: { width: '80vw', height: '70vh' },
+  tableColumns: [
+    { id: 'name', header: 'Product Name', visible: true, sortable: true, elastic: true },
+    { id: 'hnc_productidpos', header: 'Code (SAP)', visible: true, sortable: true, width: '120px' },
+    { id: 'hnc_bc_productnumber', header: 'Code (BC/GP)', visible: true, sortable: true, width: '120px' },
+    { id: 'hnc_localcorerange', header: 'Core Range', visible: true, sortable: true, align: 'right', format: 'percent' },
+    { id: 'hnc_corestocked', header: 'Core Stocked', visible: true, sortable: true, format: 'boolean-check' },
+    { id: 'hnc_fx_basecostex', header: 'Base Cost Ex', visible: true, sortable: true, align: 'right', format: 'currency' },
+    { id: 'hnc_margin', header: 'Margin', visible: true, sortable: true, align: 'right', format: 'percent' }
+  ],
+  onSelect: (records) => console.debug('Selected:', records)
+});
+```
+
+**When to set `format` explicitly:**
+
+- A calculated/virtual column has no metadata so it falls through to plain text.
+- A `Decimal` field actually represents a percentage and you want `%`.
+- You prefer a compact green check (`boolean-check`) over the default switch for boolean columns.
+- You want to force `text` to skip D365's `FormattedValue` annotation for a column.
+
+**Available `TableColumnFormat` values:** `'currency'` | `'percent'` | `'number'` | `'decimal'` | `'integer'` | `'date'` | `'datetime'` | `'boolean'` | `'boolean-check'` | `'badge'` | `'text'`
+
+**Elastic columns:** Set `elastic: true` on one column to make it absorb all
+remaining horizontal space. In the example above, the "Product Name" column
+stretches to fill available width while the other columns stay at their fixed or
+minimum widths. Only one column should be elastic.
+
+**Viewport-relative sizing:** The `size` property accepts `%`, `vw`, and `vh`
+units (e.g. `'80vw'`, `'70vh'`, `'60%'`). This keeps the Lookup responsive
+across different screen sizes. Column `width` and `minWidth` also accept these
+units.
+
+**Column resizing:** Users can drag column borders to resize columns
+interactively. Set `minWidth` on a column to prevent it from being resized below
+a threshold.
+
+**Caveat:** the forced `currency` formatter is hard-coded `USD`. Real `Money`
+attributes (no `format` override) honor D365's per-row `FormattedValue`, so they
+keep showing the user's regional currency. See `API_REFERENCE.md` →
+`TableColumn` for the full interface definition.
 
 ---
 

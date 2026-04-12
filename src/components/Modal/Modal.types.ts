@@ -65,6 +65,26 @@ export interface SideCartConfig {
     backgroundColor?: string;
 }
 
+/**
+ * Supported column format types. Used by both Modal `type: 'table'` and
+ * `uiLib.Lookup` — a single rendering pipeline in TableFluentUi.
+ *
+ * Numeric formats render with colour: green (positive), red (negative),
+ * grey (zero / null placeholder em-dash).
+ */
+export type TableColumnFormat =
+    | 'currency'        // $1,234.56 — coloured, narrowSymbol, right-aligned by convention
+    | 'percent'         // 25.00% — auto-detects fraction (0.25→25%) vs whole (25→25%); coloured
+    | 'number'          // locale number with thousands separator
+    | 'decimal'         // 2-decimal locale number
+    | 'integer'         // rounded locale integer
+    | 'date'            // date only
+    | 'datetime'        // date + time
+    | 'boolean'         // disabled Fluent Switch
+    | 'boolean-check'   // Fluent Checkmark (true) / Subtract (false) icons
+    | 'badge'           // pill/badge wrapper
+    | 'text';           // raw string, no formatting
+
 export interface TableColumn {
     id: string;
     header: string;
@@ -72,8 +92,9 @@ export interface TableColumn {
     sortable?: boolean;
     width?: string;              // Fixed width (e.g., '120px', '120', or '20%')
     minWidth?: string;           // Minimum width, allows stretching (e.g., '100px', '100')
+    elastic?: boolean;           // This column absorbs all remaining space (only one per table)
     align?: 'left' | 'center' | 'right';
-    format?: 'currency' | 'number' | 'percent' | 'date' | 'boolean';  // Auto-format cell values
+    format?: TableColumnFormat;  // Auto-format cell values
 }
 
 export interface FieldConfig {

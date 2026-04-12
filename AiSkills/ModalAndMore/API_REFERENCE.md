@@ -283,11 +283,10 @@ new uiLib.Lookup(options: LookupOptions);
 ```typescript
 interface LookupOptions {
   entity: string;                                   // Entity logical name
-  columns: string[];                                // Columns to display in table
-  columnLabels?: Record<string, string>;            // Custom column headers
+  tableColumns: TableColumn[];                      // Columns to display (same shape as Modal table fields)
   filters?: string;                                 // OData filter
   orderBy?: { attribute: string; descending: boolean }[];
-  searchFields?: string[];                          // Fields to search (defaults to columns)
+  searchFields?: string[];                          // Fields to search (defaults to tableColumns ids)
   additionalSearchFields?: string[];                // Extra non-displayed search fields
   defaultSearchTerm?: string;                       // Pre-populate search
   preFilters?: PreFilter[];                         // Dropdown/lookup filters between search and table
@@ -296,11 +295,48 @@ interface LookupOptions {
   showPagination?: boolean;                         // Show pagination (default: true)
   allowClear?: boolean;                             // Show clear button (default: true)
   title?: string;                                   // Modal title
-  width?: number;                                   // Modal width
-  height?: number;                                  // Modal height
+  message?: string;                                 // Plain text displayed above the search box
+  content?: string;                                 // HTML displayed above the search box
+  size?: { width?: number | string; height?: number | string };  // Accepts px, %, vw, vh
+  width?: number | string;                          // Shorthand for size.width
+  height?: number | string;                         // Shorthand for size.height
   onSelect?: (records: LookupResult[]) => void;     // Selection callback
   onCancel?: () => void;                            // Cancel callback
 }
+```
+
+### ColumnDisplayType — Removed
+
+`ColumnDisplayType` has been replaced by the `format` property on `TableColumn`.
+See the `TableColumn` section and `TableColumnFormat` type below for the full list
+of format values.
+
+### Column Auto-Detection
+
+Columns without an explicit `format`, `width`, `minWidth`, or `align` get those
+properties auto-detected from D365 entity metadata. For example, a `Money`
+attribute becomes `format: 'currency'` with right-alignment, a `Boolean`
+attribute becomes `format: 'boolean'`, and so on.
+
+You only need to set `format` explicitly when:
+
+- The metadata is wrong or missing (calculated columns, virtual fields)
+- You want a `Decimal` field rendered as `currency` or `percent`
+- You want a Boolean shown as `boolean-check` instead of the default `boolean`
+
+**Example:**
+
+```javascript
+new uiLib.Lookup({
+  entity: 'product',
+  tableColumns: [
+    { id: 'name',                header: 'Product Name', elastic: true },
+    { id: 'hnc_fx_basecostex',  header: 'Base Cost Ex',  format: 'currency' },
+    { id: 'hnc_localcorerange', header: 'Core Range',    format: 'percent' },
+    { id: 'hnc_corestocked',    header: 'Core Stocked',  format: 'boolean-check' }
+  ],
+  onSelect: (records) => console.debug(records)
+});
 ```
 
 ### PreFilter
@@ -356,8 +392,11 @@ interface LookupResult {
 ```javascript
 new uiLib.Lookup({
   entity: 'account',
-  columns: ['name', 'telephone1', 'emailaddress1'],
-  columnLabels: { name: 'Account Name', telephone1: 'Phone' },
+  tableColumns: [
+    { id: 'name',          header: 'Account Name', elastic: true, sortable: true },
+    { id: 'telephone1',    header: 'Phone',        width: '160px' },
+    { id: 'emailaddress1', header: 'Email',        width: '220px' }
+  ],
   filters: 'statecode eq 0',
   multiSelect: true,
   onSelect: (records) => console.debug(records)
@@ -366,11 +405,28 @@ new uiLib.Lookup({
 // With preFilters
 new uiLib.Lookup({
   entity: 'opportunity',
-  columns: ['name', 'estimatedvalue'],
+  tableColumns: [
+    { id: 'name',           header: 'Opportunity', elastic: true, sortable: true },
+    { id: 'estimatedvalue', header: 'Est. Value',  format: 'currency', width: '140px' }
+  ],
   preFilters: [
     { type: 'optionset', attribute: 'statecode', label: 'Status' },
     { type: 'lookup', attribute: 'parentaccountid', label: 'Account',
       entityName: 'account', lookupColumns: ['name'] }
+  ],
+  onSelect: (records) => console.debug(records)
+}).show();
+
+// With message, content, and custom size
+new uiLib.Lookup({
+  entity: 'contact',
+  title: 'Select Contact',
+  message: 'Choose a contact to associate with this case.',
+  size: { width: '80vw', height: '70vh' },
+  tableColumns: [
+    { id: 'fullname',      header: 'Full Name',  elastic: true, sortable: true },
+    { id: 'emailaddress1', header: 'Email',       width: '220px' },
+    { id: 'jobtitle',      header: 'Job Title',   width: '180px' }
   ],
   onSelect: (records) => console.debug(records)
 }).show();
@@ -550,6 +606,8 @@ requiredWhen: { field: 'contactMethod', operator: 'equals', value: 'Email' }
 
 ## TableColumn
 
+Used by both Modal `type: 'table'` fields and `uiLib.Lookup` via `tableColumns`.
+
 ```typescript
 interface TableColumn {
   id: string;                      // Column identifier (matches data key)
@@ -558,13 +616,41 @@ interface TableColumn {
   sortable?: boolean;              // Allow sorting (default: false)
   width?: string;                  // Fixed width ('120px', '20%')
   minWidth?: string;               // Minimum width, allows stretch
+  elastic?: boolean;               // Absorb all remaining table width (only one per table)
   align?: 'left' | 'center' | 'right';
-  format?: 'currency' | 'number' | 'percent' | 'date';  // Auto-format values
+  format?: TableColumnFormat;      // Display format (see below)
 }
 ```
 
+Columns are resizable by dragging column borders at runtime.
+
+### TableColumnFormat
+
+```typescript
+type TableColumnFormat =
+  | 'currency'        // $1,234.56 — thousand separator, green >= 0, red < 0, right-aligned
+  | 'percent'         // 25.00% — auto-detects 0.25 → 25.00% vs 25 → 25.00%; right-aligned
+  | 'number'          // locale-formatted with thousand separator, right-aligned
+  | 'decimal'         // 2-decimal locale-formatted number, right-aligned
+  | 'integer'         // rounded locale-formatted integer, right-aligned
+  | 'date'            // date only (MM/DD/YYYY, accepts Date objects or ISO strings)
+  | 'datetime'        // date + time
+  | 'boolean'         // disabled Fluent Switch (default for Boolean attributes)
+  | 'boolean-check'   // green check icon when true, em-dash when false
+  | 'badge'           // pill/badge wrapper around the text
+  | 'text';           // raw string, skips D365 FormattedValue annotation
+```
+
 **Format behaviors:**
-- `currency` → `$1,234.56` (USD, 2 decimals)
+
+- `currency` → `$1,234.56` (USD, 2 decimals, green/red coloring)
 - `number` → `1,234` (thousands separator)
-- `percent` → `12.34%` (input should be decimal: `0.1234`)
+- `decimal` → `1,234.56` (2-decimal locale formatting)
+- `integer` → `1,235` (rounded, no decimals)
+- `percent` → `12.34%` (auto-detects fraction vs whole-number input)
 - `date` → `MM/DD/YYYY` (accepts Date objects or ISO strings)
+- `datetime` → `MM/DD/YYYY HH:MM AM/PM`
+- `boolean` → disabled Fluent Switch toggle
+- `boolean-check` → green check icon when true, em-dash when false
+- `badge` → colored pill/badge wrapper
+- `text` → raw string output, bypasses D365 FormattedValue annotation

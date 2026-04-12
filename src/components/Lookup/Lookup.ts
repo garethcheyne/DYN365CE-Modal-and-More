@@ -7,6 +7,7 @@
 import { Modal } from '../Modal/Modal';
 import { ModalButton } from '../Modal/Modal.types';
 import type { LookupOptions, LookupResult, EntityMetadata, PreFilter } from './Lookup.types';
+import type { TableColumn } from '../Modal/Modal.types';
 import { UILIB } from '../Logger/Logger';
 import { getD365ApiMode } from '../../utils/dom';
 import { fetchEntityMetadata as directFetchMeta, retrieveMultipleRecords as directRetrieve, fetchOptionSet as directFetchOptionSet } from '../../utils/d365-web-api';
@@ -14,7 +15,11 @@ import { fetchEntityMetadata as directFetchMeta, retrieveMultipleRecords as dire
 // Metadata cache to avoid repeated API calls
 const metadataCache: Map<string, EntityMetadata> = new Map();
 
-// Mock data generator for when Xrm is not available
+// Mock data generator for when Xrm is not available.
+// Each entity intentionally exposes a wide variety of column types
+// (string / number / decimal / currency / percent / boolean / date /
+// option-set) so the demo harness can exercise every `TableColumn.format`
+// override without needing live D365 metadata.
 function generateMockData(entity: string, count: number = 50): any[] {
   const mockData: any[] = [];
 
@@ -22,26 +27,46 @@ function generateMockData(entity: string, count: number = 50): any[] {
   const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
   const companies = ['Acme Corp', 'TechCo', 'Global Industries', 'Innovation Labs', 'Premier Solutions', 'Summit Group', 'Venture Partners', 'Elite Services'];
   const cities = ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego'];
+  const industries = ['Technology', 'Manufacturing', 'Retail', 'Healthcare', 'Finance', 'Energy'];
+  const productNames = ['Atlas', 'Beacon', 'Crystal', 'Drift', 'Echo', 'Forge', 'Glacier', 'Harbor', 'Indigo', 'Jewel', 'Kepler', 'Lumen'];
+  const productSuffixes = ['Pro', 'Lite', 'Max', 'XL', 'Mini', 'Plus', 'Ultra', 'Edge'];
+  const hierarchies = ['Hardware > Networking', 'Hardware > Storage', 'Software > Productivity', 'Software > Security', 'Services > Consulting'];
+
+  // Deterministic-ish pseudo-random helper so demos don't reshuffle on each open.
+  // (Switch to Math.random() if you'd rather have noise.)
+  const rand = (seed: number, mod: number) => ((seed * 9301 + 49297) % 233280) / 233280 * mod;
 
   for (let i = 0; i < count; i++) {
     const id = `${i + 1}`.padStart(8, '0') + '-0000-0000-0000-000000000000';
 
     if (entity === 'account') {
       const company = companies[i % companies.length];
+      const revenue = Math.floor(rand(i + 1, 10000000) + 500000);
+      const creditLimit = Math.floor(revenue * (0.05 + rand(i + 7, 0.15)));
+      const growth = (rand(i + 13, 60) - 20) / 100; // -0.20 .. +0.40
       mockData.push({
         accountid: id,
         name: `${company} ${i > 7 ? i - 7 : ''}`.trim(),
         accountnumber: `ACC-${1000 + i}`,
-        telephone1: `555-${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 9000 + 1000)}`,
+        telephone1: `555-${Math.floor(rand(i + 2, 900) + 100)}-${Math.floor(rand(i + 3, 9000) + 1000)}`,
         emailaddress1: `contact@${company.toLowerCase().replace(/\s/g, '')}.com`,
         address1_city: cities[i % cities.length],
-        revenue: Math.floor(Math.random() * 10000000),
+        industrycode: industries[i % industries.length],
+        revenue: revenue,
+        creditlimit: creditLimit,
+        numberofemployees: Math.floor(rand(i + 5, 5000) + 50),
+        yoy_growth: growth,
+        is_preferred: i % 3 === 0,
+        is_active: i % 7 !== 0,
         websiteurl: `https://www.${company.toLowerCase().replace(/\s/g, '')}.com`,
-        createdon: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString()
+        lastcontacted: new Date(Date.now() - rand(i + 17, 180) * 24 * 60 * 60 * 1000).toISOString(),
+        createdon: new Date(Date.now() - rand(i + 19, 365) * 24 * 60 * 60 * 1000).toISOString()
       });
     } else if (entity === 'contact') {
       const firstName = firstNames[i % firstNames.length];
       const lastName = lastNames[Math.floor(i / firstNames.length) % lastNames.length];
+      const salary = Math.floor(rand(i + 1, 120000) + 40000);
+      const commission = (rand(i + 11, 25)) / 100; // 0 .. 0.25
       mockData.push({
         contactid: id,
         fullname: `${firstName} ${lastName}`,
@@ -49,17 +74,59 @@ function generateMockData(entity: string, count: number = 50): any[] {
         firstname: firstName,
         lastname: lastName,
         emailaddress1: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`,
-        telephone1: `555-${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 9000 + 1000)}`,
+        telephone1: `555-${Math.floor(rand(i + 2, 900) + 100)}-${Math.floor(rand(i + 3, 9000) + 1000)}`,
         jobtitle: ['Manager', 'Director', 'VP', 'Analyst', 'Specialist'][i % 5],
         parentcustomerid: companies[i % companies.length],
-        createdon: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString()
+        annualincome: salary,
+        commissionrate: commission,
+        vacationdays: Math.floor(rand(i + 7, 25) + 5),
+        donotemail: i % 5 === 0,
+        is_active: i % 4 !== 0,
+        createdon: new Date(Date.now() - rand(i + 19, 365) * 24 * 60 * 60 * 1000).toISOString()
+      });
+    } else if (entity === 'product') {
+      // Rich product entity that mirrors the real-world Lookup demo example —
+      // numeric (currency), decimal (percent), boolean, badge, dates.
+      const baseName = productNames[i % productNames.length];
+      const suffix = productSuffixes[i % productSuffixes.length];
+      const baseCost = +(rand(i + 1, 800) + 12).toFixed(2);
+      const margin = +((rand(i + 5, 50) + 8) / 100).toFixed(4); // 0.08 .. 0.58
+      const stockOnHand = Math.floor(rand(i + 9, 500));
+      mockData.push({
+        productid: id,
+        name: `${baseName} ${suffix} ${i + 1}`,
+        hnc_productidpos: `SAP-${(2000 + i).toString()}`,
+        hnc_bc_productnumber: `BC-${(5000 + i).toString()}`,
+        hnc_hierarchy: hierarchies[i % hierarchies.length],
+        hnc_localcorerange: +((rand(i + 3, 100)) / 100).toFixed(4), // 0..1 fraction
+        hnc_corestocked: i % 3 !== 0,
+        hnc_fx_basecostex: baseCost,
+        hnc_margin: margin,
+        hnc_stockonhand: stockOnHand,
+        hnc_lastreceived: new Date(Date.now() - rand(i + 11, 90) * 24 * 60 * 60 * 1000).toISOString(),
+        statuscode: i % 4 === 0 ? 'Discontinued' : 'Active',
+        createdon: new Date(Date.now() - rand(i + 19, 365) * 24 * 60 * 60 * 1000).toISOString()
+      });
+    } else if (entity === 'opportunity') {
+      // Existing demo uses opportunity for the preFilters lookup. Add numeric
+      // columns so the demo can exercise currency / percent overrides too.
+      mockData.push({
+        opportunityid: id,
+        name: `${companies[i % companies.length]} Renewal ${i + 1}`,
+        estimatedvalue: Math.floor(rand(i + 1, 250000) + 5000),
+        closeprobability: Math.floor(rand(i + 7, 95) + 5), // 5..100 (whole percent)
+        statecode: i % 3 === 0 ? 1 : 0,
+        prioritycode: (i % 3) + 1,
+        is_won: i % 5 === 0,
+        estimatedclosedate: new Date(Date.now() + rand(i + 11, 90) * 24 * 60 * 60 * 1000).toISOString(),
+        createdon: new Date(Date.now() - rand(i + 19, 365) * 24 * 60 * 60 * 1000).toISOString()
       });
     } else {
       // Generic entity
       mockData.push({
         [`${entity}id`]: id,
         name: `${entity.charAt(0).toUpperCase() + entity.slice(1)} Record ${i + 1}`,
-        createdon: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString()
+        createdon: new Date(Date.now() - rand(i + 19, 365) * 24 * 60 * 60 * 1000).toISOString()
       });
     }
   }
@@ -414,51 +481,59 @@ const MONEY_TYPES = new Set(['Money']);
 const BOOLEAN_TYPES = new Set(['Boolean']);
 const OPTIONSET_TYPES = new Set(['Picklist', 'State', 'Status']);
 
-// Attribute types that always produce narrow/fixed-width content
+// Fixed-width constraints keyed by TableColumnFormat (the unified format string
+// used by both Modal tables and Lookups). Columns whose resolved format is in
+// this map get a fixed `width` instead of a flexible `minWidth`.
 const FIXED_WIDTH_TYPES: Record<string, { min: number; max: number }> = {
-  'Boolean':  { min: 80, max: 120 },
-  'Money':    { min: 100, max: 160 },
-  'Picklist': { min: 80, max: 200 },
-  'State':    { min: 80, max: 160 },
-  'Status':   { min: 80, max: 180 },
-  'Integer':  { min: 70, max: 130 },
-  'BigInt':   { min: 70, max: 130 },
-  'Decimal':  { min: 80, max: 140 },
-  'Double':   { min: 80, max: 140 },
-  'DateTime': { min: 130, max: 200 },
+  'boolean':        { min: 80, max: 120 },
+  'boolean-check':  { min: 70, max: 110 },
+  'currency':       { min: 100, max: 160 },
+  'percent':        { min: 80, max: 130 },
+  'number':         { min: 80, max: 140 },
+  'decimal':        { min: 80, max: 140 },
+  'integer':        { min: 70, max: 130 },
+  'date':           { min: 100, max: 160 },
+  'datetime':       { min: 130, max: 200 },
+  'badge':          { min: 80, max: 200 },
 };
 
 /**
- * Calculate smart column widths based on actual data content and attribute metadata.
- * - Fixed-width types (boolean, money, etc.) get a `width` (won't expand)
- * - Text/string columns get a `minWidth` (flexible, fill remaining space)
+ * Auto-size columns that don't have an explicit `width` or `minWidth`.
+ * Mutates the input array — columns that already have sizing are untouched.
+ *
+ * - Columns with a format in FIXED_WIDTH_TYPES get a fixed `width`
+ * - All others get a flexible `minWidth` bounded by header text
  */
-function calculateSmartColumnWidths(
-  columns: string[],
+function autoSizeColumns(
+  tableColumns: TableColumn[],
   tableData: any[],
-  columnLabels: Record<string, string>,
   metadata: any | undefined
-): Record<string, { width?: string; minWidth?: string }> {
-  const CHAR_WIDTH = 8;    // ~px per character
-  const PADDING = 32;      // cell padding (16px each side)
-  const HEADER_EXTRA = 40; // space for sort arrow icon
-  const ABS_MIN = 60;
-  const ABS_MAX = 400;
+): void {
+  const CHAR_WIDTH = 8;
+  const PADDING = 32;
+  const HEADER_EXTRA = 40;
+  const TEXT_FLOOR_MIN = 80;
+  const TEXT_FLOOR_MAX = 180;
+  const HEADER_FLOOR_PAD = 16;
 
-  const result: Record<string, { width?: string; minWidth?: string }> = {};
+  for (const col of tableColumns) {
+    // Elastic columns always get minWidth (never fixed width) so the
+    // TableFluentUi sizing logic can give them all the remaining space.
+    // Skip columns that already have explicit sizing (unless elastic).
+    if (!col.elastic && (col.width || col.minWidth)) continue;
 
-  for (const col of columns) {
-    const attrMeta = metadata?.Attributes?.find((a: any) => a.LogicalName === col);
-    const attrType: string | undefined = attrMeta?.AttributeType;
+    // Resolve format (explicit or from metadata)
+    const attrMeta = metadata?.Attributes?.find((a: any) => a.LogicalName === col.id);
+    const colFormat = resolveColumnFormat(col.format, attrMeta?.AttributeType);
 
-    // --- Header width ---
-    const headerText = columnLabels[col] || col;
+    // Header width
+    const headerText = col.header || col.id;
     const headerWidth = (headerText.length * CHAR_WIDTH) + HEADER_EXTRA;
 
-    // --- Max data content width (strip HTML to get display text) ---
+    // Max data content width
     let maxContentLen = 0;
     for (const row of tableData) {
-      const val = row[col];
+      const val = row[col.id];
       if (val == null || val === '') continue;
       const text = typeof val === 'string' && val.includes('<')
         ? val.replace(/<[^>]*>/g, '')
@@ -467,81 +542,103 @@ function calculateSmartColumnWidths(
     }
     const contentWidth = (maxContentLen * CHAR_WIDTH) + PADDING;
 
-    // --- Type-based sizing ---
-    const typeConstraint = attrType ? FIXED_WIDTH_TYPES[attrType] : undefined;
+    // Type-based sizing
+    const typeConstraint = colFormat ? FIXED_WIDTH_TYPES[colFormat] : undefined;
 
-    if (typeConstraint) {
-      // Known narrow type → fixed width clamped by type constraints
+    if (col.elastic) {
+      // Elastic column: always flexible, never fixed. Use header-based floor.
+      const headerFloor = Math.min(TEXT_FLOOR_MAX, headerWidth + HEADER_FLOOR_PAD);
+      col.minWidth = `${Math.max(TEXT_FLOOR_MIN, headerFloor)}px`;
+      delete col.width; // ensure no fixed width overrides elastic behavior
+    } else if (typeConstraint) {
       const ideal = Math.max(headerWidth, contentWidth);
       const clamped = Math.max(typeConstraint.min, Math.min(typeConstraint.max, ideal));
-      result[col] = { width: `${clamped}px` };
+      col.width = `${clamped}px`;
     } else {
-      // String/text/unknown → flexible, fill remaining space
-      const ideal = Math.max(headerWidth, contentWidth);
-      const minW = Math.max(ABS_MIN, Math.min(ABS_MAX, ideal));
-      result[col] = { minWidth: `${minW}px` };
+      const headerFloor = Math.min(TEXT_FLOOR_MAX, headerWidth + HEADER_FLOOR_PAD);
+      const minW = Math.max(TEXT_FLOOR_MIN, headerFloor);
+      col.minWidth = `${minW}px`;
+    }
+
+    // Also auto-set format if the user didn't provide one but metadata says it should have one
+    if (!col.format && colFormat) {
+      (col as any).format = colFormat;
+    }
+
+    // Auto-align based on format
+    if (!col.align && colFormat) {
+      const numericFormats = ['currency', 'percent', 'number', 'decimal', 'integer'];
+      const centeredFormats = ['boolean', 'boolean-check'];
+      if (centeredFormats.indexOf(colFormat) !== -1) {
+        col.align = 'center';
+      } else if (numericFormats.indexOf(colFormat) !== -1) {
+        col.align = 'right';
+      }
     }
   }
-
-  return result;
 }
 
 /**
- * Format a cell value for display in the lookup table.
- * Uses D365 formatted value annotations when available, falls back to type-based formatting.
- * Returns HTML strings for styled rendering (money, boolean, optionset).
+ * Extract a cell value from a D365 record for the lookup table.
+ *
+ * When the column has an explicit `format` (via `TableColumn.format`), pass the
+ * raw value through — `TableFluentUi.formatCellValue` will handle the rendering.
+ *
+ * When no explicit format is set, use D365's `FormattedValue` annotation if
+ * available (it already contains locale-aware formatting for dates, option sets,
+ * lookups, etc.). Otherwise fall back to the raw value.
+ *
+ * This keeps Lookup as a thin data extractor. All visual formatting lives in
+ * `TableFluentUi` — one rendering pipeline for both Modal tables and Lookups.
  */
-function formatCellValue(record: any, column: string, attributeType?: string): string | boolean {
+function extractCellValue(
+  record: any,
+  column: string,
+  columnFormat?: string
+): any {
+  const rawValue = record[column];
   const formattedKey = `${column}@OData.Community.Display.V1.FormattedValue`;
   const formattedValue = record[formattedKey];
-  const rawValue = record[column];
 
-  if (rawValue === null || rawValue === undefined) {
-    return '';
+  // When the column has an explicit format (e.g. 'currency', 'percent',
+  // 'boolean-check'), pass the raw value so TableFluentUi can format it.
+  if (columnFormat) {
+    return rawValue ?? null;
   }
 
-  // --- Money: green for positive, red for negative ---
-  if (attributeType && MONEY_TYPES.has(attributeType)) {
-    const display = formattedValue ?? (typeof rawValue === 'number' ? rawValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : String(rawValue));
-    const color = (typeof rawValue === 'number' && rawValue < 0) ? '#d13438' : '#107c10';
-    return `<span style="color:${color};font-weight:600">${display}</span>`;
-  }
-
-  // --- Boolean: return raw boolean for Switch rendering in table ---
-  if (attributeType && BOOLEAN_TYPES.has(attributeType)) {
-    return rawValue === true || rawValue === 1 ? true : false;
-  }
-
-  // --- OptionSet / Status / State: use formatted label with subtle badge ---
-  if (attributeType && OPTIONSET_TYPES.has(attributeType)) {
-    const label = formattedValue ?? String(rawValue);
-    return `<span style="background:#f0f0f0;color:#242424;padding:2px 10px;border-radius:12px;font-size:12px">${label}</span>`;
-  }
-
-  // --- Use D365 formatted value if available (dates, lookups, etc.) ---
-  if (formattedValue) {
+  // No explicit format — use D365's formatted value when available.
+  if (formattedValue != null) {
     return formattedValue;
   }
 
-  // --- Fallback: basic type detection ---
-  if (attributeType === 'DateTime' || rawValue instanceof Date || (typeof rawValue === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(rawValue))) {
-    try {
-      const date = new Date(rawValue);
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-    } catch {
-      return String(rawValue);
-    }
-  }
-
-  if (typeof rawValue === 'number') {
-    return rawValue.toLocaleString();
-  }
-
-  if (typeof rawValue === 'object' && rawValue._value !== undefined) {
+  // Fallback: raw value as-is. TableFluentUi will render it as text.
+  if (rawValue != null && typeof rawValue === 'object' && rawValue._value !== undefined) {
     return rawValue._value || '';
   }
 
-  return String(rawValue);
+  return rawValue ?? '';
+}
+
+/**
+ * Resolve the effective format for a column. If the column already has an
+ * explicit `format`, return it. Otherwise auto-detect from D365 metadata.
+ */
+function resolveColumnFormat(
+  explicitFormat?: string,
+  attributeType?: string
+): string | undefined {
+  if (explicitFormat) return explicitFormat;
+
+  if (attributeType) {
+    if (MONEY_TYPES.has(attributeType))     return 'currency';
+    if (BOOLEAN_TYPES.has(attributeType))   return 'boolean';
+    if (OPTIONSET_TYPES.has(attributeType)) return 'badge';
+    if (attributeType === 'DateTime')       return 'datetime';
+    if (attributeType === 'Integer' || attributeType === 'BigInt') return 'integer';
+    if (attributeType === 'Decimal' || attributeType === 'Double') return 'number';
+  }
+
+  return undefined;
 }
 
 // Fetch option set values from D365
@@ -582,6 +679,8 @@ export class Lookup {
   private static activeModal: Modal | null = null;
 
   private options: Required<Omit<LookupOptions, 'preFilters' | 'size'>> & { preFilters: PreFilter[] };
+  /** Column IDs derived from tableColumns — used for OData fetch / search */
+  private columnIds: string[];
   private records: any[] = [];
   private filteredRecords: any[] = [];
   private selectedRecords: Set<string> = new Set();
@@ -590,19 +689,27 @@ export class Lookup {
   private currentModal: Modal | null = null;
 
   private constructor(options: LookupOptions) {
-    // Set defaults
+    // Derive column ID list from the tableColumns definitions
+    this.columnIds = options.tableColumns.map(c => c.id);
+
+    // Set defaults — tableColumns is stored as-is (same shape as Modal tables)
     this.options = {
       entity: options.entity || 'account',
-      columns: options.columns,
-      columnLabels: options.columnLabels || {},
+      tableColumns: options.tableColumns.map(c => ({
+        ...c,
+        visible: c.visible !== false,
+        sortable: c.sortable !== false
+      })),
       filters: options.filters || '',
       orderBy: options.orderBy || [],
       multiSelect: options.multiSelect ?? false,
-      searchFields: options.searchFields || options.columns,
+      searchFields: options.searchFields || this.columnIds,
       additionalSearchFields: options.additionalSearchFields || [],
       defaultSearchTerm: options.defaultSearchTerm || '',
       preFilters: options.preFilters || [],
       title: options.title || `Select ${options.entity?.charAt(0).toUpperCase()}${options.entity?.slice(1)}`,
+      message: options.message || '',
+      content: options.content || '',
       width: options.width || (options.size as any)?.width || 900,
       height: options.height || (options.size as any)?.height || 600,
       pageSize: options.pageSize || 50,
@@ -611,6 +718,7 @@ export class Lookup {
       onSelect: options.onSelect,
       onCancel: options.onCancel || (() => { })
     };
+
 
     this.searchTerm = this.options.defaultSearchTerm;
 
@@ -676,7 +784,7 @@ export class Lookup {
 
     const result = await fetchRecords(
       this.options.entity,
-      this.options.columns,
+      this.columnIds,
       combinedFilter || undefined,
       this.options.orderBy,
       1,
@@ -699,9 +807,10 @@ export class Lookup {
 
       const updatedData = this.filteredRecords.map(record => {
         const row: any = { _id: record[primaryIdAttr] };
-        this.options.columns.forEach(col => {
-          const attrMeta = metadata?.Attributes?.find(a => a.LogicalName === col);
-          row[col] = formatCellValue(record, col, attrMeta?.AttributeType);
+        this.options.tableColumns.forEach(col => {
+          const colFormat = resolveColumnFormat(col.format,
+            metadata?.Attributes?.find(a => a.LogicalName === col.id)?.AttributeType);
+          row[col.id] = extractCellValue(record, col.id, colFormat);
         });
         return row;
       });
@@ -713,40 +822,24 @@ export class Lookup {
     const metadata = metadataCache.get(this.options.entity);
     const primaryIdAttr = metadata?.PrimaryIdAttribute || `${this.options.entity}id`;
 
-    // Prepare table data first (needed for smart width calculation)
+    // Prepare table data — pass raw values, let TableFluentUi format them.
     const tableData = this.filteredRecords.map(record => {
       const row: any = { _id: record[primaryIdAttr] };
-      this.options.columns.forEach(col => {
-        const attrMeta = metadata?.Attributes?.find(a => a.LogicalName === col);
-        row[col] = formatCellValue(record, col, attrMeta?.AttributeType);
+      this.options.tableColumns.forEach(col => {
+        const colFormat = resolveColumnFormat(col.format,
+          metadata?.Attributes?.find(a => a.LogicalName === col.id)?.AttributeType);
+        row[col.id] = extractCellValue(record, col.id, colFormat);
       });
       return row;
     });
 
-    // Prepare table columns with smart widths based on data content
-    const smartWidths = calculateSmartColumnWidths(
-      this.options.columns,
-      tableData,
-      this.options.columnLabels,
-      metadata
-    );
+    // Deep-copy columns so autoSizeColumns can mutate without touching the
+    // original options (which are reused on refreshTable).
+    const columns: TableColumn[] = this.options.tableColumns.map(c => ({ ...c }));
 
-    const columns = this.options.columns.map(col => {
-      const attrMeta = metadata?.Attributes?.find((a: any) => a.LogicalName === col);
-      const attrType: string | undefined = attrMeta?.AttributeType;
-      const colDef: any = {
-        id: col,
-        header: this.options.columnLabels[col] || col,
-        visible: true,
-        sortable: true,
-        ...smartWidths[col]
-      };
-      if (attrType && BOOLEAN_TYPES.has(attrType)) {
-        colDef.format = 'boolean';
-        colDef.align = 'center';
-      }
-      return colDef;
-    });
+    // Auto-size columns that don't have explicit width/minWidth, and auto-set
+    // format + align from D365 metadata for columns that don't specify them.
+    autoSizeColumns(columns, tableData, metadata);
 
     const self = this;
 
@@ -864,6 +957,8 @@ export class Lookup {
     // Create and show modal
     const modal = new Modal({
       title: this.options.title,
+      message: this.options.message || undefined,
+      content: this.options.content || undefined,
       fields: fields,
       buttons: buttons,
       size: 'custom',
