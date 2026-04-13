@@ -1161,18 +1161,27 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
     return merged;
   }, [columnSizingOptions, columnWidthOverrides]);
 
+  // Build a map of column ID → calculated pixel width for inline cell styles.
+  // Fluent's resizableColumns doesn't strictly honour columnSizingOptions —
+  // it treats them as hints and redistributes space (dumping slack on the last
+  // column). Applying width + minWidth directly on cells enforces our layout
+  // while still allowing the user to drag-resize (no maxWidth lock).
+  const columnWidthMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const [colId, sizing] of Object.entries(mergedSizingOptions)) {
+      map[colId] = sizing.defaultWidth || sizing.idealWidth || sizing.minWidth || 100;
+    }
+    return map;
+  }, [mergedSizingOptions]);
+
   // Recalculate total table width including overrides.
   const mergedTableWidth = useMemo(() => {
-    let total = 0;
-    for (const sizing of Object.values(mergedSizingOptions)) {
-      total += sizing.defaultWidth || sizing.idealWidth || sizing.minWidth || 100;
-    }
-    // Add selection column width
+    let total = Object.values(columnWidthMap).reduce((sum, w) => sum + w, 0);
     if (config.selectionMode && config.selectionMode !== 'none') {
       total += 48;
     }
     return total;
-  }, [mergedSizingOptions, config.selectionMode]);
+  }, [columnWidthMap, config.selectionMode]);
 
   // Define columns
   const columns: TableColumnDefinition<TableRow>[] = useMemo(() => {
@@ -1370,11 +1379,14 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
       >
         <DataGridHeader>
           <DataGridRow>
-            {({ renderHeaderCell }) => (
-              <DataGridHeaderCell>
-                {renderHeaderCell()}
-              </DataGridHeaderCell>
-            )}
+            {({ renderHeaderCell, columnId }) => {
+              const w = columnWidthMap[columnId as string];
+              return (
+                <DataGridHeaderCell style={w ? { width: `${w}px`, minWidth: `${w}px` } : undefined}>
+                  {renderHeaderCell()}
+                </DataGridHeaderCell>
+              );
+            }}
           </DataGridRow>
         </DataGridHeader>
         <DataGridBody<TableRow>>
@@ -1394,11 +1406,14 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                 }}
                 style={config.onRowDoubleClick && !isGroupHeader ? { cursor: 'pointer' } : undefined}
               >
-                {({ renderCell }) => (
-                  <DataGridCell>
-                    {renderCell(item)}
-                  </DataGridCell>
-                )}
+                {({ renderCell, columnId }) => {
+                  const w = columnWidthMap[columnId as string];
+                  return (
+                    <DataGridCell style={w ? { width: `${w}px`, minWidth: `${w}px` } : undefined}>
+                      {renderCell(item)}
+                    </DataGridCell>
+                  );
+                }}
               </DataGridRow>
             );
           }}

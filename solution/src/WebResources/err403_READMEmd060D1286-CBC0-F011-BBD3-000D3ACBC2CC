@@ -1147,16 +1147,14 @@ function selectAccount() {
   // Modal Dialog Lookup (full-screen with table)
   new uiLib.Lookup({
     entityName: 'account',
-    columns: ['name', 'accountnumber', 'telephone1', 'address1_city'],
-    columnLabels: {
-      name: 'Account Name',
-      accountnumber: 'Account #',
-      telephone1: 'Phone',
-      address1_city: 'City'
-    },
+    tableColumns: [
+      { id: 'name', header: 'Account Name', sortable: true, elastic: true },
+      { id: 'accountnumber', header: 'Account #', sortable: true, width: '140px' },
+      { id: 'telephone1', header: 'Phone', width: '140px' },
+      { id: 'address1_city', header: 'City', sortable: true, width: '120px' }
+    ],
     searchFields: ['name', 'accountnumber'], // Search in these visible fields
     additionalSearchFields: ['emailaddress1', 'websiteurl'], // Also search email/website but don't display
-    onSelect: function(results) {
     onSelect: function(results) {
       if (results.length > 0) {
         var account = results[0];
@@ -1187,8 +1185,11 @@ Add dropdown or lookup filters between the search box and results table:
 function selectOpportunity() {
   new uiLib.Lookup({
     entityName: 'opportunity',
-    columns: ['name', 'estimatedvalue', 'closeprobability'],
-    columnLabels: { name: 'Opportunity', estimatedvalue: 'Est. Value', closeprobability: 'Probability' },
+    tableColumns: [
+      { id: 'name', header: 'Opportunity', sortable: true, elastic: true },
+      { id: 'estimatedvalue', header: 'Est. Value', sortable: true, align: 'right', format: 'currency', width: '140px' },
+      { id: 'closeprobability', header: 'Probability', sortable: true, align: 'right', format: 'percent', width: '120px' }
+    ],
     preFilters: [
       // Auto-populated from D365 option set metadata
       { type: 'optionset', attribute: 'statecode', label: 'Status' },
@@ -1232,7 +1233,11 @@ function selectActiveAccount() {
   // Modal Dialog Lookup with filtering
   new uiLib.Lookup({
     entityName: 'account',
-    columns: ['name', 'accountnumber', 'revenue'],
+    tableColumns: [
+      { id: 'name', header: 'Account Name', sortable: true, elastic: true },
+      { id: 'accountnumber', header: 'Account #', sortable: true, width: '140px' },
+      { id: 'revenue', header: 'Revenue', sortable: true, align: 'right', format: 'currency', width: '140px' }
+    ],
     filters: 'statecode eq 0', // OData filter for active records
     multiple: false, // Single selection
     onSelect: function(results) {
@@ -1267,9 +1272,9 @@ function showContactsTable() {
             label: 'Contacts',
             tableColumns: [
               { id: 'fullname', header: 'Full Name', visible: true, sortable: true, width: '200px' },
-              { id: 'emailaddress1', header: 'Email', visible: true, sortable: true, width: '250px' },
+              { id: 'emailaddress1', header: 'Email', visible: true, sortable: true, elastic: true },
               { id: 'telephone1', header: 'Phone', visible: true, sortable: false, width: '150px' },
-              { id: 'jobtitle', header: 'Job Title', visible: true, sortable: true },
+              { id: 'jobtitle', header: 'Job Title', visible: true, sortable: true, width: '180px' },
               { id: 'birthdate', header: 'Birth Date', visible: false } // Hidden column
             ],
             data: result.entities,
@@ -2523,19 +2528,21 @@ modal.previousStep(); // For wizards
 **Open a lookup:**
 
 ```javascript
-uiLib.Lookup.open({
+new uiLib.Lookup({
   entity: 'account',
-  columns: ['name', 'accountnumber'],
-  columnLabels: { name: 'Name', accountnumber: 'Number' }, // optional
+  tableColumns: [
+    { id: 'name', header: 'Name', sortable: true, elastic: true },
+    { id: 'accountnumber', header: 'Number', sortable: true, width: '140px' }
+  ],
   searchFields: ['name', 'accountnumber'], // optional
   multiSelect: false, // optional
   filters: '<filter>...</filter>', // FetchXML filter
   orderBy: [{ attribute: 'name', descending: false }], // optional
   onSelect: function(results) {
     // results is array of selected records
-    // each result has: { id, name, entityType, ...columns }
+    // each result has: { id, name, entityType, attributes: { ... } }
   }
-});
+}).show();
 ```
 
 ### Logger
