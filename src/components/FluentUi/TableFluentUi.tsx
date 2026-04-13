@@ -102,7 +102,8 @@ const useStyles = makeStyles({
                                   // grid to be at least as wide as the sum of column widths,
                                   // which beats `width: 100%` and triggers a phantom
                                   // horizontal scrollbar from sub-pixel rounding.
-    tableLayout: 'fixed',        // Fixed layout respects column widths strictly
+    // No tableLayout: 'fixed' — Fluent's resizableColumns manages column
+    // sizing internally. Fixed layout would prevent drag-resize from working.
     backgroundColor: tokens.colorNeutralBackground1,
     // Make the DataGrid itself a flex column so the body can take the
     // remaining height after the (auto-sized) header.
@@ -1369,11 +1370,9 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
         }}
         className={styles.dataGrid}
         style={{
-          tableLayout: 'fixed',
-          // Use the exact calculated width so columns don't stretch to fill
-          // leftover space (which makes the last column balloon out). If the
-          // columns need more room than the container, honour that too so the
-          // outer container's overflowX: auto can scroll.
+          // Width matches our calculated total so there's no unclaimed space
+          // for the DataGrid to redistribute. Fluent's resizableColumns then
+          // manages the internal state when the user drags.
           width: `${mergedTableWidth}px`
         }}
       >
@@ -1382,7 +1381,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
             {({ renderHeaderCell, columnId }) => {
               const w = columnWidthMap[columnId as string];
               return (
-                <DataGridHeaderCell style={w ? { width: `${w}px`, minWidth: `${w}px` } : undefined}>
+                <DataGridHeaderCell style={w ? { minWidth: `${w}px` } : undefined}>
                   {renderHeaderCell()}
                 </DataGridHeaderCell>
               );
@@ -1409,7 +1408,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                 {({ renderCell, columnId }) => {
                   const w = columnWidthMap[columnId as string];
                   return (
-                    <DataGridCell style={w ? { width: `${w}px`, minWidth: `${w}px` } : undefined}>
+                    <DataGridCell style={w ? { minWidth: `${w}px` } : undefined}>
                       {renderCell(item)}
                     </DataGridCell>
                   );

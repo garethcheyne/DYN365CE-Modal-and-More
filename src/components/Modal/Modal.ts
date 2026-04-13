@@ -1081,9 +1081,23 @@ export class Modal implements ModalInstance {
   private async createTabs(tabs: FieldConfig[]): Promise<HTMLElement> {
     const doc = getTargetDocument();
     const container = doc.createElement('div');
+    // Tabs container must participate in the flex chain so tables inside
+    // tab panels can compute a bounded height and scroll.
+    container.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    `;
 
     // Create tab panels content first (non-React)
     const tabPanelsContainer = doc.createElement('div');
+    tabPanelsContainer.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    `;
     const tabPanels: HTMLElement[] = [];
 
     for (const [index, tab] of tabs.entries()) {
@@ -1093,6 +1107,8 @@ export class Modal implements ModalInstance {
       panel.style.cssText = `
         display: ${index === 0 ? 'flex' : 'none'};
         flex-direction: column;
+        flex: 1;
+        min-height: 0;
         gap: 12px;
         padding-top: 12px;
       `;
