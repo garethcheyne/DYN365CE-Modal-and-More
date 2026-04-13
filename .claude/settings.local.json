@@ -11,7 +11,13 @@
       "Bash(npm run build:lib:*)",
       "Bash(npm run build:pages:demo:*)",
       "Bash(npm run:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Skill(code-review:code-review)",
+      "Skill(code-review:code-review:*)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts, null, 2\\)\\)\")",
+      "Bash(node -e \"const icons = require\\('@fluentui/react-icons'\\); console.log\\('Checkmark20Filled:', typeof icons.Checkmark20Filled, '| Subtract20Regular:', typeof icons.Subtract20Regular\\);\")",
+      "Bash(ls -la .eslintrc* eslint.config.*)",
+      "Bash(grep -l \"react/no-inline-styles\\\\|inline-styles\\\\|forbid-dom-props\\\\|noInlineStyles\" .vscode/*.json)"
     ]
   }
 }
