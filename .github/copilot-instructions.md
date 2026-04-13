@@ -1080,18 +1080,17 @@ modal.setFieldValue("salesperson", approverLookup); // ✅ Native D365 array is 
 ```javascript
 new uiLib.Lookup({
   entity: "account",                    // Entity logical name
-  columns: ["name", "telephone1", "emailaddress1"],  // Columns to display
-  columnLabels: {                       // Custom column headers (optional)
-    name: "Account Name",
-    telephone1: "Phone",
-    emailaddress1: "Email"
-  },
+  tableColumns: [                       // Columns to display (TableColumn[])
+    { id: "name", header: "Account Name", sortable: true, elastic: true },
+    { id: "telephone1", header: "Phone", width: "150px" },
+    { id: "emailaddress1", header: "Email", sortable: true, width: "220px" }
+  ],
   filters: "statecode eq 0",            // OData filter
   orderBy: [                            // Sort order (optional)
     { attribute: "name", descending: false },
     { attribute: "createdon", descending: true }
   ],
-  searchFields: ["name", "accountnumber"],  // Fields to search (defaults to columns)
+  searchFields: ["name", "accountnumber"],  // Fields to search (defaults to tableColumns ids)
   additionalSearchFields: ["description"],   // Extra search fields (not displayed)
   defaultSearchTerm: "",                // Pre-populate search box
   multiSelect: true,                    // Allow selecting multiple records
@@ -1099,8 +1098,7 @@ new uiLib.Lookup({
   showPagination: true,                 // Show pagination controls
   allowClear: true,                     // Show clear selection button
   title: "Select Account",              // Modal title (optional)
-  width: 800,                           // Modal width (optional)
-  height: 600,                          // Modal height (optional)
+  size: { width: 800, height: 600 },    // Viewport-relative also supported ('80vw', '70vh')
   onSelect: (records) => {
     // records: [{ id, name, entityType, attributes: { name, telephone1, ... } }]
     console.debug("Selected:", records);
@@ -1118,8 +1116,11 @@ Add `preFilters` to show a horizontal row of filter dropdowns and/or lookups bet
 ```javascript
 new uiLib.Lookup({
   entity: 'opportunity',
-  columns: ['name', 'estimatedvalue', 'closeprobability'],
-  columnLabels: { name: 'Opportunity', estimatedvalue: 'Est. Value', closeprobability: 'Probability' },
+  tableColumns: [
+    { id: 'name', header: 'Opportunity', sortable: true, elastic: true },
+    { id: 'estimatedvalue', header: 'Est. Value', sortable: true, align: 'right', format: 'currency', width: '140px' },
+    { id: 'closeprobability', header: 'Probability', sortable: true, align: 'right', format: 'percent', width: '120px' }
+  ],
   preFilters: [
     // Option set — auto-fetched from D365 metadata
     {

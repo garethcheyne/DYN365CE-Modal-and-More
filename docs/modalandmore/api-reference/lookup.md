@@ -109,12 +109,11 @@ Full-screen modal with searchable data table. Use `uiLib.Lookup`:
 ```javascript
 new uiLib.Lookup({
   entity: 'account',
-  columns: ['name', 'telephone1', 'emailaddress1'],
-  columnLabels: {
-    name: 'Account Name',
-    telephone1: 'Phone',
-    emailaddress1: 'Email'
-  },
+  tableColumns: [
+    { id: 'name', header: 'Account Name', sortable: true, elastic: true },
+    { id: 'telephone1', header: 'Phone', width: '150px' },
+    { id: 'emailaddress1', header: 'Email', sortable: true, width: '220px' }
+  ],
   filters: 'statecode eq 0',
   orderBy: [
     { attribute: 'name', descending: false }
@@ -127,8 +126,7 @@ new uiLib.Lookup({
   showPagination: true,
   allowClear: true,
   title: 'Select Account',
-  width: 800,
-  height: 600,
+  size: { width: 800, height: 600 },
   onSelect: (records) => {
     console.debug('Selected:', records);
   },
@@ -143,11 +141,10 @@ new uiLib.Lookup({
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `entity` | string | required | Entity logical name |
-| `columns` | string[] | required | Columns to display |
-| `columnLabels` | object | — | Custom column headers |
+| `tableColumns` | TableColumn[] | required | Columns to display (same shape as Modal `type: 'table'`) |
 | `filters` | string | — | OData filter |
 | `orderBy` | array | — | Sort order |
-| `searchFields` | string[] | columns | Fields to search |
+| `searchFields` | string[] | tableColumns ids | Fields to search |
 | `additionalSearchFields` | string[] | — | Extra search fields (not displayed) |
 | `defaultSearchTerm` | string | `''` | Pre-populate search box |
 | `preFilters` | PreFilter[] | — | Dropdown/lookup filters between search and table |
@@ -156,8 +153,9 @@ new uiLib.Lookup({
 | `showPagination` | boolean | `true` | Show pagination controls |
 | `allowClear` | boolean | `true` | Show clear selection button |
 | `title` | string | — | Modal title |
-| `width` | number | — | Modal width |
-| `height` | number | — | Modal height |
+| `message` | string | — | Message displayed above the table |
+| `content` | string | — | Custom HTML content |
+| `size` | object | — | `{ width, height }` — accepts px, %, vw, vh units |
 
 ### Lookup Result Object
 
@@ -181,8 +179,11 @@ Add filter dropdowns and/or lookups between the search box and the results table
 ```javascript
 new uiLib.Lookup({
   entity: 'opportunity',
-  columns: ['name', 'estimatedvalue', 'closeprobability'],
-  columnLabels: { name: 'Opportunity', estimatedvalue: 'Est. Value', closeprobability: 'Probability' },
+  tableColumns: [
+    { id: 'name', header: 'Opportunity', sortable: true, elastic: true },
+    { id: 'estimatedvalue', header: 'Est. Value', sortable: true, align: 'right', format: 'currency', width: '140px' },
+    { id: 'closeprobability', header: 'Probability', sortable: true, align: 'right', format: 'percent', width: '120px' }
+  ],
   preFilters: [
     // Option set — auto-populated from D365 metadata
     { type: 'optionset', attribute: 'statecode', label: 'Status' },

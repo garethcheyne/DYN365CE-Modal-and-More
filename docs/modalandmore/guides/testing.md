@@ -89,7 +89,11 @@ function onLoad(executionContext) {
 function openAccountSelector() {
   new uiLib.Lookup({
     entityName: 'account',
-    columns: ['name', 'accountnumber', 'telephone1'],
+    tableColumns: [
+      { id: 'name', header: 'Account Name', sortable: true, elastic: true },
+      { id: 'accountnumber', header: 'Account #', sortable: true, width: '140px' },
+      { id: 'telephone1', header: 'Phone', width: '140px' }
+    ],
     onSelect: function(results) {
       if (results.length > 0) {
         uiLib.Toast.success({ message: 'Selected: ' + results[0].name });
