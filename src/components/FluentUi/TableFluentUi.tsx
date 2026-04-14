@@ -1110,6 +1110,16 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
           flexibleColumnWidths[col.id] = col.minWidth;
         });
       }
+    } else if (flexibleColumns.length > 0 && elasticCol) {
+      // No container width yet but we have an elastic column. We can't
+      // calculate the real remaining space yet, so just give each flexible
+      // column its minWidth. The grid uses width: '100%' on first render
+      // (see below), so CSS will stretch the table to fill the container
+      // naturally. Once the ResizeObserver fires with a real containerWidth,
+      // this useMemo re-runs and calculates exact pixel widths.
+      flexibleColumns.forEach(col => {
+        flexibleColumnWidths[col.id] = col.minWidth;
+      });
     } else {
       // No container width yet or no flexible columns - use minWidths
       flexibleColumns.forEach(col => {
@@ -1370,10 +1380,11 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
         }}
         className={styles.dataGrid}
         style={{
-          // Width matches our calculated total so there's no unclaimed space
-          // for the DataGrid to redistribute. Fluent's resizableColumns then
-          // manages the internal state when the user drags.
-          width: `${mergedTableWidth}px`
+          // When containerWidth is known, use the exact calculated total so
+          // there's no unclaimed space for the DataGrid to redistribute.
+          // On initial render (containerWidth=0), use 100% so the table fills
+          // the container and the ResizeObserver can measure it.
+          width: containerWidth > 0 ? `${mergedTableWidth}px` : '100%'
         }}
       >
         <DataGridHeader>
