@@ -1782,30 +1782,16 @@ export const Demo: React.FC = () => {
     modal.show();
   };
 
-  // Show welcome toast on mount
-  React.useEffect(() => {
-    const env = detectEnvironment();
-    const timer = setTimeout(() => {
-      const message = env.hasWebApi
-        ? 'Connected to D365. Lookups and data operations will use live data.'
-        : 'Running in demo mode. Using mock data for lookups and tables.';
-
-      uiLib.Toast.info({
-        title: env.hasWebApi ? 'D365 Connected' : 'Demo Mode',
-        message,
-        duration: 6000
-      });
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+  // Note: Environment status is shown inline via <DataSourceNote /> below
+  // instead of a popup toast that would overlap the header actions.
 
   const styles = useDemoStyles();
 
   return (
     <div className={styles.container}>
       <div style={{ marginBottom: '24px' }}>
-        <Title2>Interactive Demo</Title2>
-        <Body1 style={{ color: tokens.colorNeutralForeground2 }}>
+        <Title2 block>Interactive Demo</Title2>
+        <Body1 block style={{ color: tokens.colorNeutralForeground2, marginTop: '4px' }}>
           Explore all the UI components available in the err403 UI Library for Dynamics 365 CE
         </Body1>
       </div>

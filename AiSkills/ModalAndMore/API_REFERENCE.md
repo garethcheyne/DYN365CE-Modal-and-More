@@ -434,29 +434,48 @@ new uiLib.Lookup({
 
 ---
 
-## QueryBuilder (`uiLib.QueryBuilder`)
+## QueryBuilder (`uiLib.Modal.openQueryBuilder`)
 
-Visual FetchXML/OData filter builder component.
+Visual FetchXML / OData filter builder, opened as a modal from vanilla JS. The exposed `uiLib.QueryBuilder` is the underlying React component — use `uiLib.Modal.openQueryBuilder()` for the callable modal API.
 
 ### Usage
 
 ```javascript
-uiLib.QueryBuilder.open({
+const result = await uiLib.Modal.openQueryBuilder({
   title: 'Filter Accounts',
   entityName: 'account',
-  entitySetName: 'accounts',
+  entitySetName: 'accounts',           // Optional — fetched from Xrm metadata if omitted
   fields: [
-    { id: 'name', label: 'Name', dataType: 'string' },
-    { id: 'revenue', label: 'Revenue', dataType: 'number' },
+    { id: 'name',      label: 'Name',       dataType: 'string' },
+    { id: 'revenue',   label: 'Revenue',    dataType: 'number' },
     { id: 'createdon', label: 'Created On', dataType: 'datetime' },
-    { id: 'statecode', label: 'Status', dataType: 'optionset',
+    { id: 'statecode', label: 'Status',     dataType: 'optionset',
       options: [{ label: 'Active', value: 0 }, { label: 'Inactive', value: 1 }] }
   ],
-  onApply: (result) => {
-    console.debug(result.fetchXml);
-    console.debug(result.odataFilter);
+  showODataPreview: true,
+  showFetchXmlPreview: true,
+  // Lookup field search (async)
+  onLookupSearch: async (fieldId, searchText) => {
+    return [{ key: 'guid-1', text: 'Contoso', secondaryText: 'Account' }];
   }
 });
+
+if (result.opened && result.reason === 'applied' && result.result) {
+  console.debug(result.result.fetchXml);
+  console.debug(result.result.odataFilter);
+}
+```
+
+### QueryBuilderOpenResult
+
+```typescript
+interface QueryBuilderOpenResult {
+  opened: boolean;
+  reason: 'applied' | 'cancelled' | 'closed' | 'error';
+  elapsedMs: number;
+  result?: QueryBuilderApplyResult;   // Present when reason === 'applied'
+  error?: string;                     // Present when reason === 'error'
+}
 ```
 
 ### QueryBuilderApplyResult
@@ -470,6 +489,19 @@ interface QueryBuilderApplyResult {
   odataQuery?: string;            // Full OData query URL
 }
 ```
+
+### Key options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `entityName` | `string` (required) | Logical name of the entity |
+| `fields` | `QueryBuilderField[]` | Filterable fields (auto-detected if omitted) |
+| `initialFetchXml` | `string` | Pre-populate from existing FetchXML |
+| `initialState` | `QueryBuilderState` | Pre-populate from state object |
+| `allowGroups` | `boolean` | Allow AND/OR condition groups |
+| `allowRelatedEntity` | `boolean` | Allow filtering on related entities |
+| `onLookupSearch` | `(fieldId, text) => Promise<QueryBuilderLookupOption[]>` | Async search for lookup field values |
+| `onStateChange` | `(state) => void` | Called on every state change |
 
 ---
 

@@ -20,9 +20,9 @@ declare const PACKAGE_VERSION: string;
 
 const useStyles = makeStyles({
   container: {
-    padding: tokens.spacingHorizontalXL,
-    maxWidth: '960px',
-    margin: '0 auto',
+    padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalXL}`,
+    maxWidth: '1100px',
+    margin: 0,
     backgroundColor: tokens.colorNeutralBackground1,
     minHeight: '100%',
   },

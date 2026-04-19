@@ -72,7 +72,7 @@ A visual drag-and-drop interface for building modal dialogs without writing code
 This library provides a simple vanilla JavaScript API that works seamlessly with D365 form scripts and ribbon buttons. Behind the scenes, it uses:
 
 - **Microsoft Fluent UI v9** - Professional React components for authentic D365 styling
-- **React 18** - Modern UI framework (bundled internally, invisible to your code)
+- **React 19** - Modern UI framework (bundled internally, invisible to your code)
 - **TypeScript** - Type-safe development with full IntelliSense support
 
 ### Key Components Using Fluent UI
@@ -2735,7 +2735,7 @@ console.debug('CSS loaded:', health.cssLoaded);
 ## Technical Details
 
 - **Size:** ~690 KB minified (~280 KB gzipped)
-- **Framework:** Fluent UI v9 + React 18 (bundled internally)
+- **Framework:** Fluent UI v9 + React 19 (bundled internally)
 - **API:** Vanilla JavaScript/TypeScript - No React knowledge required
 - **Compatibility:** Works with all D365 CE versions (online and on-premise)
 - **Loading:** Synchronous script, available immediately

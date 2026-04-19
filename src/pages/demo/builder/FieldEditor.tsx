@@ -31,11 +31,69 @@ const useStyles = makeStyles({
   },
   editorEmpty: {
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: 'column',
     height: '100%',
     backgroundColor: tokens.colorNeutralBackground1,
     borderLeft: `1px solid ${tokens.colorNeutralStroke1}`,
+    overflow: 'auto',
+  },
+  emptyHeader: {
+    padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalM} ${tokens.spacingVerticalM}`,
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: tokens.spacingVerticalS,
+    color: tokens.colorNeutralForeground3,
+    textAlign: 'center' as const,
+  },
+  emptyTips: {
+    padding: tokens.spacingHorizontalM,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalM,
+  },
+  tipGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalXS,
+  },
+  tipGroupTitle: {
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground2,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+    marginBottom: tokens.spacingVerticalXS,
+  },
+  tipRow: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: tokens.spacingHorizontalS,
+    padding: `${tokens.spacingVerticalXS} 0`,
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground2,
+    lineHeight: 1.5,
+  },
+  tipKbd: {
+    display: 'inline-block',
+    minWidth: '22px',
+    padding: '1px 6px',
+    fontSize: '11px',
+    fontFamily: 'Consolas, Monaco, monospace',
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground1,
+    backgroundColor: tokens.colorNeutralBackground3,
+    border: `1px solid ${tokens.colorNeutralStroke1}`,
+    borderRadius: tokens.borderRadiusSmall,
+    textAlign: 'center' as const,
+    lineHeight: '16px',
+    flexShrink: 0,
+  },
+  tipIcon: {
+    color: tokens.colorBrandForeground1,
+    flexShrink: 0,
+    marginTop: '2px',
   },
   placeholder: {
     display: 'flex',
@@ -114,9 +172,27 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
   if (!field) {
     return (
       <div className={styles.editorEmpty}>
-        <div className={styles.placeholder}>
+        <div className={styles.emptyHeader}>
           <CursorClick24Regular className={styles.placeholderIcon} />
-          <Text>Select a field to edit its properties</Text>
+          <Text weight="semibold" size={300}>No field selected</Text>
+          <Text size={200} style={{ color: tokens.colorNeutralForeground3, textAlign: 'center' }}>
+            Click a field on the canvas to edit its properties,
+            or drag a field type from the palette.
+          </Text>
+        </div>
+
+        <div className={styles.emptyTips}>
+          <div className={styles.tipGroup}>
+            <div className={styles.tipGroupTitle}>Keyboard</div>
+            <div className={styles.tipRow}>
+              <span className={styles.tipKbd}>Del</span>
+              <span>Delete the selected field</span>
+            </div>
+            <div className={styles.tipRow}>
+              <span className={styles.tipKbd}>Esc</span>
+              <span>Deselect the current field</span>
+            </div>
+          </div>
         </div>
       </div>
     );

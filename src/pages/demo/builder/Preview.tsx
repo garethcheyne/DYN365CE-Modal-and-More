@@ -43,12 +43,16 @@ const useStyles = makeStyles({
   content: {
     flex: 1,
     overflow: 'auto',
-    padding: tokens.spacingHorizontalM,
+    padding: tokens.spacingHorizontalXXL,
+    // Simulate a modal backdrop so the preview reads as an actual modal
+    backgroundColor: 'rgba(32, 31, 30, 0.55)',
+    backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.05) 25%, transparent 25%, transparent 50%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.05) 75%, transparent 75%, transparent)`,
+    backgroundSize: '16px 16px',
   },
   mockModal: {
     backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusMedium,
-    boxShadow: tokens.shadow16,
+    boxShadow: '0 14px 40px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.2)',
     maxWidth: '500px',
     margin: '0 auto',
   },
@@ -294,7 +298,7 @@ export const Preview: React.FC<PreviewProps> = ({ config }) => {
   };
 
   return (
-    <div className={styles.preview}>
+    <div className={`${styles.preview} builder-preview`}>
       <div className={styles.header}>
         <TabList selectedValue={activeTab} onTabSelect={(e, data) => setActiveTab(data.value as 'preview' | 'code')}>
           <Tab value="preview" icon={<Image24Regular />}>Preview</Tab>

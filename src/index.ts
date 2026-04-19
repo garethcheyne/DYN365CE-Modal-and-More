@@ -46,11 +46,14 @@ export function init(executionContext?: any): HealthState {
     // Initialize Toast container (custom implementation handles this automatically)
     // No manual container mounting needed
     
-    // Check if library is in window
-    const inWindow = typeof window !== 'undefined' && typeof (window as any).err403 !== 'undefined';
-    
-    // Get reference to library instance
-    const libraryInstance = typeof window !== 'undefined' ? (window as any).err403 : undefined;
+    // Check if library is in window (check both names; uiLib is primary, err403 is backward compat)
+    const inWindow = typeof window !== 'undefined' &&
+        (typeof (window as any).uiLib !== 'undefined' || typeof (window as any).err403 !== 'undefined');
+
+    // Get reference to library instance (prefer new name)
+    const libraryInstance = typeof window !== 'undefined'
+        ? ((window as any).uiLib ?? (window as any).err403)
+        : undefined;
     
     const health: HealthState = {
         loaded: true,

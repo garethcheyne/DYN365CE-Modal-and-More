@@ -9,7 +9,7 @@ Internal structure, build system, component hierarchy, and development workflow.
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | User-facing API | Vanilla JavaScript / TypeScript | Simple, framework-agnostic consumption |
-| Internal rendering | React 18 + Fluent UI v9 | Native D365 look-and-feel |
+| Internal rendering | React 19 + Fluent UI v9 | Native D365 look-and-feel |
 | Build | Vite + TypeScript + Rollup | Bundling and type generation |
 | Output | Single minified JS bundle | ~690KB (~280KB gzipped) + `.d.ts` |
 
@@ -37,7 +37,7 @@ src/
 ├── vite-env.d.ts                     # Vite type declarations
 ├── components/
 │   ├── Modal/
-│   │   ├── Modal.ts                  # Core modal engine (~5000 lines)
+│   │   ├── Modal.ts                  # Core modal engine (~3,500 lines)
 │   │   ├── Modal.types.ts            # All TypeScript interfaces
 │   │   └── ModalHelpers.ts           # alert(), confirm(), prompt() convenience methods
 │   ├── Toast/

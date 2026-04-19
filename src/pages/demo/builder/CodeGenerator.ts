@@ -244,42 +244,56 @@ function escapeString(str: string): string {
 }
 
 /**
- * Parse JavaScript code back into ModalConfig (basic implementation)
- * Note: This is a simplified parser that handles common patterns
+ * Export a ModalConfig as a pretty-printed JSON string.
+ * This is the round-trippable format used by the Import / Export JSON buttons
+ * in the builder. The generated JavaScript produced by `generateModalCode`
+ * is intentionally one-way (optimised for copy-paste into D365 form scripts).
  */
-export function parseModalCode(code: string): ModalConfig | null {
+export function exportAsJson(config: ModalConfig): string {
+  return JSON.stringify(config, null, 2);
+}
+
+/**
+ * Parse a ModalConfig from a JSON string. Returns null if the payload is not
+ * valid JSON or does not look like a ModalConfig. Unknown extra properties
+ * are preserved (non-destructive).
+ */
+export function importFromJson(json: string): ModalConfig | null {
   try {
-    // Extract the object literal from new uiLib.Modal({ ... })
-    const match = code.match(/new\s+uiLib\.Modal\s*\(\s*(\{[\s\S]*?\})\s*\)/);
-    if (!match) return null;
-    
-    // This is a simplified approach - for full parsing we'd need a proper JS parser
-    // For now, return a basic config that can be edited
+    const parsed = JSON.parse(json);
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    // Minimal shape validation - must at least have title and arrays we can
+    // render. Missing optional fields are filled with sensible defaults.
     const config: ModalConfig = {
-      title: extractStringProperty(code, 'title') || 'Imported Modal',
-      message: extractStringProperty(code, 'message'),
-      size: (extractStringProperty(code, 'size') as ModalConfig['size']) || 'medium',
-      draggable: code.includes('draggable: true'),
-      allowDismiss: code.includes('allowDismiss: true'),
-      allowEscapeClose: !code.includes('allowEscapeClose: false'),
-      buttonAlignment: 'right',
-      isWizard: code.includes('progress:') && code.includes('enabled: true'),
-      fields: [],
-      buttons: [],
-      steps: [],
+      title: typeof parsed.title === 'string' ? parsed.title : 'Imported Modal',
+      message: typeof parsed.message === 'string' ? parsed.message : undefined,
+      size: parsed.size || 'medium',
+      customWidth: typeof parsed.customWidth === 'number' ? parsed.customWidth : undefined,
+      customHeight: typeof parsed.customHeight === 'number' ? parsed.customHeight : undefined,
+      draggable: parsed.draggable === true,
+      allowDismiss: parsed.allowDismiss === true,
+      allowEscapeClose: parsed.allowEscapeClose !== false,
+      buttonAlignment: parsed.buttonAlignment || 'right',
+      isWizard: parsed.isWizard === true,
+      steps: Array.isArray(parsed.steps) ? parsed.steps : [],
+      fields: Array.isArray(parsed.fields) ? parsed.fields : [],
+      buttons: Array.isArray(parsed.buttons) ? parsed.buttons : [],
     };
-    
+
     return config;
-  } catch (error) {
-    console.error('Failed to parse modal code:', error);
+  } catch {
     return null;
   }
 }
 
-function extractStringProperty(code: string, prop: string): string | undefined {
-  const regex = new RegExp(`${prop}:\\s*['"\`]([^'"\`]*)['"\`]`);
-  const match = code.match(regex);
-  return match ? match[1] : undefined;
+/**
+ * @deprecated The JavaScript source produced by `generateModalCode` is
+ * intentionally one-way. Use `exportAsJson` / `importFromJson` to round-trip
+ * a builder configuration. Kept for backwards compatibility - returns null.
+ */
+export function parseModalCode(_code: string): ModalConfig | null {
+  return null;
 }
 
 /**

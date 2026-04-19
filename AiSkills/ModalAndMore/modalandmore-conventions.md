@@ -95,7 +95,7 @@ new uiLib.Button({ label: 'Submit', callback, setFocus: true, id: 'submitBtn' })
 function onFormLoad(executionContext) {
   const health = uiLib.init(executionContext);
   if (!health.loaded) return;
-  // health: { loaded, cssLoaded, inWindow, version, timestamp, instance }
+  // health: { loaded, inWindow, version, timestamp, instance }
 }
 
 // Iframe / web resource — just check availability

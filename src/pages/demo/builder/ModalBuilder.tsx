@@ -2,11 +2,10 @@
  * Modal Builder - Main builder component with drag & drop
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   DndContext,
   DragEndEvent,
-  DragOverEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
@@ -37,8 +36,6 @@ import {
   makeStyles,
   tokens,
   Text,
-  MessageBar,
-  MessageBarBody,
 } from '@fluentui/react-components';
 import { Add24Regular, Dismiss24Regular } from '@fluentui/react-icons';
 
@@ -60,7 +57,8 @@ import {
   loadFromStorage,
   listSavedConfigs,
   deleteFromStorage,
-  parseModalCode,
+  exportAsJson,
+  importFromJson,
 } from './CodeGenerator';
 import * as uiLib from '../../../index';
 
@@ -69,11 +67,13 @@ const useBuilderStyles = makeStyles({
   toolbar: {
     backgroundColor: tokens.colorNeutralBackground2,
     borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
-    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
+    padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: tokens.spacingHorizontalS,
+    width: '100%',
+    boxSizing: 'border-box',
   },
   toolbarLeft: {
     display: 'flex',
@@ -304,9 +304,7 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [showLoadDialog, setShowLoadDialog] = useState(false);
-  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [activeStepId, setActiveStepId] = useState<string | null>(null);
 
   // Sensors for drag and drop
   const sensors = useSensors(
@@ -315,32 +313,78 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
     })
   );
 
-  // Get the selected field (including nested fields in groups)
+  // Resolve the active step (wizard mode). Falls back to first step when
+  // activeStepId is stale or not set.
+  const resolvedStepId =
+    config.isWizard && config.steps && config.steps.length > 0
+      ? (config.steps.some(s => s.id === activeStepId) ? activeStepId : config.steps[0].id)
+      : null;
+
+  // "Current fields" = the fields being edited right now. In wizard mode this
+  // is the active step's fields; otherwise the top-level fields.
+  const currentFields: BuilderFieldConfig[] =
+    config.isWizard && resolvedStepId
+      ? (config.steps?.find(s => s.id === resolvedStepId)?.fields ?? [])
+      : config.fields;
+
+  // Update the current field list (wizard-aware). Wraps setConfig so all
+  // mutations can stay agnostic of wizard vs. single-page mode.
+  const updateFieldsList = useCallback(
+    (updater: (fields: BuilderFieldConfig[]) => BuilderFieldConfig[]) => {
+      setConfig(prev => {
+        if (prev.isWizard && prev.steps && prev.steps.length > 0) {
+          const stepId =
+            prev.steps.some(s => s.id === activeStepId) ? activeStepId : prev.steps[0].id;
+          return {
+            ...prev,
+            steps: prev.steps.map(s =>
+              s.id === stepId ? { ...s, fields: updater(s.fields) } : s
+            ),
+          };
+        }
+        return { ...prev, fields: updater(prev.fields) };
+      });
+    },
+    [activeStepId]
+  );
+
+  // Get the selected field (including nested fields in groups) across every
+  // step in wizard mode, so switching steps doesn't lose the selection reference.
   const getSelectedField = (): BuilderFieldConfig | null => {
     if (!selectedFieldId) return null;
-    
-    // Check top-level fields
-    const topLevel = config.fields.find(f => f.id === selectedFieldId);
-    if (topLevel) return topLevel;
-    
-    // Check nested fields in groups
-    for (const field of config.fields) {
-      if (field.type === 'group' && field.fields) {
-        const nested = field.fields.find(f => f.id === selectedFieldId);
-        if (nested) return nested;
+    const pools: BuilderFieldConfig[][] =
+      config.isWizard && config.steps ? config.steps.map(s => s.fields) : [config.fields];
+    for (const pool of pools) {
+      const topLevel = pool.find(f => f.id === selectedFieldId);
+      if (topLevel) return topLevel;
+      for (const field of pool) {
+        if (field.type === 'group' && field.fields) {
+          const nested = field.fields.find(f => f.id === selectedFieldId);
+          if (nested) return nested;
+        }
       }
     }
     return null;
   };
   const selectedField = getSelectedField();
 
-  // Generate unique field ID
+  // Generate unique field ID (scoped to the entire config so wizard steps don't clash)
   const generateFieldId = (type: FieldType): string => {
     const baseId = type.toLowerCase();
-    let counter = 1;
-    while (config.fields.some(f => f.id === `${baseId}${counter}`)) {
-      counter++;
+    const allIds = new Set<string>();
+    const collect = (fields: BuilderFieldConfig[]) => {
+      for (const f of fields) {
+        allIds.add(f.id);
+        if (f.type === 'group' && f.fields) collect(f.fields);
+      }
+    };
+    if (config.isWizard && config.steps) {
+      config.steps.forEach(s => collect(s.fields));
+    } else {
+      collect(config.fields);
     }
+    let counter = 1;
+    while (allIds.has(`${baseId}${counter}`)) counter++;
     return `${baseId}${counter}`;
   };
 
@@ -357,126 +401,132 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
     };
 
     setConfig(prev => {
-      const newFields = [...prev.fields];
-      if (index !== undefined) {
-        newFields.splice(index, 0, newField);
-      } else {
-        newFields.push(newField);
+      const list = prev.isWizard && prev.steps && prev.steps.length > 0
+        ? (prev.steps.find(s => s.id === (prev.steps!.some(s => s.id === activeStepId) ? activeStepId : prev.steps![0].id))?.fields ?? [])
+        : prev.fields;
+      const newList = [...list];
+      if (index !== undefined) newList.splice(index, 0, newField);
+      else newList.push(newField);
+
+      if (prev.isWizard && prev.steps && prev.steps.length > 0) {
+        const stepId = prev.steps.some(s => s.id === activeStepId) ? activeStepId : prev.steps[0].id;
+        return {
+          ...prev,
+          steps: prev.steps.map(s => (s.id === stepId ? { ...s, fields: newList } : s)),
+        };
       }
-      return { ...prev, fields: newFields };
+      return { ...prev, fields: newList };
     });
 
     setSelectedFieldId(newField.id);
-  }, [config.fields]);
+  }, [activeStepId]);
 
-  // Update a field (including nested fields in groups)
+  // Update a field (including nested fields in groups). Wizard-aware.
   const updateField = useCallback((updatedField: BuilderFieldConfig) => {
-    setConfig(prev => ({
-      ...prev,
-      fields: prev.fields.map(f => {
-        // Direct match
+    const mapFields = (fields: BuilderFieldConfig[]): BuilderFieldConfig[] =>
+      fields.map(f => {
         if (f.id === updatedField.id) return updatedField;
-        // Check nested fields in groups
         if (f.type === 'group' && f.fields) {
-          const nestedIndex = f.fields.findIndex(nf => nf.id === updatedField.id);
-          if (nestedIndex !== -1) {
-            return {
-              ...f,
-              fields: f.fields.map(nf => nf.id === updatedField.id ? updatedField : nf),
-            };
-          }
+          return { ...f, fields: f.fields.map(nf => (nf.id === updatedField.id ? updatedField : nf)) };
         }
         return f;
-      }),
-    }));
+      });
+    setConfig(prev => {
+      if (prev.isWizard && prev.steps) {
+        return { ...prev, steps: prev.steps.map(s => ({ ...s, fields: mapFields(s.fields) })) };
+      }
+      return { ...prev, fields: mapFields(prev.fields) };
+    });
   }, []);
 
-  // Delete a field (including nested fields in groups)
+  // Delete the currently-selected field (top-level or nested). Wizard-aware.
   const deleteField = useCallback(() => {
     if (!selectedFieldId) return;
-    setConfig(prev => {
-      // Check if it's a top-level field
-      if (prev.fields.some(f => f.id === selectedFieldId)) {
-        return { ...prev, fields: prev.fields.filter(f => f.id !== selectedFieldId) };
+    const filterFields = (fields: BuilderFieldConfig[]): BuilderFieldConfig[] => {
+      if (fields.some(f => f.id === selectedFieldId)) {
+        return fields.filter(f => f.id !== selectedFieldId);
       }
-      // Check nested fields in groups
-      return {
-        ...prev,
-        fields: prev.fields.map(f => {
-          if (f.type === 'group' && f.fields) {
-            return { ...f, fields: f.fields.filter(nf => nf.id !== selectedFieldId) };
-          }
-          return f;
-        }),
-      };
+      return fields.map(f => {
+        if (f.type === 'group' && f.fields) {
+          return { ...f, fields: f.fields.filter(nf => nf.id !== selectedFieldId) };
+        }
+        return f;
+      });
+    };
+    setConfig(prev => {
+      if (prev.isWizard && prev.steps) {
+        return { ...prev, steps: prev.steps.map(s => ({ ...s, fields: filterFields(s.fields) })) };
+      }
+      return { ...prev, fields: filterFields(prev.fields) };
     });
     setSelectedFieldId(null);
   }, [selectedFieldId]);
 
-  // Duplicate a field (including nested fields)
+  // Duplicate the currently-selected field (top-level or nested). Wizard-aware.
   const duplicateField = useCallback(() => {
     if (!selectedFieldId) return;
-    
-    // Find field and its parent
-    let field: BuilderFieldConfig | null = null;
+
+    // Search across every pool (regular fields or every step's fields) to find
+    // the source field + its parent group (if nested).
+    const pools: BuilderFieldConfig[][] =
+      config.isWizard && config.steps ? config.steps.map(s => s.fields) : [config.fields];
+    let source: BuilderFieldConfig | null = null;
     let parentId: string | null = null;
-    
-    field = config.fields.find(f => f.id === selectedFieldId) || null;
-    if (!field) {
-      // Check nested
-      for (const f of config.fields) {
+    for (const pool of pools) {
+      const top = pool.find(f => f.id === selectedFieldId);
+      if (top) { source = top; break; }
+      for (const f of pool) {
         if (f.type === 'group' && f.fields) {
           const nested = f.fields.find(nf => nf.id === selectedFieldId);
-          if (nested) {
-            field = nested;
-            parentId = f.id;
-            break;
-          }
+          if (nested) { source = nested; parentId = f.id; break; }
         }
       }
+      if (source) break;
     }
-    
-    if (!field) return;
+    if (!source) return;
 
     const newField: BuilderFieldConfig = {
-      ...field,
-      id: generateFieldId(field.type),
-      label: `${field.label} (Copy)`,
+      ...source,
+      id: generateFieldId(source.type),
+      label: `${source.label} (Copy)`,
     };
 
-    if (parentId) {
-      // Duplicate within group
-      setConfig(prev => ({
-        ...prev,
-        fields: prev.fields.map(f => {
+    const insertIntoList = (fields: BuilderFieldConfig[]): BuilderFieldConfig[] => {
+      if (parentId) {
+        return fields.map(f => {
           if (f.id === parentId && f.fields) {
-            const index = f.fields.findIndex(nf => nf.id === selectedFieldId);
-            const newFields = [...f.fields];
-            newFields.splice(index + 1, 0, newField);
-            return { ...f, fields: newFields };
+            const idx = f.fields.findIndex(nf => nf.id === selectedFieldId);
+            if (idx === -1) return f;
+            const next = [...f.fields];
+            next.splice(idx + 1, 0, newField);
+            return { ...f, fields: next };
           }
           return f;
-        }),
-      }));
-    } else {
-      // Duplicate at top level
-      const index = config.fields.findIndex(f => f.id === selectedFieldId);
-      setConfig(prev => {
-        const newFields = [...prev.fields];
-        newFields.splice(index + 1, 0, newField);
-        return { ...prev, fields: newFields };
-      });
-    }
+        });
+      }
+      const idx = fields.findIndex(f => f.id === selectedFieldId);
+      if (idx === -1) return fields;
+      const next = [...fields];
+      next.splice(idx + 1, 0, newField);
+      return next;
+    };
+
+    setConfig(prev => {
+      if (prev.isWizard && prev.steps) {
+        return { ...prev, steps: prev.steps.map(s => ({ ...s, fields: insertIntoList(s.fields) })) };
+      }
+      return { ...prev, fields: insertIntoList(prev.fields) };
+    });
 
     setSelectedFieldId(newField.id);
-  }, [selectedFieldId, config.fields]);
+  }, [selectedFieldId, config.isWizard, config.steps, config.fields]);
 
   // Handle drag start
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(String(event.active.id));
   };
 
-  // Add a field to a group
+  // Add a field to a group inside the current editing surface. Wizard-aware.
   const addFieldToGroup = useCallback((groupId: string, type: FieldType) => {
     const template = FIELD_TEMPLATES.find(t => t.type === type);
     if (!template) return;
@@ -488,37 +538,31 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
       ...template.defaultConfig,
     };
 
-    setConfig(prev => ({
-      ...prev,
-      fields: prev.fields.map(f => {
+    updateFieldsList(fields =>
+      fields.map(f => {
         if (f.id === groupId && f.type === 'group') {
-          return {
-            ...f,
-            fields: [...(f.fields || []), newField],
-          };
+          return { ...f, fields: [...(f.fields || []), newField] };
         }
         return f;
-      }),
-    }));
+      })
+    );
 
     setSelectedFieldId(newField.id);
-  }, [config.fields]);
+  }, [updateFieldsList]);
 
-  // Find field by ID (including nested fields)
+  // Find field by ID within the current editing surface (wizard-aware)
   const findFieldById = useCallback((id: string): { field: BuilderFieldConfig | null; parentId: string | null } => {
-    // Check top-level fields
-    const topLevelField = config.fields.find(f => f.id === id);
+    const topLevelField = currentFields.find(f => f.id === id);
     if (topLevelField) return { field: topLevelField, parentId: null };
 
-    // Check nested fields in groups
-    for (const field of config.fields) {
+    for (const field of currentFields) {
       if (field.type === 'group' && field.fields) {
         const nested = field.fields.find(f => f.id === id);
         if (nested) return { field: nested, parentId: field.id };
       }
     }
     return { field: null, parentId: null };
-  }, [config.fields]);
+  }, [currentFields]);
 
   // Handle drag end
   const handleDragEnd = (event: DragEndEvent) => {
@@ -530,10 +574,10 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
     // Check if dragging from palette
     const activeData = active.data.current;
     const overData = over.data.current;
-    
+
     if (activeData?.type === 'palette' && activeData?.template) {
       const template = activeData.template;
-      
+
       // Check if dropping into a group
       if (overData?.type === 'group' && overData?.groupId) {
         // Don't allow dropping groups into groups
@@ -544,20 +588,16 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
         addFieldToGroup(overData.groupId, template.type);
         return;
       }
-      
-      // Add new field to canvas
-      let insertIndex = config.fields.length;
-      
-      // If dropping on canvas drop zone itself (empty canvas or general drop area)
+
+      // Add new field to canvas (wizard-aware via addField → updateFieldsList)
+      let insertIndex = currentFields.length;
+
       if (over.id === 'canvas-drop-zone') {
-        // Add at the end
-        insertIndex = config.fields.length;
+        insertIndex = currentFields.length;
+      } else if (currentFields.some(f => f.id === over.id)) {
+        insertIndex = currentFields.findIndex(f => f.id === over.id);
       }
-      // If dropping on existing field, insert before it
-      else if (config.fields.some(f => f.id === over.id)) {
-        insertIndex = config.fields.findIndex(f => f.id === over.id);
-      }
-      
+
       addField(template.type, insertIndex);
       return;
     }
@@ -566,55 +606,35 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
     if (active.id !== over.id && over.id !== 'canvas-drop-zone') {
       // Check if dropping into a group
       if (overData?.type === 'group' && overData?.groupId) {
-        // Move field into group
         const { field: sourceField, parentId } = findFieldById(String(active.id));
         if (sourceField && sourceField.type !== 'group') {
-          // Remove from current location
-          setConfig(prev => {
-            let newFields = prev.fields;
-            
-            // Remove from top-level or parent group
+          updateFieldsList(fields => {
+            let next = fields;
             if (parentId) {
-              newFields = newFields.map(f => {
-                if (f.id === parentId && f.fields) {
-                  return { ...f, fields: f.fields.filter(cf => cf.id !== sourceField.id) };
-                }
-                return f;
-              });
+              next = next.map(f =>
+                f.id === parentId && f.fields
+                  ? { ...f, fields: f.fields.filter(cf => cf.id !== sourceField.id) }
+                  : f
+              );
             } else {
-              newFields = newFields.filter(f => f.id !== sourceField.id);
+              next = next.filter(f => f.id !== sourceField.id);
             }
-            
-            // Add to target group
-            return {
-              ...prev,
-              fields: newFields.map(f => {
-                if (f.id === overData.groupId && f.type === 'group') {
-                  return { ...f, fields: [...(f.fields || []), sourceField] };
-                }
-                return f;
-              }),
-            };
+            return next.map(f =>
+              f.id === overData.groupId && f.type === 'group'
+                ? { ...f, fields: [...(f.fields || []), sourceField] }
+                : f
+            );
           });
           return;
         }
       }
-      
-      const oldIndex = config.fields.findIndex(f => f.id === active.id);
-      const newIndex = config.fields.findIndex(f => f.id === over.id);
 
+      const oldIndex = currentFields.findIndex(f => f.id === active.id);
+      const newIndex = currentFields.findIndex(f => f.id === over.id);
       if (oldIndex !== -1 && newIndex !== -1) {
-        setConfig(prev => ({
-          ...prev,
-          fields: arrayMove(prev.fields, oldIndex, newIndex),
-        }));
+        updateFieldsList(fields => arrayMove(fields, oldIndex, newIndex));
       }
     }
-  };
-
-  // Handle drag over (for drop zone highlighting)
-  const handleDragOver = (event: DragOverEvent) => {
-    // Could add visual feedback here
   };
 
   // Update modal settings
@@ -718,19 +738,19 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
     modal.show();
   };
 
-  // Import code
+  // Import configuration (JSON round-trip)
   const handleImport = async () => {
     const modal = new uiLib.Modal({
-      title: 'Import Code',
-      message: 'Paste your modal code below:',
+      title: 'Import Configuration',
+      message: 'Paste a builder configuration (JSON) below. Use "Export JSON" to produce a compatible payload.',
       size: 'large',
       fields: [
         {
-          id: 'code',
-          label: 'JavaScript Code',
+          id: 'json',
+          label: 'Configuration JSON',
           type: 'textarea',
           rows: 12,
-          placeholder: 'const modal = new uiLib.Modal({ ... });',
+          placeholder: '{\n  "title": "My Modal",\n  "fields": [ ... ],\n  "buttons": [ ... ]\n}',
           required: true,
         },
       ],
@@ -739,17 +759,17 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
         new uiLib.Button({
           label: 'Import',
           callback: () => {
-            const code = modal.getFieldValue('code');
-            const parsed = parseModalCode(code);
+            const json = modal.getFieldValue('json');
+            const parsed = importFromJson(json);
             if (parsed) {
               setConfig(parsed);
               setSelectedFieldId(null);
-              uiLib.Toast.success({ title: 'Imported', message: 'Code imported successfully' });
+              setActiveStepId(parsed.isWizard ? parsed.steps?.[0]?.id ?? null : null);
+              uiLib.Toast.success({ title: 'Imported', message: 'Configuration loaded' });
             } else {
-              uiLib.Toast.error({ title: 'Error', message: 'Failed to parse code' });
+              uiLib.Toast.error({ title: 'Invalid JSON', message: 'Could not parse the configuration. Check the JSON is well-formed.' });
               return false;
             }
-            // Return void to close on success
           },
           setFocus: true,
           requiresValidation: true,
@@ -758,6 +778,26 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
       ],
     });
     modal.show();
+  };
+
+  // Export configuration as JSON (copy to clipboard)
+  const handleExportJson = async () => {
+    const json = exportAsJson(config);
+    try {
+      await navigator.clipboard.writeText(json);
+      uiLib.Toast.success({ title: 'Copied', message: 'Configuration JSON copied to clipboard' });
+    } catch {
+      // Fallback: show modal with the JSON
+      new uiLib.Modal({
+        title: 'Export Configuration',
+        message: 'Copy the JSON below to save your configuration:',
+        size: 'large',
+        fields: [
+          { id: 'json', label: 'Configuration JSON', type: 'textarea', rows: 16, value: json, readOnly: true },
+        ],
+        buttons: [new uiLib.Button({ label: 'Close', callback: () => {}, id: 'close' })],
+      }).show();
+    }
   };
 
   // Reset to default
@@ -772,55 +812,109 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
   // Toggle wizard mode
   const toggleWizardMode = () => {
     if (config.isWizard) {
-      // Switch to regular modal - move first step fields to main fields
-      const firstStepFields = config.steps?.[0]?.fields || [];
+      // Switch to regular modal - collapse all step fields into main fields
+      const allStepFields = (config.steps ?? []).flatMap(s => s.fields);
       setConfig(prev => ({
         ...prev,
         isWizard: false,
-        fields: firstStepFields,
+        fields: allStepFields,
         steps: [],
       }));
+      setActiveStepId(null);
     } else {
       // Switch to wizard - move current fields to first step
+      const firstStep: WizardStepConfig = {
+        id: 'step1',
+        label: 'Step 1',
+        fields: config.fields,
+      };
       setConfig(prev => ({
         ...prev,
         isWizard: true,
-        steps: [
-          {
-            id: 'step1',
-            label: 'Step 1',
-            fields: prev.fields,
-          },
-        ],
+        steps: [firstStep],
         fields: [],
       }));
+      setActiveStepId(firstStep.id);
     }
+    setSelectedFieldId(null);
   };
 
-  // Add wizard step
+  // Add a new empty wizard step
   const addWizardStep = () => {
-    if (!config.isWizard) return;
+    if (!config.isWizard) {
+      // Turn on wizard mode first
+      toggleWizardMode();
+      return;
+    }
+    // Pick a unique step id
+    const existing = new Set((config.steps ?? []).map(s => s.id));
+    let n = (config.steps?.length ?? 0) + 1;
+    let newId = `step${n}`;
+    while (existing.has(newId)) { n++; newId = `step${n}`; }
+
     const newStep: WizardStepConfig = {
-      id: `step${(config.steps?.length || 0) + 1}`,
-      label: `Step ${(config.steps?.length || 0) + 1}`,
+      id: newId,
+      label: `Step ${n}`,
       fields: [],
     };
+    setConfig(prev => ({ ...prev, steps: [...(prev.steps || []), newStep] }));
+    setActiveStepId(newId);
+    setSelectedFieldId(null);
+  };
+
+  // Remove a wizard step (keeps at least one step)
+  const removeWizardStep = (stepId: string) => {
+    if (!config.isWizard || !config.steps || config.steps.length <= 1) return;
+    setConfig(prev => {
+      const nextSteps = (prev.steps ?? []).filter(s => s.id !== stepId);
+      return { ...prev, steps: nextSteps };
+    });
+    if (activeStepId === stepId) {
+      const remaining = (config.steps ?? []).filter(s => s.id !== stepId);
+      setActiveStepId(remaining[0]?.id ?? null);
+    }
+    setSelectedFieldId(null);
+  };
+
+  // Rename a wizard step
+  const renameStep = (stepId: string, label: string) => {
     setConfig(prev => ({
       ...prev,
-      steps: [...(prev.steps || []), newStep],
+      steps: (prev.steps ?? []).map(s => (s.id === stepId ? { ...s, label } : s)),
     }));
   };
 
+  // Keyboard shortcuts: Delete to remove selected field, Escape to clear selection.
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isEditable =
+        !!target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+
+      if (e.key === 'Escape') {
+        if (selectedFieldId) {
+          setSelectedFieldId(null);
+          e.preventDefault();
+        }
+        return;
+      }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditable && selectedFieldId) {
+        deleteField();
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [selectedFieldId, deleteField]);
+
   return (
     <div className="modal-builder">
-      {/* Beta Banner */}
-      <MessageBar intent="warning" style={{ marginBottom: tokens.spacingVerticalM }}>
-        <MessageBarBody>
-          <strong>Beta Feature:</strong> The Modal Builder is currently in beta. Some features may be incomplete or change in future releases.
-        </MessageBarBody>
-      </MessageBar>
-
       {/* Toolbar */}
+      <div className="builder-toolbar">
       <Toolbar className={styles.toolbar}>
         <div className={styles.toolbarLeft}>
           <ToolbarButton icon={ToolbarIcons.save} onClick={handleSave} title="Save configuration">
@@ -829,8 +923,11 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
           <ToolbarButton icon={ToolbarIcons.load} onClick={handleLoad} title="Load saved configuration">
             Load
           </ToolbarButton>
-          <ToolbarButton icon={ToolbarIcons.import} onClick={handleImport} title="Import from code">
+          <ToolbarButton icon={ToolbarIcons.import} onClick={handleImport} title="Import configuration from JSON">
             Import
+          </ToolbarButton>
+          <ToolbarButton icon={ToolbarIcons.import} onClick={handleExportJson} title="Export configuration as JSON">
+            Export JSON
           </ToolbarButton>
           <ToolbarDivider />
           <ToolbarButton
@@ -841,11 +938,6 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
           >
             {config.isWizard ? 'Multi-Step' : 'Single Page'}
           </ToolbarButton>
-          {config.isWizard && (
-            <ToolbarButton icon={<Add24Regular />} onClick={addWizardStep} title="Add wizard step">
-              Add Step
-            </ToolbarButton>
-          )}
         </div>
         <div className={styles.toolbarRight}>
           <ToolbarButton
@@ -860,10 +952,11 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
           </ToolbarButton>
         </div>
       </Toolbar>
+      </div>
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className={styles.settingsPanel}>
+        <div className={`${styles.settingsPanel} builder-settings`}>
           <div className={styles.settingsRow}>
             <Field label="Title" className={styles.settingsField}>
               <Input
@@ -998,7 +1091,6 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        onDragOver={handleDragOver}
       >
         <div className="builder-main">
           {/* Field Palette */}
@@ -1008,18 +1100,120 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
           <div className="builder-canvas">
             <div className="builder-canvas__header">
               <Text weight="semibold" size={400}>Fields</Text>
-              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>{config.fields.length} fields</Text>
+              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                {currentFields.length} {currentFields.length === 1 ? 'field' : 'fields'}
+              </Text>
             </div>
-            
-            <DroppableCanvas isEmpty={config.fields.length === 0}>
-              <SortableContext items={config.fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
-                {config.fields.length === 0 ? (
+
+            {/* Wizard Step Tabs */}
+            {config.isWizard && config.steps && config.steps.length > 0 && (
+              <div className="builder-steps">
+                {config.steps.map((step, index) => (
+                  <div
+                    key={step.id}
+                    className={`builder-steps__tab ${step.id === resolvedStepId ? 'builder-steps__tab--active' : ''}`}
+                    onClick={() => { setActiveStepId(step.id); setSelectedFieldId(null); }}
+                    title="Click to edit this step"
+                  >
+                    <span className="builder-steps__number">{index + 1}</span>
+                    <input
+                      type="text"
+                      value={step.label}
+                      onChange={(e) => renameStep(step.id, e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="builder-steps__label"
+                      aria-label={`Step ${index + 1} label`}
+                    />
+                    <span className="builder-steps__count">{step.fields.length}</span>
+                    {config.steps!.length > 1 && (
+                      <button
+                        type="button"
+                        className="builder-steps__remove"
+                        onClick={(e) => { e.stopPropagation(); removeWizardStep(step.id); }}
+                        title="Remove this step"
+                        aria-label="Remove step"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="builder-steps__add"
+                  onClick={addWizardStep}
+                  title="Add a new step"
+                >
+                  + Step
+                </button>
+              </div>
+            )}
+
+            {/* Step Settings - show when in wizard mode to edit the active step */}
+            {config.isWizard && resolvedStepId && (
+              <div className="builder-step-settings">
+                <div className="builder-step-settings__header">
+                  <Text weight="semibold" size={200}>
+                    Step settings
+                  </Text>
+                  <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+                    Shown below the step indicator in this step
+                  </Text>
+                </div>
+                <div className="builder-step-settings__row">
+                  <Field label="Step label" className="builder-step-settings__field">
+                    <Input
+                      value={config.steps?.find(s => s.id === resolvedStepId)?.label ?? ''}
+                      onChange={(_e, data) => renameStep(resolvedStepId, data.value)}
+                      appearance="filled-darker"
+                    />
+                  </Field>
+                  <Field label="Step message" className="builder-step-settings__field">
+                    <Input
+                      value={config.steps?.find(s => s.id === resolvedStepId)?.message ?? ''}
+                      onChange={(_e, data) =>
+                        setConfig(prev => ({
+                          ...prev,
+                          steps: (prev.steps ?? []).map(s =>
+                            s.id === resolvedStepId ? { ...s, message: data.value } : s
+                          ),
+                        }))
+                      }
+                      placeholder="Optional plain-text message for this step"
+                      appearance="filled-darker"
+                    />
+                  </Field>
+                </div>
+                <div className="builder-step-settings__row">
+                  <Field label="Step HTML content" className="builder-step-settings__field builder-step-settings__field--full">
+                    <textarea
+                      className="builder-step-settings__textarea"
+                      rows={2}
+                      value={config.steps?.find(s => s.id === resolvedStepId)?.content ?? ''}
+                      onChange={(e) =>
+                        setConfig(prev => ({
+                          ...prev,
+                          steps: (prev.steps ?? []).map(s =>
+                            s.id === resolvedStepId ? { ...s, content: e.target.value } : s
+                          ),
+                        }))
+                      }
+                      placeholder="Optional HTML rendered below the step message"
+                    />
+                  </Field>
+                </div>
+              </div>
+            )}
+
+            <DroppableCanvas isEmpty={currentFields.length === 0}>
+              <SortableContext items={currentFields.map(f => f.id)} strategy={verticalListSortingStrategy}>
+                {currentFields.length === 0 ? (
                   <div className="builder-canvas__empty">
                     <span className="builder-canvas__empty-icon">{ToolbarIcons.emptyCanvas}</span>
                     <Text>Drag fields here to build your modal</Text>
                   </div>
                 ) : (
-                  config.fields.map(field => (
+                  currentFields.map(field => (
                     <SortableField
                       key={field.id}
                       field={field}
@@ -1027,7 +1221,7 @@ export const ModalBuilder: React.FC<ModalBuilderProps> = ({ initialConfig }) => 
                       onSelect={() => setSelectedFieldId(field.id)}
                       onSelectChild={(childId) => setSelectedFieldId(childId)}
                       selectedChildId={selectedFieldId}
-                      allFields={config.fields}
+                      allFields={currentFields}
                     />
                   ))
                 )}

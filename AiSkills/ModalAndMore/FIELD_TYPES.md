@@ -444,6 +444,7 @@ Sortable, filterable, selectable data grid.
   ],
   selectionMode: 'multiple',
   onRowSelect: (selectedRows) => console.debug(selectedRows),
+  onRowDoubleClick: (row) => console.debug('Double-clicked:', row),
   isRowSelectable: (row) => row.price > 0 }
 ```
 
@@ -493,7 +494,7 @@ isRowSelectable: (row) => row.status === 'Active'
 // Disabled rows: 50% opacity, grayed checkbox, "not-allowed" cursor
 ```
 
-**Extra properties:** `tableColumns`, `data`, `selectionMode` (`'none'` | `'single'` | `'multiple'`), `onRowSelect`, `isRowSelectable`
+**Extra properties:** `tableColumns`, `data`, `selectionMode` (`'none'` | `'single'` | `'multiple'`), `onRowSelect`, `onRowDoubleClick`, `isRowSelectable`
 
 ---
 

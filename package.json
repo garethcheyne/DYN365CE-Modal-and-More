@@ -3,7 +3,7 @@
   "version": "2026.04.13.06",
   "author": "Gareth Cheyne err403.com",
   "description": "TypeScript UI utility library for Dynamics 365 CE - Toast notifications, Modal dialogs with tabs, and more",
-  "main": "build/err403-ui-lib.min.js",
+  "main": "build/ui-lib.min.js",
   "types": "build/ui-lib.types.d.ts",
   "scripts": {
     "dev": "vite --config vite.pages.config.ts --open /pages/about.html",
@@ -37,6 +37,9 @@
     "@types/node": "^24.10.0",
     "@vitejs/plugin-react": "^4.7.0",
     "archiver": "^7.0.1",
+    "react-markdown": "^10.1.0",
+    "rehype-raw": "^7.0.0",
+    "remark-gfm": "^4.0.1",
     "rollup": "^4.53.2",
     "rollup-plugin-dts": "^6.2.3",
     "terser": "^5.44.1",
@@ -54,9 +57,6 @@
     "@types/react-dom": "^19.2.3",
     "fluentui-extended": "^2026.2.19",
     "react": "^19.2.1",
-    "react-dom": "^19.2.1",
-    "react-markdown": "^10.1.0",
-    "rehype-raw": "^7.0.0",
-    "remark-gfm": "^4.0.1"
+    "react-dom": "^19.2.1"
   }
 }
