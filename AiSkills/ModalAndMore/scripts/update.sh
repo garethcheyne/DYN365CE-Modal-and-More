@@ -32,11 +32,13 @@ CONVENTIONS="$REPO_ROOT/modalandmore-conventions.md"
 COPILOT_SNIPPET="$REPO_ROOT/copilot-instructions.md"
 VERSION_FILE="$REPO_ROOT/VERSION"
 
-# Supporting reference files
-API_REFERENCE="$REPO_ROOT/API_REFERENCE.md"
-FIELD_TYPES="$REPO_ROOT/FIELD_TYPES.md"
-PATTERNS="$REPO_ROOT/PATTERNS.md"
-ARCHITECTURE="$REPO_ROOT/ARCHITECTURE.md"
+# Supporting reference files: source → destination filename
+REFERENCE_SOURCES=(
+    "$REPO_ROOT/API_REFERENCE.md|modalandmore-api-reference.md"
+    "$REPO_ROOT/FIELD_TYPES.md|modalandmore-field-types.md"
+    "$REPO_ROOT/PATTERNS.md|modalandmore-patterns.md"
+    "$REPO_ROOT/ARCHITECTURE.md|modalandmore-architecture.md"
+)
 
 # ── Version comparison ──────────────────────────────────────
 version_gt() {
@@ -108,7 +110,18 @@ if [ -n "$INSTALLED_VERSION" ] && [ "$FORCE" = false ]; then
         echo ""; exit 0
     fi
 elif [ -z "$INSTALLED_VERSION" ]; then
-    echo -e "${YELLOW}No version found — updating all files${NC}"
+    # Nothing installed — bail out so we don't try to write into a non-existent .claude/
+    if [ ! -d "$CLAUDE_DIR" ]; then
+        echo -e "${RED}ModalAndMore is not installed in $(pwd)${NC}"
+        echo -e "${GRAY}Run install.sh first to install the skill:${NC}"
+        if [ "$GLOBAL" = true ]; then
+            echo -e "${GRAY}  bash install.sh --global${NC}"
+        else
+            echo -e "${GRAY}  bash install.sh${NC}"
+        fi
+        echo ""; exit 1
+    fi
+    echo -e "${YELLOW}No version file found — updating existing files${NC}"
 else
     echo -e "${YELLOW}Force update to v${SOURCE_VERSION}${NC}"
 fi
@@ -128,6 +141,14 @@ if [ "$GLOBAL" = true ]; then
         cp "$CONVENTIONS" "$CLAUDE_DIR/modalandmore-conventions.md"
         echo -e "${GREEN}✓ Updated conventions${NC}"; ((updated++))
     fi
+    # Supporting reference files
+    for entry in "${REFERENCE_SOURCES[@]}"; do
+        src="${entry%%|*}"; dest="${entry##*|}"
+        if [ -f "$src" ] && [ -f "$CLAUDE_DIR/$dest" ]; then
+            cp "$src" "$CLAUDE_DIR/$dest"
+            echo -e "${GREEN}✓ Updated $dest${NC}"; ((updated++))
+        fi
+    done
 else
     # Claude slash command
     if [ -f "$CLAUDE_DIR/commands/modalandmore.md" ]; then
@@ -150,15 +171,30 @@ else
             echo -e "${GREEN}✓ Updated Copilot reference${NC}"; ((updated++))
         fi
     fi
+    # Supporting reference files (both .claude and .github copies)
+    for entry in "${REFERENCE_SOURCES[@]}"; do
+        src="${entry%%|*}"; dest="${entry##*|}"
+        [ ! -f "$src" ] && continue
+        if [ -f "$CLAUDE_DIR/$dest" ]; then
+            cp "$src" "$CLAUDE_DIR/$dest"
+            echo -e "${GREEN}✓ Updated .claude/$dest${NC}"; ((updated++))
+        fi
+        if [ -f "$GITHUB_DIR/$dest" ]; then
+            cp "$src" "$GITHUB_DIR/$dest"
+            echo -e "${GREEN}✓ Updated .github/$dest${NC}"; ((updated++))
+        fi
+    done
 fi
 
-# Always update version tracker
-cp "$VERSION_FILE" "$CLAUDE_DIR/modalandmore.version"
+# Update version tracker only if we actually updated something and the dir exists
+if [ -d "$CLAUDE_DIR" ] && [ $updated -gt 0 ]; then
+    cp "$VERSION_FILE" "$CLAUDE_DIR/modalandmore.version"
+fi
 
 echo ""
 if [ $updated -gt 0 ]; then
     echo -e "${GREEN}Updated $updated files → v${SOURCE_VERSION}${NC}"
 else
-    echo -e "${RED}No files found. Run install.sh first.${NC}"
+    echo -e "${RED}No installed files found. Run install.sh first.${NC}"
 fi
 echo ""

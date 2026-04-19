@@ -84,7 +84,18 @@ if ($InstalledVersion -and -not $Force) {
         Write-Host ""; exit 0
     }
 } elseif (-not $InstalledVersion) {
-    Write-Host "No version found - updating all files" -ForegroundColor Yellow
+    # Nothing installed — bail out so we don't try to write into a non-existent .claude\
+    if (-not (Test-Path $ClaudeDir)) {
+        Write-Host "ModalAndMore is not installed in $((Get-Location).Path)" -ForegroundColor Red
+        Write-Host "Run install.ps1 first to install the skill:" -ForegroundColor DarkGray
+        if ($Global) {
+            Write-Host "  .\install.ps1 -Global" -ForegroundColor DarkGray
+        } else {
+            Write-Host "  .\install.ps1" -ForegroundColor DarkGray
+        }
+        Write-Host ""; exit 1
+    }
+    Write-Host "No version file found - updating existing files" -ForegroundColor Yellow
 } else {
     Write-Host "Force update to v$SourceVersion" -ForegroundColor Yellow
 }
@@ -144,13 +155,15 @@ if ($Global) {
     }
 }
 
-# Always update version tracker
-Copy-Item $VersionFile (Join-Path $ClaudeDir "modalandmore.version") -Force
+# Update version tracker only if we actually updated something and the dir exists
+if ((Test-Path $ClaudeDir) -and $updated -gt 0) {
+    Copy-Item $VersionFile (Join-Path $ClaudeDir "modalandmore.version") -Force
+}
 
 Write-Host ""
 if ($updated -gt 0) {
     Write-Host "Updated $updated files -> v$SourceVersion" -ForegroundColor Green
 } else {
-    Write-Host "No files found. Run install.ps1 first." -ForegroundColor Red
+    Write-Host "No installed files found. Run install.ps1 first." -ForegroundColor Red
 }
 Write-Host ""
