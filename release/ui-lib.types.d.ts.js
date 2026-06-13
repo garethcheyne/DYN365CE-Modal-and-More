@@ -210,6 +210,7 @@ interface FieldConfig {
     tableColumns?: TableColumn[];
     data?: any[];
     selectionMode?: 'none' | 'single' | 'multiple';
+    showSelectAll?: boolean;
     onRowSelect?: (selectedRows: any[]) => void;
     onRowDoubleClick?: (row: any) => void;
     isRowSelectable?: (row: any) => boolean;
@@ -554,6 +555,14 @@ declare class Modal implements ModalInstance {
     nextStep(): void;
     previousStep(): void;
     goToStep(stepId: string): void;
+    /**
+     * Returns the current step number (1-indexed).
+     */
+    getCurrentStep(): number;
+    /**
+     * Returns the step ID of the current step, or undefined if steps have no IDs.
+     */
+    getCurrentStepId(): string | undefined;
     /**
      * Validate if a step has all required fields filled
      */
@@ -1071,8 +1080,14 @@ declare function onLoad(executionContext?: any): HealthState;
  * @returns Library instance or null if not found
  */
 declare function findInstance(): any;
+/**
+ * Diagnostic debug output for troubleshooting modal visibility issues.
+ * Call `uiLib.debug()` in the browser console to get a full snapshot.
+ * Returns the diagnostic object for programmatic use.
+ */
+declare function debug(): Record<string, any>;
 
-export { BUG, ModalButton as Button, ERR, Logger, Lookup, Modal, ModalButton, ModalHelpers_d as ModalHelpers, TRACE, Toast, UILIB, WAR, d365Theme, findInstance, init, onLoad, theme };
+export { BUG, ModalButton as Button, ERR, Logger, Lookup, Modal, ModalButton, ModalHelpers_d as ModalHelpers, TRACE, Toast, UILIB, WAR, d365Theme, debug, findInstance, init, onLoad, theme };
 export type { HealthState };
 
 /**

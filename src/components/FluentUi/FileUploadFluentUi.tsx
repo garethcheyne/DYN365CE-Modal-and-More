@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { Button, Field, Text, mergeClasses, makeStyles, shorthands } from '@fluentui/react-components';
+import { Button, Field, Text, mergeClasses, makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { ArrowUpload24Regular, Dismiss24Regular, Document24Regular } from '@fluentui/react-icons';
 
 interface FileUploadFluentUiProps {
@@ -28,10 +28,10 @@ interface FileUploadFluentUiProps {
 
 const useStyles = makeStyles({
     dropZone: {
-        ...shorthands.border('2px', 'dashed', '#d1d1d1'),
-        ...shorthands.borderRadius('8px'),
-        ...shorthands.padding('32px', '24px'),
-        backgroundColor: '#fafafa',
+        ...shorthands.border(tokens.strokeWidthThick, 'dashed', tokens.colorNeutralStroke1),
+        ...shorthands.borderRadius(tokens.borderRadiusMedium),
+        ...shorthands.padding('32px', tokens.spacingHorizontalXXL),
+        backgroundColor: tokens.colorNeutralBackground2,
         textAlign: 'center',
         cursor: 'pointer',
         ...shorthands.transition('all', '0.2s', 'ease'),
@@ -42,44 +42,44 @@ const useStyles = makeStyles({
         alignItems: 'center',
         justifyContent: 'center',
         ':hover': {
-            ...shorthands.borderColor('#0078d4'),
-            backgroundColor: '#f3f2f1',
+            ...shorthands.borderColor(tokens.colorBrandStroke1),
+            backgroundColor: tokens.colorNeutralBackground3,
         },
     },
     dropZoneActive: {
-        ...shorthands.borderColor('#0078d4'),
-        backgroundColor: '#deecf9',
-        ...shorthands.borderWidth('3px'),
+        ...shorthands.borderColor(tokens.colorBrandStroke1),
+        backgroundColor: tokens.colorBrandBackground2,
+        ...shorthands.borderWidth(tokens.strokeWidthThicker),
     },
     dropZoneDisabled: {
         cursor: 'not-allowed',
         opacity: 0.6,
         ':hover': {
-            ...shorthands.borderColor('#d1d1d1'),
-            backgroundColor: '#fafafa',
+            ...shorthands.borderColor(tokens.colorNeutralStroke1),
+            backgroundColor: tokens.colorNeutralBackground2,
         },
     },
     icon: {
         fontSize: '48px',
-        color: '#0078d4',
-        marginBottom: '12px',
+        color: tokens.colorBrandForeground1,
+        marginBottom: tokens.spacingVerticalM,
     },
     dropText: {
-        fontSize: '16px',
-        fontWeight: 600,
-        color: '#323130',
-        marginBottom: '4px',
+        fontSize: tokens.fontSizeBase400,
+        fontWeight: tokens.fontWeightSemibold,
+        color: tokens.colorNeutralForeground1,
+        marginBottom: tokens.spacingVerticalXS,
     },
     browseText: {
-        fontSize: '14px',
-        color: '#605e5c',
-        marginBottom: '16px',
+        fontSize: tokens.fontSizeBase300,
+        color: tokens.colorNeutralForeground2,
+        marginBottom: tokens.spacingVerticalL,
     },
     browseButton: {
-        marginTop: '8px',
+        marginTop: tokens.spacingVerticalS,
     },
     fileList: {
-        marginTop: '16px',
+        marginTop: tokens.spacingVerticalL,
         ...shorthands.padding('0'),
         listStyle: 'none',
     },
@@ -87,14 +87,14 @@ const useStyles = makeStyles({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        ...shorthands.padding('8px', '12px'),
-        ...shorthands.border('1px', 'solid', '#edebe9'),
-        ...shorthands.borderRadius('4px'),
-        backgroundColor: '#ffffff',
-        marginBottom: '8px',
+        ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalM),
+        ...shorthands.border(tokens.strokeWidthThin, 'solid', tokens.colorNeutralStroke2),
+        ...shorthands.borderRadius(tokens.borderRadiusSmall),
+        backgroundColor: tokens.colorNeutralBackground1,
+        marginBottom: tokens.spacingVerticalS,
         ...shorthands.transition('all', '0.15s', 'ease'),
         '&:hover': {
-            backgroundColor: '#f3f2f1',
+            backgroundColor: tokens.colorNeutralBackground3,
         },
     },
     fileInfo: {
@@ -104,36 +104,39 @@ const useStyles = makeStyles({
         minWidth: 0,
     },
     fileIcon: {
-        fontSize: '20px',
-        color: '#0078d4',
-        marginRight: '8px',
+        fontSize: tokens.fontSizeBase500,
+        color: tokens.colorBrandForeground1,
+        marginRight: tokens.spacingHorizontalS,
         flexShrink: 0,
     },
     fileName: {
-        fontSize: '14px',
-        fontWeight: 500,
-        color: '#323130',
+        fontSize: tokens.fontSizeBase300,
+        fontWeight: tokens.fontWeightMedium,
+        color: tokens.colorNeutralForeground1,
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
-        marginRight: '8px',
+        marginRight: tokens.spacingHorizontalS,
     },
     fileSize: {
-        fontSize: '12px',
-        color: '#605e5c',
+        fontSize: tokens.fontSizeBase200,
+        color: tokens.colorNeutralForeground2,
         flexShrink: 0,
     },
     removeButton: {
         minWidth: 'auto',
-        marginLeft: '8px',
+        marginLeft: tokens.spacingHorizontalS,
     },
     errorText: {
-        fontSize: '12px',
-        color: '#a4262c',
-        marginTop: '4px',
+        fontSize: tokens.fontSizeBase200,
+        color: tokens.colorPaletteRedForeground1,
+        marginTop: tokens.spacingVerticalXS,
     },
     hiddenInput: {
         display: 'none',
+    },
+    field: {
+        marginBottom: tokens.spacingVerticalS,
     },
 });
 
@@ -308,7 +311,7 @@ export const FileUploadFluentUi: React.FC<FileUploadFluentUiProps> = ({
             required={required}
             hint={tooltip}
             orientation={orientation}
-            style={{ marginBottom: '8px' }}
+            className={styles.field}
         >
             <div>
                 <div

@@ -24,6 +24,10 @@ The library must be added to D365 forms as a form library:
 3. Place at top of library list
 4. Available to all scripts on the form
 
+**Quick OnLoad registration (no custom code):**
+You can register `uiLib.init` directly as the Form OnLoad function — no wrapper needed.
+Set Function = `uiLib.init`, Library = `err403_/ui-lib.min.js`, and tick "Pass execution context".
+
 ### Iframe Architecture
 
 D365 uses multiple iframes. The library handles this automatically:

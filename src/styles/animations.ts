@@ -105,16 +105,17 @@ export const animations = {
 /**
  * Inject animations into the document head
  */
-export function injectAnimations(): void {
+export function injectAnimations(targetDoc?: Document): void {
   const styleId = 'err403-animations';
+  const doc = targetDoc || document;
   
-  // Check if already injected
-  if (document.getElementById(styleId)) {
+  // Check if already injected in target document
+  if (doc.getElementById(styleId)) {
     return;
   }
   
-  const style = document.createElement('style');
+  const style = doc.createElement('style');
   style.id = styleId;
   style.textContent = Object.values(animations).join('\n');
-  document.head.appendChild(style);
+  doc.head.appendChild(style);
 }

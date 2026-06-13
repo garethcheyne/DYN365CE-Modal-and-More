@@ -14,17 +14,62 @@ import { getTargetDocument } from '../../utils/dom';
 const rendererCache = new WeakMap<Document, ReturnType<typeof createDOMRenderer>>();
 
 /**
- * Get or create a shared Griffel renderer for a specific document
- * This is critical for D365 where Modal renders to window.top.document
- * but multiple FluentProviders are created for individual components
+ * Marker ID used to detect if our Griffel style injection is still in the DOM.
+ * D365 UCI SPA navigation can tear down/rebuild the <head>, removing Griffel's
+ * injected <style> elements while keeping the cached renderer object alive.
+ * This sentinel lets us detect that scenario and create a fresh renderer.
+ */
+const GRIFFEL_SENTINEL_ID = 'uilib-griffel-sentinel';
+
+/**
+ * Get or create a shared Griffel renderer for a specific document.
+ * Includes staleness detection: if our sentinel marker is missing from the
+ * document head, the previously cached renderer's styles were removed
+ * (e.g., by D365 SPA navigation) and we need a fresh one.
  */
 function getSharedRenderer(targetDocument: Document): ReturnType<typeof createDOMRenderer> {
   let renderer = rendererCache.get(targetDocument);
+
+  // Check if cached renderer's styles are still in the DOM
+  if (renderer) {
+    const sentinel = targetDocument.getElementById(GRIFFEL_SENTINEL_ID);
+    if (!sentinel) {
+      // Sentinel was removed — D365 navigation likely cleared the head.
+      // Discard cached renderer so a fresh one re-injects all styles.
+      rendererCache.delete(targetDocument);
+      renderer = undefined;
+    }
+  }
+
   if (!renderer) {
     renderer = createDOMRenderer(targetDocument);
     rendererCache.set(targetDocument, renderer);
+
+    // Plant a sentinel element so we can detect if D365 removes our styles later
+    if (!targetDocument.getElementById(GRIFFEL_SENTINEL_ID)) {
+      const sentinel = targetDocument.createElement('meta');
+      sentinel.id = GRIFFEL_SENTINEL_ID;
+      sentinel.setAttribute('name', 'uilib-griffel');
+      sentinel.setAttribute('content', 'active');
+      targetDocument.head.appendChild(sentinel);
+    }
   }
+
   return renderer;
+}
+
+/**
+ * Reset the Griffel renderer cache for a document.
+ * Called by init() on each D365 form load to ensure CSS-in-JS state is valid.
+ * If the sentinel is missing (indicating D365 navigation cleared our styles),
+ * this forces re-creation on the next mountFluentComponent call.
+ */
+export function resetRendererIfStale(targetDocument?: Document): void {
+  const doc = targetDocument || getTargetDocument();
+  const sentinel = doc.getElementById(GRIFFEL_SENTINEL_ID);
+  if (!sentinel && rendererCache.has(doc)) {
+    rendererCache.delete(doc);
+  }
 }
 
 /**

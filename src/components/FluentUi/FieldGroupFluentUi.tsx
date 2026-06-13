@@ -7,12 +7,81 @@ import React from 'react';
 import {
   Text,
   Divider,
+  makeStyles,
+  mergeClasses,
   tokens
 } from '@fluentui/react-components';
 import {
   ChevronDown20Regular,
   ChevronRight20Regular
 } from '@fluentui/react-icons';
+
+const useStyles = makeStyles({
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalM,
+    marginBottom: tokens.spacingVerticalL,
+  },
+  containerBordered: {
+    borderTopWidth: tokens.strokeWidthThin,
+    borderRightWidth: tokens.strokeWidthThin,
+    borderBottomWidth: tokens.strokeWidthThin,
+    borderLeftWidth: tokens.strokeWidthThin,
+    borderTopStyle: 'solid',
+    borderRightStyle: 'solid',
+    borderBottomStyle: 'solid',
+    borderLeftStyle: 'solid',
+    borderTopColor: tokens.colorNeutralStroke1,
+    borderRightColor: tokens.colorNeutralStroke1,
+    borderBottomColor: tokens.colorNeutralStroke1,
+    borderLeftColor: tokens.colorNeutralStroke1,
+    borderRadius: tokens.borderRadiusMedium,
+    paddingTop: tokens.spacingVerticalL,
+    paddingBottom: tokens.spacingVerticalL,
+    paddingLeft: tokens.spacingHorizontalL,
+    paddingRight: tokens.spacingHorizontalL,
+    backgroundColor: tokens.colorNeutralBackground1,
+  },
+  header: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalXS,
+  },
+  headerCollapsible: {
+    cursor: 'pointer',
+    userSelect: 'none',
+  },
+  titleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+  },
+  chevronIcon: {
+    color: tokens.colorNeutralForeground2,
+  },
+  labelText: {
+    color: tokens.colorNeutralForeground1,
+  },
+  contentText: {
+    color: tokens.colorNeutralForeground2,
+  },
+  contentIndented: {
+    marginLeft: tokens.spacingHorizontalXXL,
+  },
+  divider: {
+    marginTop: tokens.spacingVerticalXS,
+    marginBottom: tokens.spacingVerticalXS,
+  },
+  childrenContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalM,
+  },
+  childrenIndented: {
+    marginLeft: tokens.spacingHorizontalXXL,
+  },
+});
 
 interface FieldGroupFluentUiProps {
   id?: string;
@@ -33,36 +102,8 @@ export const FieldGroupFluentUi: React.FC<FieldGroupFluentUiProps> = ({
   defaultCollapsed = false,
   children
 }) => {
+  const styles = useStyles();
   const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed);
-
-  const containerStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-    marginBottom: '16px',
-    ...(border && {
-      border: `1px solid ${tokens.colorNeutralStroke1}`,
-      borderRadius: '8px',
-      padding: '16px',
-      backgroundColor: tokens.colorNeutralBackground1
-    })
-  };
-
-  const headerStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-    ...(collapsible && {
-      cursor: 'pointer',
-      userSelect: 'none'
-    })
-  };
-
-  const titleRowStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  };
 
   const handleToggle = () => {
     if (collapsible) {
@@ -73,21 +114,24 @@ export const FieldGroupFluentUi: React.FC<FieldGroupFluentUiProps> = ({
   const hasHeader = label || content;
 
   return (
-    <div id={id} style={containerStyle} data-field-group={id}>
+    <div
+      id={id}
+      className={mergeClasses(styles.container, border && styles.containerBordered)}
+      data-field-group={id}
+    >
       {hasHeader && (
-        <div style={headerStyle} onClick={handleToggle}>
-          <div style={titleRowStyle}>
+        <div
+          className={mergeClasses(styles.header, collapsible && styles.headerCollapsible)}
+          onClick={handleToggle}
+        >
+          <div className={styles.titleRow}>
             {collapsible && (
               isCollapsed
-                ? <ChevronRight20Regular style={{ color: tokens.colorNeutralForeground2 }} />
-                : <ChevronDown20Regular style={{ color: tokens.colorNeutralForeground2 }} />
+                ? <ChevronRight20Regular className={styles.chevronIcon} />
+                : <ChevronDown20Regular className={styles.chevronIcon} />
             )}
             {label && (
-              <Text
-                weight="semibold"
-                size={400}
-                style={{ color: tokens.colorNeutralForeground1 }}
-              >
+              <Text weight="semibold" size={400} className={styles.labelText}>
                 {label}
               </Text>
             )}
@@ -95,10 +139,7 @@ export const FieldGroupFluentUi: React.FC<FieldGroupFluentUiProps> = ({
           {content && !isCollapsed && (
             <Text
               size={300}
-              style={{
-                color: tokens.colorNeutralForeground2,
-                marginLeft: collapsible ? '28px' : '0'
-              }}
+              className={mergeClasses(styles.contentText, collapsible && styles.contentIndented)}
             >
               {content}
             </Text>
@@ -107,16 +148,14 @@ export const FieldGroupFluentUi: React.FC<FieldGroupFluentUiProps> = ({
       )}
 
       {hasHeader && !isCollapsed && !border && (
-        <Divider style={{ margin: '4px 0' }} />
+        <Divider className={styles.divider} />
       )}
 
       {!isCollapsed && (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          marginLeft: collapsible && !border ? '28px' : '0'
-        }}>
+        <div className={mergeClasses(
+          styles.childrenContainer,
+          collapsible && !border && styles.childrenIndented
+        )}>
           {children}
         </div>
       )}

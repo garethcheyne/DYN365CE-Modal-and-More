@@ -41,7 +41,21 @@ For each form where you want to use the library:
 
 ## Initialize in Your Code
 
-### Form OnLoad Event
+### Quick Setup (No Custom Code)
+
+You can register `uiLib.init` directly as the Form OnLoad event handler — no wrapper function needed:
+
+| Property | Value |
+|----------|-------|
+| Library | `err403_/ui-lib.min.js` |
+| Function | `uiLib.init` |
+| Pass execution context | ☑ Enabled |
+
+This initializes the library, loads the CSS, and returns a health object. All other scripts on the form can then use `uiLib.Toast`, `uiLib.Modal`, etc. immediately.
+
+### Form OnLoad Event (Custom Logic)
+
+If you need additional logic beyond initialization, call `uiLib.init` from your own function:
 
 ```javascript
 function onFormLoad(executionContext) {

@@ -130,7 +130,19 @@ Add as a form library (one-time setup per form):
 5. **Move it to the top** of the library list
 6. Save and publish
 
-**That's it!** Now use it in any form script:
+**That's it!** The library is now available to all scripts on the form.
+
+**Optional: Register OnLoad Event**
+
+If you want to initialize the library on form load, you can use `uiLib.init` directly as the event handler — no custom wrapper function needed:
+
+| Property | Value |
+|----------|-------|
+| Library | `err403_/ui-lib.min.js` |
+| Function | `uiLib.init` |
+| Pass execution context | ☑ Enabled |
+
+This initializes the library and loads the CSS. You can also call `uiLib.init` from your own OnLoad function if you need additional logic:
 
 ```javascript
 // In your form OnLoad event

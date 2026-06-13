@@ -184,6 +184,7 @@ export interface FieldConfig {
     tableColumns?: TableColumn[];
     data?: any[];
     selectionMode?: 'none' | 'single' | 'multiple';
+    showSelectAll?: boolean;  // Show/hide the select-all checkbox in multi-select tables (default: true)
     onRowSelect?: (selectedRows: any[]) => void;
     onRowDoubleClick?: (row: any) => void;  // Callback when a row is double-clicked
     isRowSelectable?: (row: any) => boolean;  // Function to determine if a row can be selected

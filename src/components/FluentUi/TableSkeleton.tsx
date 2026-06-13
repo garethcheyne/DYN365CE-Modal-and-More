@@ -15,25 +15,25 @@ interface TableSkeletonProps {
 const useStyles = makeStyles({
   container: {
     backgroundColor: tokens.colorNeutralBackground1,
-    padding: '8px',
-    borderRadius: '4px',
+    padding: tokens.spacingVerticalS,
+    borderRadius: tokens.borderRadiusSmall,
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
   },
   headerRow: {
-    borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
+    borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
   },
   headerCell: {
-    padding: '12px',
+    padding: tokens.spacingVerticalM,
     height: '42px',
   },
   bodyRow: {
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
   },
   bodyCell: {
-    padding: '12px',
+    padding: tokens.spacingVerticalM,
     height: '42px',
   },
   skeletonHeader: {

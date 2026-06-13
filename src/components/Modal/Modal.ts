@@ -104,6 +104,22 @@ export class Modal implements ModalInstance {
       ...options
     };
 
+    // Auto-generate ID if not provided
+    if (!this.options.id) {
+      if (this.options.title) {
+        // Slugify title: lowercase, replace spaces/special chars with hyphens, trim
+        const slug = this.options.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
+        // Append short random suffix to avoid collisions
+        const suffix = Math.random().toString(36).substring(2, 6);
+        this.options.id = `modal-${slug}-${suffix}`;
+      } else {
+        this.options.id = `modal-${Math.random().toString(36).substring(2, 10)}`;
+      }
+    }
+
     this.debug = this.options.debug || false;
 
     if (this.debug) {
@@ -378,7 +394,7 @@ export class Modal implements ModalInstance {
 
   private async createModal(): Promise<void> {
     const doc = getTargetDocument();
-    injectAnimations();
+    injectAnimations(doc);
 
     this.overlay = doc.createElement('div');
     // Fluent UI v9 Dialog backdrop styling
@@ -2524,6 +2540,13 @@ export class Modal implements ModalInstance {
     doc.removeEventListener('mousemove', this.handleDrag);
     doc.removeEventListener('mouseup', this.stopDrag);
 
+    // Guard: if already closed / cleaned up, bail out
+    if (!this.container?.parentElement && !this.overlay?.parentElement) {
+      console.debug(...UILIB, 'Modal.close() called but already cleaned up — clearing overflow as safety measure');
+      doc.body.style.overflow = '';
+      return;
+    }
+
     // Apply smooth fade-out animations with fill-mode to maintain final state
     if (this.modal) {
       this.modal.style.animation = 'fadeOutScale 0.3s cubic-bezier(0.33, 0, 0.67, 1) forwards';
@@ -2532,8 +2555,16 @@ export class Modal implements ModalInstance {
       this.overlay.style.animation = 'fadeOut 0.3s cubic-bezier(0.33, 0, 0.67, 1) forwards';
     }
 
+    let cleanedUp = false;
+    let cleanupSource = 'animationend';
+
     // Use animationend event for reliable cleanup timing
     const handleAnimationEnd = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+
+      console.debug(...UILIB, `Modal.close() cleanup via ${cleanupSource}`, { title: this.options.title });
+
       // Unmount all React roots BEFORE removing DOM elements.
       // This is critical for components like Lookup that use Fluent UI Popover,
       // which renders its dropdown via a portal to document.body.
@@ -2554,6 +2585,12 @@ export class Modal implements ModalInstance {
       if (this.overlay?.parentElement) {
         this.overlay.parentElement.removeChild(this.overlay);
       }
+
+      // Null out references so the instance cannot be accidentally re-shown
+      this.container = null;
+      this.overlay = null;
+      this.modal = null;
+
       doc.body.style.overflow = '';
     };
 
@@ -2562,12 +2599,12 @@ export class Modal implements ModalInstance {
       this.modal.addEventListener('animationend', handleAnimationEnd, { once: true });
     }
 
-    // Fallback timeout in case animationend doesn't fire
+    // Fallback timeout — always fires to guarantee cleanup even if
+    // animationend is swallowed (e.g., D365 iframe hidden during animation)
     setTimeout(() => {
-      if (this.container?.parentElement || this.overlay?.parentElement) {
-        handleAnimationEnd();
-      }
-    }, 350); // Slightly longer than animation duration
+      cleanupSource = 'fallback-timeout (animationend did not fire)';
+      handleAnimationEnd();
+    }, 350);
   }
 
   setLoading(loading: boolean, options?: string | { message?: string; progress?: number }): void {
@@ -2765,7 +2802,32 @@ export class Modal implements ModalInstance {
     const step = parseInt(stepId, 10);
     if (!isNaN(step)) {
       this.updateProgress(step);
+      return;
     }
+    // Support step ID lookup
+    const steps = this.options.progress?.steps;
+    if (steps) {
+      const index = steps.findIndex(s => s.id === stepId);
+      if (index !== -1) {
+        this.updateProgress(index + 1);
+      }
+    }
+  }
+
+  /**
+   * Returns the current step number (1-indexed).
+   */
+  getCurrentStep(): number {
+    return this.currentStep;
+  }
+
+  /**
+   * Returns the step ID of the current step, or undefined if steps have no IDs.
+   */
+  getCurrentStepId(): string | undefined {
+    const steps = this.options.progress?.steps;
+    if (!steps || this.currentStep < 1 || this.currentStep > steps.length) return undefined;
+    return steps[this.currentStep - 1].id;
   }
 
   /**

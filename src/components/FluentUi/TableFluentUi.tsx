@@ -21,6 +21,7 @@ import {
   PopoverSurface,
   Select,
   Switch,
+  mergeClasses,
 } from '@fluentui/react-components';
 import {
   ChevronDown20Regular,
@@ -90,7 +91,7 @@ const useStyles = makeStyles({
     },
     '&::-webkit-scrollbar-thumb': {
       backgroundColor: tokens.colorNeutralStroke1,
-      borderRadius: '4px',
+      borderRadius: tokens.borderRadiusSmall,
     },
     '&::-webkit-scrollbar-thumb:hover': {
       backgroundColor: tokens.colorNeutralStroke1Hover,
@@ -135,7 +136,7 @@ const useStyles = makeStyles({
       },
       '&::-webkit-scrollbar-thumb': {
         backgroundColor: tokens.colorNeutralStroke1,
-        borderRadius: '4px',
+        borderRadius: tokens.borderRadiusSmall,
       },
       '&::-webkit-scrollbar-thumb:hover': {
         backgroundColor: tokens.colorNeutralStroke1Hover,
@@ -151,7 +152,7 @@ const useStyles = makeStyles({
       fontSize: tokens.fontSizeBase300,
       fontWeight: tokens.fontWeightSemibold,
       color: tokens.colorNeutralForeground1,
-      padding: '0 12px',
+      padding: `0 ${tokens.spacingHorizontalM}`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -174,7 +175,7 @@ const useStyles = makeStyles({
     '& .fui-DataGridCell': {
       fontSize: tokens.fontSizeBase300,
       color: tokens.colorNeutralForeground1,
-      padding: '0 12px',
+      padding: `0 ${tokens.spacingHorizontalM}`,
       height: '42px',
       borderRight: 'none',
       overflow: 'hidden',
@@ -209,6 +210,12 @@ const useStyles = makeStyles({
     cursor: 'not-allowed',
     pointerEvents: 'none',
   },
+  hideSelectAll: {
+    // Completely remove the header row's select-all checkbox
+    '& .fui-DataGridHeader .fui-DataGridRow [role="checkbox"]': {
+      display: 'none',
+    },
+  },
   disabledCheckbox: {
     cursor: 'not-allowed',
     opacity: 0.5,
@@ -218,17 +225,17 @@ const useStyles = makeStyles({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    gap: '8px',
+    gap: tokens.spacingHorizontalS,
   },
   columnHeaderContent: {
     display: 'flex',
     alignItems: 'center',
-    gap: '4px',
+    gap: tokens.spacingHorizontalXS,
     flex: 1,
   },
   columnHeaderButton: {
     minWidth: 'auto',
-    padding: '4px',
+    padding: tokens.spacingVerticalXXS,
     height: '24px',
     color: tokens.colorNeutralForeground2,
     '&:hover': {
@@ -237,7 +244,7 @@ const useStyles = makeStyles({
   },
   columnHeaderButtonFiltered: {
     minWidth: 'auto',
-    padding: '4px',
+    padding: tokens.spacingVerticalXXS,
     height: '24px',
     color: tokens.colorBrandForeground1,
     '&:hover': {
@@ -246,11 +253,11 @@ const useStyles = makeStyles({
   },
   clearFilterButton: {
     minWidth: 'auto',
-    padding: '2px',
+    padding: tokens.spacingVerticalNone,
     height: '20px',
     width: '20px',
     color: tokens.colorBrandForeground1,
-    borderRadius: '50%',
+    borderRadius: tokens.borderRadiusCircular,
     '&:hover': {
       backgroundColor: tokens.colorPaletteRedBackground2,
       color: tokens.colorPaletteRedForeground1,
@@ -262,46 +269,66 @@ const useStyles = makeStyles({
   // Static one-shot styles lifted out of inline JSX style props so the
   // "no inline styles" lint rule stops firing on every render site.
   errorFallback: {
-    padding: '20px',
+    padding: tokens.spacingVerticalXL,
     textAlign: 'center',
     color: tokens.colorPaletteRedForeground1,
   },
   clearFilterIcon: {
-    fontSize: '10px',
+    fontSize: tokens.fontSizeBase100,
     lineHeight: 1,
   },
   popoverHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '12px',
+    marginBottom: tokens.spacingVerticalM,
   },
   popoverTitle: {
-    fontWeight: 600,
-    fontSize: '14px',
+    fontWeight: tokens.fontWeightSemibold,
+    fontSize: tokens.fontSizeBase300,
   },
   popoverCloseIcon: {
-    fontSize: '12px',
+    fontSize: tokens.fontSizeBase200,
   },
   popoverFieldLabel: {
     display: 'block',
-    marginBottom: '4px',
-    fontSize: '12px',
-    fontWeight: 600,
+    marginBottom: tokens.spacingVerticalXS,
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightSemibold,
   },
   popoverButtonRow: {
     display: 'flex',
-    gap: '8px',
+    gap: tokens.spacingHorizontalS,
+  },
+  popoverSurface: {
+    padding: tokens.spacingVerticalL,
+    width: '240px',
+  },
+  popoverInput: {
+    width: '100%',
+    marginBottom: tokens.spacingVerticalM,
+    boxSizing: 'border-box',
+  },
+  popoverSelect: {
+    width: '100%',
+    marginBottom: tokens.spacingVerticalS,
+  },
+  flexOne: {
+    flex: 1,
+  },
+  popoverCloseButton: {
+    minWidth: 'auto',
+    padding: tokens.spacingVerticalXXS,
   },
   groupHeaderRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    fontWeight: 600,
+    gap: tokens.spacingHorizontalS,
+    fontWeight: tokens.fontWeightSemibold,
     cursor: 'pointer',
   },
   groupExpandIcon: {
-    fontSize: '16px',
+    fontSize: tokens.fontSizeBase400,
   },
 });
 
@@ -865,7 +892,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
           positioning={{ target: menuButtonRef.current, position: 'below', align: 'start' }}
         >
           <PopoverSurface
-            style={{ padding: '16px', width: '240px' }}
+            className={styles.popoverSurface}
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
             onMouseDown={(e: React.MouseEvent) => e.stopPropagation()}
           >
@@ -876,7 +903,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                 icon={<span className={styles.popoverCloseIcon}>✕</span>}
                 onClick={() => setIsFilterDialogOpen(false)}
                 size="small"
-                style={{ minWidth: 'auto', padding: '4px' }}
+                className={styles.popoverCloseButton}
               />
             </div>
             <label htmlFor={`filter-operator-${columnId}`} className={styles.popoverFieldLabel}>
@@ -890,7 +917,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                 setSelectedOperator(newOperator);
                 setFilterOperators(prev => ({ ...prev, [columnId]: newOperator }));
               }}
-              style={{ width: '100%', marginBottom: '8px' }}
+              className={styles.popoverSelect}
             >
               {operators.map(op => (
                 <option key={op} value={op}>{op}</option>
@@ -908,7 +935,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                   setIsFilterDialogOpen(false);
                 }
               }}
-              style={{ width: '100%', marginBottom: '12px', boxSizing: 'border-box' }}
+              className={styles.popoverInput}
             />
             <div className={styles.popoverButtonRow}>
               <Button
@@ -919,7 +946,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                   handleApplyFilter(columnId, filterValue, selectedOperator);
                   setIsFilterDialogOpen(false);
                 }}
-                style={{ flex: 1 }}
+                className={styles.flexOne}
               >
                 Apply
               </Button>
@@ -931,7 +958,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                   setSelectedOperator('Equals');
                   setIsFilterDialogOpen(false);
                 }}
-                style={{ flex: 1 }}
+                className={styles.flexOne}
               >
                 Clear
               </Button>
@@ -946,7 +973,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
           positioning={{ target: menuButtonRef.current, position: 'below', align: 'start' }}
         >
           <PopoverSurface
-            style={{ padding: '16px', width: '240px' }}
+            className={styles.popoverSurface}
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
             onMouseDown={(e: React.MouseEvent) => e.stopPropagation()}
           >
@@ -957,7 +984,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                 icon={<span className={styles.popoverCloseIcon}>✕</span>}
                 onClick={() => setIsWidthDialogOpen(false)}
                 size="small"
-                style={{ minWidth: 'auto', padding: '4px' }}
+                className={styles.popoverCloseButton}
               />
             </div>
             <Input
@@ -970,7 +997,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                   setIsWidthDialogOpen(false);
                 }
               }}
-              style={{ width: '100%', marginBottom: '12px', boxSizing: 'border-box' }}
+              className={styles.popoverInput}
             />
             <div className={styles.popoverButtonRow}>
               <Button
@@ -979,14 +1006,14 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
                   applyColumnWidth(columnId, columnWidth);
                   setIsWidthDialogOpen(false);
                 }}
-                style={{ flex: 1 }}
+                className={styles.flexOne}
               >
                 Apply
               </Button>
               <Button
                 appearance="secondary"
                 onClick={() => setIsWidthDialogOpen(false)}
-                style={{ flex: 1 }}
+                className={styles.flexOne}
               >
                 Cancel
               </Button>
@@ -1214,7 +1241,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
             const headerAlign = column.align || 'left';
             const justifyContent = headerAlign === 'right' ? 'flex-end' : headerAlign === 'center' ? 'center' : 'space-between';
             return (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent, width: '100%', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent, width: '100%', gap: tokens.spacingHorizontalS }}>
                 <span style={{ textAlign: headerAlign, flex: headerAlign === 'left' ? 1 : 'none' }}>{column.header}</span>
                 <ColumnHeaderMenu
                   columnId={column.id}
@@ -1353,7 +1380,7 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
   }
 
   return (
-    <div ref={containerRef} className={styles.container}>
+    <div ref={containerRef} className={mergeClasses(styles.container, config.showSelectAll === false && styles.hideSelectAll)}>
       <DataGrid
         items={displayData}
         columns={columns as any}
@@ -1368,7 +1395,9 @@ export const TableFluentUi: React.FC<TableFluentUiProps> = ({ config, onSelectio
           const selectedItemsArray = Array.from(data.selectedItems);
           selectedItemsArray.forEach((itemId: any) => {
             const idx = typeof itemId === 'number' ? itemId : parseInt(String(itemId));
-            if (!isNaN(idx)) newSelectedIndexes.add(idx);
+            if (!isNaN(idx) && isRowSelectableCheck(idx)) {
+              newSelectedIndexes.add(idx);
+            }
           });
           setSelectedRows(newSelectedIndexes);
           if (onSelectionChange) {
