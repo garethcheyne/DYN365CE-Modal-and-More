@@ -3,7 +3,7 @@
  * Uses fluentui-extended Lookup for address autocomplete with Google Maps or Azure Maps
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Field } from '@fluentui/react-components';
 import { Lookup } from 'fluentui-extended';
 
@@ -44,8 +44,19 @@ interface AddressLookupOption {
   text: string;
   secondaryText?: string;
   details?: Array<{ label?: string; value: string }>;
-  data: AddressResult;
+  /** Resolved address - immediate for Azure, fetched on select for Google */
+  data?: AddressResult;
+  /** Google place id - place details are fetched lazily on selection */
+  placeId?: string;
 }
+
+const buildAddressDetails = (address: AddressResult) => [
+  { label: 'Street', value: address.street || '-' },
+  { label: 'City', value: address.city || '-' },
+  { label: 'State', value: address.state || '-' },
+  { label: 'Postal Code', value: address.postalCode || '-' },
+  { label: 'Country', value: address.country || '-' },
+];
 
 export const AddressLookupFluentUi: React.FC<AddressLookupFluentUiProps> = ({
   id,
@@ -64,73 +75,101 @@ export const AddressLookupFluentUi: React.FC<AddressLookupFluentUiProps> = ({
   const [options, setOptions] = useState<AddressLookupOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<AddressLookupOption | null>(null);
   const [loading, setLoading] = useState(false);
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const searchAddress = async (query: string) => {
-    if (query.length < 3) {
-      setOptions([]);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      let results: AddressResult[] = [];
-
-      if (provider === 'google') {
-        results = await searchGoogleMaps(query, apiKey, componentRestrictions);
-      } else {
-        results = await searchAzureMaps(query, apiKey);
-      }
-
-      const mappedOptions: AddressLookupOption[] = results.map((address, index) => ({
-        key: `${address.formattedAddress}-${address.latitude}-${address.longitude}-${index}`,
-        text: address.formattedAddress,
-        secondaryText: [address.city, address.state, address.postalCode].filter(Boolean).join(', '),
-        details: [
-          { label: 'Street', value: address.street || '-' },
-          { label: 'City', value: address.city || '-' },
-          { label: 'State', value: address.state || '-' },
-          { label: 'Postal Code', value: address.postalCode || '-' },
-          { label: 'Country', value: address.country || '-' },
-        ],
-        data: address,
-      }));
-
-      setOptions(mappedOptions);
-    } catch (error) {
-      console.error('Address lookup error:', error);
-      setOptions([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Guards against out-of-order async responses overwriting newer results
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
+      mountedRef.current = false;
     };
   }, []);
 
+  const searchAddress = useCallback(
+    async (query: string) => {
+      const requestId = ++requestIdRef.current;
+      setLoading(true);
+
+      try {
+        let mappedOptions: AddressLookupOption[] = [];
+
+        if (provider === 'google') {
+          const predictions = await searchGooglePredictions(query, apiKey, componentRestrictions);
+          mappedOptions = predictions.map((prediction) => ({
+            key: prediction.placeId,
+            text: prediction.mainText,
+            secondaryText: prediction.secondaryText,
+            placeId: prediction.placeId,
+          }));
+        } else {
+          const results = await searchAzureMaps(query, apiKey);
+          mappedOptions = results.map((address, index) => ({
+            key: `${address.formattedAddress}-${address.latitude}-${address.longitude}-${index}`,
+            text: address.formattedAddress,
+            secondaryText: [address.city, address.state, address.postalCode].filter(Boolean).join(', '),
+            details: buildAddressDetails(address),
+            data: address,
+          }));
+        }
+
+        if (!mountedRef.current || requestId !== requestIdRef.current) return;
+        setOptions(mappedOptions);
+      } catch (error) {
+        console.error('Address lookup error:', error);
+        if (!mountedRef.current || requestId !== requestIdRef.current) return;
+        setOptions([]);
+      } finally {
+        if (mountedRef.current && requestId === requestIdRef.current) {
+          setLoading(false);
+        }
+      }
+    },
+    [apiKey, componentRestrictions, provider]
+  );
+
+  // Lookup already debounces by searchDebounceMs before calling this
   const handleSearchChange = (query: string) => {
     const nextQuery = query || '';
     setSearchText(nextQuery);
     onChange?.(nextQuery);
 
-    if (!nextQuery) {
+    if (nextQuery.length < 3) {
+      requestIdRef.current++;
       setSelectedOption(null);
       setOptions([]);
+      setLoading(false);
       return;
     }
 
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
+    void searchAddress(nextQuery);
+  };
+
+  const handleOptionSelect = (option: AddressLookupOption | null) => {
+    setSelectedOption(option);
+
+    if (!option) return;
+
+    if (option.data) {
+      onSelect?.(option.data);
+      return;
     }
 
-    searchTimeoutRef.current = setTimeout(() => {
-      void searchAddress(nextQuery);
-    }, 300);
+    if (!option.placeId) return;
+
+    setLoading(true);
+    fetchGooglePlaceDetails(option.placeId, apiKey)
+      .then((address) => {
+        if (!address) return;
+        if (mountedRef.current) {
+          setSelectedOption({ ...option, data: address, details: buildAddressDetails(address) });
+        }
+        onSelect?.(address);
+      })
+      .catch((error) => console.error('Address details error:', error))
+      .finally(() => {
+        if (mountedRef.current) setLoading(false);
+      });
   };
 
   const headerContent = useMemo(() => {
@@ -169,94 +208,133 @@ export const AddressLookupFluentUi: React.FC<AddressLookupFluentUiProps> = ({
         clearable
         minSearchLength={3}
         searchDebounceMs={300}
+        disableClientFilter
         header={headerContent}
         footer={footerContent}
         onSearchChange={handleSearchChange}
-        onOptionSelect={(option: any) => {
-          const selected = (option as AddressLookupOption | null) || null;
-          setSelectedOption(selected);
-
-          if (selected?.data) {
-            onSelect?.(selected.data);
-          }
-        }}
+        onOptionSelect={(option: any) => handleOptionSelect((option as AddressLookupOption | null) || null)}
       />
     </Field>
   );
 };
 
 // Google Maps API integration using Places Service
-const searchGoogleMaps = async (
+interface GooglePrediction {
+  placeId: string;
+  description: string;
+  mainText: string;
+  secondaryText: string;
+}
+
+let googleApiPromise: Promise<void> | null = null;
+
+const loadGoogleMapsApi = (apiKey: string): Promise<void> => {
+  if (window.google?.maps?.places) {
+    return Promise.resolve();
+  }
+
+  if (googleApiPromise) {
+    return googleApiPromise;
+  }
+
+  googleApiPromise = new Promise<void>((resolve, reject) => {
+    const callbackName = 'initGoogleMapsForUiLib';
+
+    (window as any)[callbackName] = () => {
+      delete (window as any)[callbackName];
+      resolve();
+    };
+
+    const script = document.createElement('script');
+    script.id = 'google-maps-script-uilib';
+    script.async = true;
+    script.defer = true;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async&libraries=places&callback=${callbackName}`;
+    script.onerror = () => {
+      delete (window as any)[callbackName];
+      googleApiPromise = null;
+      script.remove();
+      reject(new Error('Failed to load Google Maps API'));
+    };
+
+    document.head.appendChild(script);
+  });
+
+  return googleApiPromise;
+};
+
+const searchGooglePredictions = async (
   searchQuery: string,
   key: string,
   componentRestrictions?: { country: string | string[] }
-): Promise<AddressResult[]> => {
-  return new Promise((resolve) => {
-    // Load Google Maps JavaScript API if not already loaded
-    if (!window.google?.maps) {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`;
-      script.async = true;
-      script.onload = () => {
-        performSearch();
-      };
-      document.head.appendChild(script);
-    } else {
-      performSearch();
+): Promise<GooglePrediction[]> => {
+  await loadGoogleMapsApi(key);
+
+  if (!window.google?.maps?.places) {
+    throw new Error('Google Places API not available after loading');
+  }
+
+  return new Promise((resolve, reject) => {
+    const service = new window.google.maps.places.AutocompleteService();
+    const serviceStatus = window.google.maps.places.PlacesServiceStatus;
+
+    const request: any = {
+      input: searchQuery,
+      types: ['address'],
+    };
+
+    if (componentRestrictions) {
+      request.componentRestrictions = componentRestrictions;
     }
 
-    function performSearch() {
-      const service = new window.google.maps.places.AutocompleteService();
-
-      const request: any = {
-        input: searchQuery,
-        types: ['address']
-      };
-
-      if (componentRestrictions) {
-        request.componentRestrictions = componentRestrictions;
+    service.getPlacePredictions(request, (predictions: any[], status: any) => {
+      if (status === serviceStatus.ZERO_RESULTS) {
+        resolve([]);
+        return;
       }
 
-      service.getPlacePredictions(
-        request,
-        (predictions: any, status: any) => {
-          if (status !== window.google.maps.places.PlacesServiceStatus.OK || !predictions) {
-            resolve([]);
-            return;
-          }
+      if (status !== serviceStatus.OK || !predictions) {
+        reject(new Error(`Google Places API error: ${status}`));
+        return;
+      }
 
-          const results: AddressResult[] = [];
-          const limitedPredictions = predictions.slice(0, 5);
-          let completed = 0;
-
-          limitedPredictions.forEach((prediction: any) => {
-            const placesService = new window.google.maps.places.PlacesService(
-              document.createElement('div')
-            );
-
-            placesService.getDetails(
-              {
-                placeId: prediction.place_id,
-                fields: ['address_components', 'formatted_address', 'geometry']
-              },
-              (place: any, detailStatus: any) => {
-                if (detailStatus === window.google.maps.places.PlacesServiceStatus.OK && place) {
-                  const parsed = parseGoogleAddress(place);
-                  if (parsed) {
-                    results.push(parsed);
-                  }
-                }
-
-                completed++;
-                if (completed === limitedPredictions.length) {
-                  resolve(results);
-                }
-              }
-            );
-          });
-        }
+      resolve(
+        predictions.map((prediction: any) => ({
+          placeId: prediction.place_id,
+          description: prediction.description,
+          mainText: prediction.structured_formatting?.main_text || prediction.description,
+          secondaryText: prediction.structured_formatting?.secondary_text || '',
+        }))
       );
-    }
+    });
+  });
+};
+
+const fetchGooglePlaceDetails = async (placeId: string, key: string): Promise<AddressResult | null> => {
+  await loadGoogleMapsApi(key);
+
+  if (!window.google?.maps?.places) {
+    throw new Error('Google Places API not available after loading');
+  }
+
+  return new Promise((resolve, reject) => {
+    const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+    const serviceStatus = window.google.maps.places.PlacesServiceStatus;
+
+    service.getDetails(
+      {
+        placeId,
+        fields: ['address_components', 'formatted_address', 'geometry'],
+      },
+      (place: any, status: any) => {
+        if (status === serviceStatus.OK && place) {
+          resolve(parseGoogleAddress(place));
+          return;
+        }
+
+        reject(new Error(`Google Places API error: ${status}`));
+      }
+    );
   });
 };
 
